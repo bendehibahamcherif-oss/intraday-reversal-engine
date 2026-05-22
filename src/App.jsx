@@ -5,6 +5,8 @@ import LiveTradingHeader from "./LiveTradingHeader.jsx";
 import LiveMarketBoard from "./LiveMarketBoard.jsx";
 import TerminalControls from "./TerminalControls.jsx";
 import AIAlertsPanel from "./AIAlertsPanel.jsx";
+import MiniChartPanel from "./MiniChartPanel.jsx";
+import QuantPanel from "./QuantPanel.jsx";
 import { api, getToken } from "./api.js";
 
 const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "MSFT"];
@@ -31,6 +33,7 @@ function generateAlerts(marketData) {
 export default function App() {
   const [livePrice, setLivePrice] = useState(null);
   const [marketData, setMarketData] = useState({});
+  const [ticks, setTicks] = useState([]);
   const [socketStatus, setSocketStatus] = useState("connecting");
   const [watchlist, setWatchlist] = useState(DEFAULT_WATCHLIST);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
@@ -53,13 +56,26 @@ export default function App() {
     });
 
     socket.on("price_update", (data) => {
-      console.log("LIVE PRICE:", data);
       setLivePrice(data);
 
       setMarketData((prev) => ({
         ...prev,
         [data.symbol]: data,
       }));
+
+      setTicks((prev) => [...prev.slice(-59), data]);
+
+      if (
+        alertsEnabled &&
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted" &&
+        Number(data.signal?.confidence || 0) > 0.75
+      ) {
+        new Notification(`${data.symbol} ${data.signal?.signal}`, {
+          body: data.signal?.reason || "Realtime signal",
+        });
+      }
     });
 
     socket.on("price_error", (data) => {
@@ -76,13 +92,19 @@ export default function App() {
     });
 
     return () => socket.disconnect();
-  }, [socket, watchlist]);
+  }, [socket, watchlist, alertsEnabled]);
 
   useEffect(() => {
     if (socket.connected) {
       socket.emit("subscribe", { symbols: watchlist });
     }
   }, [socket, watchlist]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   const alerts = alertsEnabled ? generateAlerts(marketData) : [];
 
@@ -93,13 +115,17 @@ export default function App() {
         socketStatus={socketStatus}
       />
 
-      <div style={{ padding: 16 }}>
+      <div style={{ padding: 16, maxWidth: 1600, margin: "0 auto" }}>
         <TerminalControls
           symbols={watchlist}
           onSymbolsChange={setWatchlist}
           alertsEnabled={alertsEnabled}
           onAlertsToggle={() => setAlertsEnabled((v) => !v)}
         />
+
+        <QuantPanel marketData={marketData} />
+
+        <MiniChartPanel ticks={ticks} />
 
         <AIAlertsPanel alerts={alerts} />
 
