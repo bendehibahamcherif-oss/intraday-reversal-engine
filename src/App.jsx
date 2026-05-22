@@ -9,6 +9,9 @@ import MiniChartPanel from "./MiniChartPanel.jsx";
 import QuantPanel from "./QuantPanel.jsx";
 import ExecutiveSummary from "./ExecutiveSummary.jsx";
 import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
+import AdvancedChartPanel from "./AdvancedChartPanel.jsx";
+import RiskAnalyticsPanel from "./RiskAnalyticsPanel.jsx";
+import WorkspacePanel from "./WorkspacePanel.jsx";
 import { api, getToken } from "./api.js";
 import "./terminal.css";
 
@@ -62,7 +65,7 @@ export default function App() {
         [data.symbol]: data,
       }));
 
-      setTicks((prev) => [...prev.slice(-59), data]);
+      setTicks((prev) => [...prev.slice(-119), data]);
 
       if (
         alertsEnabled &&
@@ -104,10 +107,7 @@ export default function App() {
 
   return (
     <div className="terminal-shell">
-      <LiveTradingHeader
-        livePrice={livePrice}
-        socketStatus={socketStatus}
-      />
+      <LiveTradingHeader livePrice={livePrice} socketStatus={socketStatus} />
 
       <div className="terminal-container">
         <ExecutiveSummary
@@ -125,12 +125,15 @@ export default function App() {
 
         <div className="terminal-grid">
           <div>
+            <AdvancedChartPanel ticks={ticks} />
             <MiniChartPanel ticks={ticks} />
             <LiveMarketBoard marketData={marketData} />
           </div>
 
           <div>
+            <WorkspacePanel />
             <QuantPanel marketData={marketData} />
+            <RiskAnalyticsPanel marketData={marketData} />
             <AIAlertsPanel alerts={alerts} />
           </div>
         </div>
