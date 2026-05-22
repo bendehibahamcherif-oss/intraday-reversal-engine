@@ -1,27 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
 import StrategyAnalyzer from "./StrategyAnalyzer.jsx";
+import LiveTradingHeader from "./LiveTradingHeader.jsx";
 import { api, getToken } from "./api.js";
 
 export default function App() {
   const [livePrice, setLivePrice] = useState(null);
   const [socketStatus, setSocketStatus] = useState("connecting");
 
-  const socket = useMemo(() => {
-    return io(api.base, {
-      transports: ["websocket", "polling"],
-      auth: {
-        token: getToken() || import.meta.env.VITE_USER_TOKEN || "",
-      },
-    });
-  }, []);
+  const socket = useMemo(() => io(api.base, {
+    transports: ["websocket", "polling"],
+    auth: {
+      token: getToken() || import.meta.env.VITE_USER_TOKEN || "",
+    },
+  }), []);
 
   useEffect(() => {
     socket.on("connect", () => {
       setSocketStatus("connected");
-
       socket.emit("subscribe", {
-        symbols: ["AAPL"],
+        symbols: ["AAPL", "TSLA", "NVDA", "MSFT"],
       });
     });
 
@@ -47,26 +45,19 @@ export default function App() {
       setSocketStatus("disconnected");
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => socket.disconnect();
   }, [socket]);
 
   return (
-    <>
-      <div style={{ padding: "10px", background: "#111", color: "white" }}>
-        {livePrice ? (
-          <strong>
-            LIVE {livePrice.symbol}: {Number(livePrice.price).toFixed(2)}
-          </strong>
-        ) : (
-          <strong>
-            Connexion live price... ({socketStatus})
-          </strong>
-        )}
-      </div>
+    <div style={{ minHeight: "100vh", background: "#0b0b0b", color: "white" }}>
+      <LiveTradingHeader
+        livePrice={livePrice}
+        socketStatus={socketStatus}
+      />
 
-      <StrategyAnalyzer livePrice={livePrice} />
-    </>
+      <div style={{ padding: 16 }}>
+        <StrategyAnalyzer livePrice={livePrice} />
+      </div>
+    </div>
   );
 }
