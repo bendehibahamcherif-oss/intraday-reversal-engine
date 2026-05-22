@@ -1,18 +1,12 @@
 services:
   - type: web
-    name: intraday-reversal-engine
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: false
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    name: reversal-api
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_VERSION
+        value: 22
