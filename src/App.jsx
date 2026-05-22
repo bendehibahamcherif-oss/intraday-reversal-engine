@@ -7,7 +7,9 @@ import TerminalControls from "./TerminalControls.jsx";
 import AIAlertsPanel from "./AIAlertsPanel.jsx";
 import MiniChartPanel from "./MiniChartPanel.jsx";
 import QuantPanel from "./QuantPanel.jsx";
+import ExecutiveSummary from "./ExecutiveSummary.jsx";
 import { api, getToken } from "./api.js";
+import "./terminal.css";
 
 const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "MSFT"];
 
@@ -51,10 +53,6 @@ export default function App() {
       socket.emit("subscribe", { symbols: watchlist });
     });
 
-    socket.on("subscribed", (data) => {
-      console.log("WebSocket subscribed:", data);
-    });
-
     socket.on("price_update", (data) => {
       setLivePrice(data);
 
@@ -78,12 +76,7 @@ export default function App() {
       }
     });
 
-    socket.on("price_error", (data) => {
-      console.warn("LIVE PRICE ERROR:", data);
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("WebSocket error:", err.message);
+    socket.on("connect_error", () => {
       setSocketStatus("error");
     });
 
@@ -109,13 +102,19 @@ export default function App() {
   const alerts = alertsEnabled ? generateAlerts(marketData) : [];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0b0b0b", color: "white" }}>
+    <div className="terminal-shell">
       <LiveTradingHeader
         livePrice={livePrice}
         socketStatus={socketStatus}
       />
 
-      <div style={{ padding: 16, maxWidth: 1600, margin: "0 auto" }}>
+      <div className="terminal-container">
+        <ExecutiveSummary
+          marketData={marketData}
+          alerts={alerts}
+          socketStatus={socketStatus}
+        />
+
         <TerminalControls
           symbols={watchlist}
           onSymbolsChange={setWatchlist}
@@ -123,15 +122,21 @@ export default function App() {
           onAlertsToggle={() => setAlertsEnabled((v) => !v)}
         />
 
-        <QuantPanel marketData={marketData} />
+        <div className="terminal-grid">
+          <div>
+            <MiniChartPanel ticks={ticks} />
+            <LiveMarketBoard marketData={marketData} />
+          </div>
 
-        <MiniChartPanel ticks={ticks} />
+          <div>
+            <QuantPanel marketData={marketData} />
+            <AIAlertsPanel alerts={alerts} />
+          </div>
+        </div>
 
-        <AIAlertsPanel alerts={alerts} />
-
-        <LiveMarketBoard marketData={marketData} />
-
-        <StrategyAnalyzer livePrice={livePrice} />
+        <div style={{ marginTop: 16 }}>
+          <StrategyAnalyzer livePrice={livePrice} />
+        </div>
       </div>
     </div>
   );
