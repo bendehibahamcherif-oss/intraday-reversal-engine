@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
 import StrategyAnalyzer from "./StrategyAnalyzer.jsx";
 import LiveTradingHeader from "./LiveTradingHeader.jsx";
+import LiveMarketBoard from "./LiveMarketBoard.jsx";
 import { api, getToken } from "./api.js";
+
+const WATCHLIST = ["AAPL", "TSLA", "NVDA", "MSFT"];
 
 export default function App() {
   const [livePrice, setLivePrice] = useState(null);
+  const [marketData, setMarketData] = useState({});
   const [socketStatus, setSocketStatus] = useState("connecting");
 
   const socket = useMemo(() => io(api.base, {
@@ -19,7 +23,7 @@ export default function App() {
     socket.on("connect", () => {
       setSocketStatus("connected");
       socket.emit("subscribe", {
-        symbols: ["AAPL", "TSLA", "NVDA", "MSFT"],
+        symbols: WATCHLIST,
       });
     });
 
@@ -30,6 +34,10 @@ export default function App() {
     socket.on("price_update", (data) => {
       console.log("LIVE PRICE:", data);
       setLivePrice(data);
+      setMarketData((prev) => ({
+        ...prev,
+        [data.symbol]: data,
+      }));
     });
 
     socket.on("price_error", (data) => {
@@ -56,6 +64,8 @@ export default function App() {
       />
 
       <div style={{ padding: 16 }}>
+        <LiveMarketBoard marketData={marketData} />
+
         <StrategyAnalyzer livePrice={livePrice} />
       </div>
     </div>
