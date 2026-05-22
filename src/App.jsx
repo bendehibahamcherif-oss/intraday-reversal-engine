@@ -12,7 +12,10 @@ import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
 import AdvancedChartPanel from "./AdvancedChartPanel.jsx";
 import RiskAnalyticsPanel from "./RiskAnalyticsPanel.jsx";
 import WorkspacePanel from "./WorkspacePanel.jsx";
-import { api, getToken } from "./api.js";
+import AdminUsersPanel from "./AdminUsersPanel.jsx";
+import AuthGate from "./AuthGate.jsx";
+import TerminalTopBar from "./TerminalTopBar.jsx";
+import { api, getToken, getUser } from "./api.js";
 import "./terminal.css";
 
 const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "MSFT"];
@@ -43,15 +46,39 @@ export default function App() {
   const [socketStatus, setSocketStatus] = useState("connecting");
   const [watchlist, setWatchlist] = useState(DEFAULT_WATCHLIST);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [user, setUser] = useState(getUser());
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+
+    if (!token) {
+      setAuthReady(true);
+      return;
+    }
+
+    api.me()
+      .then((res) => {
+        setUser(res.user);
+      })
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => {
+        setAuthReady(true);
+      });
+  }, []);
 
   const socket = useMemo(() => io(api.base, {
     transports: ["websocket", "polling"],
     auth: {
       token: getToken() || import.meta.env.VITE_USER_TOKEN || "",
     },
-  }), []);
+  }), [user]);
 
   useEffect(() => {
+    if (!user) return;
+
     socket.on("connect", () => {
       setSocketStatus("connected");
       socket.emit("subscribe", { symbols: watchlist });
@@ -89,7 +116,7 @@ export default function App() {
     });
 
     return () => socket.disconnect();
-  }, [socket, watchlist, alertsEnabled]);
+  }, [socket, watchlist, alertsEnabled, user]);
 
   useEffect(() => {
     if (socket.connected) {
@@ -105,8 +132,22 @@ export default function App() {
 
   const alerts = alertsEnabled ? generateAlerts(marketData) : [];
 
+  if (!authReady) {
+    return (
+      <div className="terminal-shell" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+        Loading terminal...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthGate onAuth={setUser} />;
+  }
+
   return (
     <div className="terminal-shell">
+      <TerminalTopBar user={user} onLogout={() => setUser(null)} />
+
       <LiveTradingHeader livePrice={livePrice} socketStatus={socketStatus} />
 
       <div className="terminal-container">
@@ -135,6 +176,12 @@ export default function App() {
             <QuantPanel marketData={marketData} />
             <RiskAnalyticsPanel marketData={marketData} />
             <AIAlertsPanel alerts={alerts} />
+
+            {user?.role === "admin" && (
+              <div style={{ marginTop: 16 }}>
+                <AdminUsersPanel />
+              </div>
+            )}
           </div>
         </div>
 
