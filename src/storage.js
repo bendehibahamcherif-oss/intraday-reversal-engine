@@ -1,8 +1,8 @@
 // ============ STORAGE ============
-// localStorage avec fallback in-memory (pour navigation privée).
-// IMPORTANT: la clé API Claude N'EST PAS stockée ici — elle est en variable d'env sur le backend.
+// Local fallback for offline / quick access.
+// The server (via api.js) is the source of truth for watchlists and alerts.
 
-const STORAGE_KEY = 'reversal_engine_v2';
+const STORAGE_KEY = 'reversal_engine_v3';
 
 let memoryFallback = null;
 function safeStorage() {
@@ -33,17 +33,15 @@ export const DEFAULT_SETTINGS = {
     { id: 'semis', name: 'Semiconducteurs', tickers: ['NVDA', 'AMD', 'TSM', 'AVGO', 'ASML'] },
   ],
   activeWatchlistId: 'indices',
-  // Alerts
   alertsEnabled: false,
   alertSound: true,
   alertNotification: true,
   alertScanIntervalSec: 60,
-  alertedKeys: {}, // {ticker_decision: timestamp} pour éviter de re-spam le même alert
 };
 
 export const MODELS = [
-  { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', desc: 'Le plus puissant, plus lent et plus cher' },
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', desc: 'Très bon, génération précédente' },
+  { id: 'claude-opus-4-7', name: 'Claude Opus 4.7', desc: 'Le plus puissant' },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', desc: 'Très bon, plus rapide' },
   { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', desc: 'Équilibré (recommandé)' },
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', desc: 'Rapide et économique' },
 ];
@@ -52,21 +50,13 @@ export function loadSettings() {
   try {
     const raw = safeStorage().getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch { return { ...DEFAULT_SETTINGS }; }
 }
 
 export function saveSettings(settings) {
-  try {
-    safeStorage().setItem(STORAGE_KEY, JSON.stringify(settings));
-    return true;
-  } catch (e) {
-    console.error('saveSettings failed:', e);
-    return false;
-  }
+  try { safeStorage().setItem(STORAGE_KEY, JSON.stringify(settings)); return true; }
+  catch (e) { console.error('saveSettings failed:', e); return false; }
 }
 
 export function newWatchlistId() {

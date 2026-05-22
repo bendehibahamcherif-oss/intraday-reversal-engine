@@ -1,6 +1,5 @@
 import { useState } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:10000';
+import { api } from './api.js';
 
 const fonts = {
   display: "'Instrument Serif', 'Times New Roman', serif",
@@ -42,7 +41,6 @@ export default function AIAnalysisPanel({ settings, ticker, derived, calc, tfInd
     setLoading(true); setError(null); setAnalysis(null);
 
     try {
-      // Build context payload to send to backend
       const payload = {
         ticker,
         currentPrice: derived.currentPrice,
@@ -50,9 +48,7 @@ export default function AIAnalysisPanel({ settings, ticker, derived, calc, tfInd
         priceSource: derived.priceSource,
         priceTimestamp: derived.priceTimestamp,
         vix: derived.vix,
-        gap: calc.gap,
-        gapPct: calc.gapPct,
-        gapAtrRatio: calc.gapAtrRatio,
+        gap: calc.gap, gapPct: calc.gapPct, gapAtrRatio: calc.gapAtrRatio,
         firstHourPctOfDaily: calc.firstHourPctOfDaily,
         direction: derived.direction,
         mtfAlignment: calc.mtfAlignment,
@@ -69,25 +65,17 @@ export default function AIAnalysisPanel({ settings, ticker, derived, calc, tfInd
         useWebSearch: settings.useWebSearch,
       };
 
-      const res = await fetch(`${API_BASE}/claude/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        if (res.status === 503) {
-          throw new Error('Clé API non configurée sur le backend. Va dans ⚙ Paramètres > IA Claude pour les instructions.');
-        }
-        throw new Error(errData.error || `Erreur ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await api.claudeAnalyze(payload);
       setAnalysis(data);
       setLastRun(new Date());
     } catch (e) {
-      setError(e.message);
+      if (e.status === 503) {
+        setError('Clé API non configurée sur le backend. Va dans ⚙ Paramètres > IA Claude.');
+      } else if (e.status === 401) {
+        setError('Token utilisateur invalide. Va dans ⚙ Paramètres pour le saisir.');
+      } else {
+        setError(e.message);
+      }
     } finally {
       setLoading(false);
     }

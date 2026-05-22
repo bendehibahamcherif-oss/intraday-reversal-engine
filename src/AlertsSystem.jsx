@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { scanTicker } from './engine.js';
+import { api } from './api.js';
 
 const fonts = {
   display: "'Instrument Serif', 'Times New Roman', serif",
@@ -8,9 +9,8 @@ const fonts = {
 };
 
 const ALERT_DECISIONS = new Set(['ACHETER', 'ACHETER 1/2']);
-const ALERT_COOLDOWN_MS = 15 * 60 * 1000; // 15 min same alert
+const ALERT_COOLDOWN_MS = 15 * 60 * 1000;
 
-// Play a short beep using Web Audio API (no external file needed)
 function playBeep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -22,7 +22,6 @@ function playBeep() {
     gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
     osc.start(); osc.stop(ctx.currentTime + 0.3);
-    // Double beep
     setTimeout(() => {
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
@@ -33,31 +32,29 @@ function playBeep() {
       gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
       osc2.start(); osc2.stop(ctx.currentTime + 0.3);
     }, 200);
-  } catch (e) { /* silent fail */ }
+  } catch (e) {}
 }
 
 function showNotification(symbol, decision, posterior) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     new Notification(`🎯 ${decision} — ${symbol}`, {
-      body: `Probabilité de retournement: ${(posterior * 100).toFixed(1)}%`,
-      tag: `reversal-${symbol}`, // groups subsequent alerts of same ticker
-      requireInteraction: false,
+      body: `P(retournement): ${(posterior * 100).toFixed(1)}%`,
+      tag: `reversal-${symbol}`, requireInteraction: false,
     });
-  } catch (e) { /* silent fail */ }
+  } catch (e) {}
 }
 
 export function useAlertScanner({ enabled, tickers, intervalSec, useSound, useNotification, onAlert, onTickerStatus }) {
   const intervalRef = useRef(null);
-  const lastAlertRef = useRef({}); // {symbol: { decision, timestamp }}
+  const lastAlertRef = useRef({});
   const scanningRef = useRef(false);
 
   const scan = useCallback(async () => {
-    if (scanningRef.current) return; // prevent overlapping scans
+    if (scanningRef.current) return;
     if (!tickers || tickers.length === 0) return;
     scanningRef.current = true;
 
-    // Fetch VIX once per scan
     let vixVal = null;
     try {
       const vixData = await scanTicker('^VIX').catch(() => null);
@@ -69,7 +66,6 @@ export function useAlertScanner({ enabled, tickers, intervalSec, useSound, useNo
         const result = await scanTicker(symbol, vixVal);
         onTickerStatus?.(symbol, result);
 
-        // Check if it's an alertable decision
         if (ALERT_DECISIONS.has(result.decision)) {
           const lastAlert = lastAlertRef.current[symbol];
           const now = Date.now();
@@ -79,19 +75,18 @@ export function useAlertScanner({ enabled, tickers, intervalSec, useSound, useNo
 
           if (shouldAlert) {
             lastAlertRef.current[symbol] = { decision: result.decision, timestamp: now };
+            const alertObj = {
+              symbol, decision: result.decision, posterior: result.posterior,
+              currentPrice: result.currentPrice, reason: result.decisionReason,
+              marketState: result.marketState, timestamp: now,
+            };
             if (useSound) playBeep();
             if (useNotification) showNotification(symbol, result.decision, result.posterior);
-            onAlert?.({
-              symbol,
-              decision: result.decision,
-              posterior: result.posterior,
-              currentPrice: result.currentPrice,
-              reason: result.decisionReason,
-              timestamp: now,
-            });
+            // Persist to backend
+            api.recordAlert(alertObj).catch(e => console.warn('Failed to persist alert:', e.message));
+            onAlert?.(alertObj);
           }
         }
-        // Throttle between tickers to avoid hammering Yahoo
         await new Promise(r => setTimeout(r, 800));
       } catch (e) {
         onTickerStatus?.(symbol, { symbol, error: e.message });
@@ -105,14 +100,13 @@ export function useAlertScanner({ enabled, tickers, intervalSec, useSound, useNo
       if (intervalRef.current) clearInterval(intervalRef.current);
       return;
     }
-    // Initial scan immediately
     scan();
     intervalRef.current = setInterval(scan, intervalSec * 1000);
     return () => clearInterval(intervalRef.current);
   }, [enabled, tickers, intervalSec, scan]);
 }
 
-export function AlertsPanel({ enabled, tickers, scanInterval, statuses, alerts, onToggle, onClear }) {
+export function AlertsPanel({ enabled, tickers, scanInterval, statuses, alerts, onToggle, onClear, onReload }) {
   return (
     <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '16px', marginBottom: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
@@ -121,12 +115,16 @@ export function AlertsPanel({ enabled, tickers, scanInterval, statuses, alerts, 
             🚨 Scanner d'alertes
           </div>
           <div style={{ fontFamily: fonts.mono, fontSize: '10px', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '4px' }}>
-            {enabled ? `actif · ${tickers.length} tickers · scan toutes les ${scanInterval}s` : 'désactivé'}
+            {enabled ? `actif · ${tickers.length} tickers · scan ${scanInterval}s` : 'désactivé'} · 💾 persistance backend
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={onToggle}
+          {onReload && (
+            <button onClick={onReload}
+              style={{ background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', padding: '8px 14px', fontFamily: fonts.mono, fontSize: '11px', cursor: 'pointer', borderRadius: '4px' }}
+            >↻ Recharger</button>
+          )}
+          <button onClick={onToggle}
             style={{
               background: enabled ? '#dc2626' : '#22c55e',
               color: enabled ? '#fff' : '#020617',
@@ -139,7 +137,6 @@ export function AlertsPanel({ enabled, tickers, scanInterval, statuses, alerts, 
         </div>
       </div>
 
-      {/* Statuses table */}
       {enabled && tickers.length > 0 && (
         <div style={{ marginBottom: '12px', maxHeight: '200px', overflowY: 'auto', background: '#020617', border: '1px solid #1e293b', borderRadius: '4px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: fonts.mono, fontSize: '11px' }}>
@@ -177,22 +174,21 @@ export function AlertsPanel({ enabled, tickers, scanInterval, statuses, alerts, 
         </div>
       )}
 
-      {/* Alert history */}
       {alerts.length > 0 && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <div style={{ fontFamily: fonts.mono, fontSize: '10px', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Historique d'alertes ({alerts.length})
+              Historique ({alerts.length})
             </div>
-            <button onClick={onClear} style={{ background: 'transparent', border: 'none', color: '#64748b', fontFamily: fonts.mono, fontSize: '10px', cursor: 'pointer' }}>effacer</button>
+            <button onClick={onClear} style={{ background: 'transparent', border: 'none', color: '#64748b', fontFamily: fonts.mono, fontSize: '10px', cursor: 'pointer' }}>effacer tout</button>
           </div>
-          <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
             {alerts.slice().reverse().map((a, i) => {
               const color = a.decision === 'ACHETER' ? '#4ade80' : '#a3e635';
               return (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(34, 197, 94, 0.06)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '4px', marginBottom: '4px', fontFamily: fonts.mono, fontSize: '11px' }}>
-                  <span><span style={{ color, fontWeight: 600 }}>{a.decision}</span> · <span style={{ color: '#f1f5f9' }}>{a.symbol}</span> @ {a.currentPrice?.toFixed(2)}$ · P={(a.posterior * 100).toFixed(1)}%</span>
-                  <span style={{ color: '#64748b' }}>{new Date(a.timestamp).toLocaleTimeString('fr-FR')}</span>
+                <div key={a.id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(34, 197, 94, 0.06)', border: '1px solid rgba(34, 197, 94, 0.2)', borderRadius: '4px', marginBottom: '4px', fontFamily: fonts.mono, fontSize: '11px' }}>
+                  <span><span style={{ color, fontWeight: 600 }}>{a.decision}</span> · <span style={{ color: '#f1f5f9' }}>{a.symbol}</span> @ {a.current_price?.toFixed?.(2) || a.currentPrice?.toFixed?.(2) || '—'}$ · P={((a.posterior) * 100).toFixed(1)}%</span>
+                  <span style={{ color: '#64748b' }}>{new Date(a.timestamp).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               );
             })}
@@ -200,9 +196,9 @@ export function AlertsPanel({ enabled, tickers, scanInterval, statuses, alerts, 
         </div>
       )}
 
-      {alerts.length === 0 && enabled && (
+      {alerts.length === 0 && (
         <div style={{ padding: '12px', textAlign: 'center', fontFamily: fonts.mono, fontSize: '11px', color: '#64748b' }}>
-          Aucune alerte déclenchée pour l'instant. Le scanner tourne en arrière-plan.
+          {enabled ? 'Scanner en cours, en attente de la première alerte...' : 'Aucune alerte en historique. Active le scanner pour commencer.'}
         </div>
       )}
     </div>

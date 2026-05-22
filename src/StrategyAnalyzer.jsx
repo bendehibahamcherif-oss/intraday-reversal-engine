@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { loadSettings, saveSettings } from './storage.js';
+import { api } from './api.js';
+import { selectPrices } from './engine.js';
 import SettingsModal from './SettingsModal.jsx';
 import AIAnalysisPanel from './AIAnalysisPanel.jsx';
+import BacktestPanel from './BacktestPanel.jsx';
 import { useAlertScanner, AlertsPanel } from './AlertsSystem.jsx';
 
 // ============ DATA FETCHING ============
@@ -159,6 +162,54 @@ export default function StrategyAnalyzer() {
   }, []);
   const toggleAlerts = () => handleSaveSettings({ ...settings, alertsEnabled: !settings.alertsEnabled });
 
+  // Load persistent alert history from backend on mount
+  const loadAlertHistory = useCallback(async () => {
+    try {
+      const r = await api.listAlerts(200);
+      if (r.alerts) {
+        // Map server format (snake_case) to client format
+        const mapped = r.alerts.map(a => ({
+          id: a.id,
+          symbol: a.symbol,
+          decision: a.decision,
+          posterior: a.posterior,
+          currentPrice: a.current_price,
+          reason: a.reason,
+          marketState: a.market_state,
+          timestamp: a.timestamp,
+        }));
+        setAlertHistory(mapped);
+      }
+    } catch (e) { console.warn('Could not load alert history:', e.message); }
+  }, []);
+
+  const clearAlertHistory = async () => {
+    if (!confirm('Effacer tout l\'historique d\'alertes du serveur ?')) return;
+    try { await api.clearAlerts(); setAlertHistory([]); }
+    catch (e) { alert('Erreur: ' + e.message); }
+  };
+
+  // Pull watchlists from server on first load (if available)
+  const syncWatchlistsFromServer = useCallback(async () => {
+    try {
+      const r = await api.getSetting('watchlists');
+      if (r.value && Array.isArray(r.value) && r.value.length > 0) {
+        const activeId = (await api.getSetting('activeWatchlistId').catch(() => null))?.value;
+        const merged = { ...settings, watchlists: r.value, activeWatchlistId: activeId || r.value[0].id };
+        setSettings(merged);
+        saveSettings(merged);
+      }
+    } catch (e) {
+      // 401 = no token yet, expected on first install
+      if (e.status !== 401) console.warn('Watchlist sync failed:', e.message);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    loadAlertHistory();
+    syncWatchlistsFromServer();
+  }, [loadAlertHistory, syncWatchlistsFromServer]);
+
   useAlertScanner({
     enabled: settings.alertsEnabled,
     tickers: activeWatchlist?.tickers || [],
@@ -252,52 +303,10 @@ export default function StrategyAnalyzer() {
     const intraday5m = tf['5m']?.bars || [];
     const meta = tf['1d']?.meta || tf['5m']?.meta;
 
-    // Determine current price and reference close based on Yahoo's marketState
-    // marketState can be: PRE, PREPRE, REGULAR, POST, POSTPOST, CLOSED
-    const marketState = meta?.marketState || null;
-    let currentPriceFromMeta = null;
-    let prevCloseFromMeta = null;
-    let priceSource = null;
-    let priceTimestamp = null;
-
-    if (meta) {
-      const hasPre = meta.preMarketPrice != null && meta.preMarketPrice > 0;
-      const hasPost = meta.postMarketPrice != null && meta.postMarketPrice > 0;
-
-      if ((marketState === 'PRE' || marketState === 'PREPRE') && hasPre) {
-        // Pre-market session: latest = preMarketPrice, reference = last regular close (= regularMarketPrice while session not yet started)
-        currentPriceFromMeta = meta.preMarketPrice;
-        prevCloseFromMeta = meta.regularMarketPrice;
-        priceSource = 'PRE-MARKET';
-        priceTimestamp = meta.preMarketTime;
-      } else if ((marketState === 'POST' || marketState === 'POSTPOST') && hasPost) {
-        // Post-market session: latest = postMarketPrice, reference = today's regular close (= regularMarketPrice)
-        currentPriceFromMeta = meta.postMarketPrice;
-        prevCloseFromMeta = meta.regularMarketPrice;
-        priceSource = 'POST-MARKET';
-        priceTimestamp = meta.postMarketTime;
-      } else if (marketState === 'REGULAR') {
-        // Live regular session
-        currentPriceFromMeta = meta.regularMarketPrice;
-        prevCloseFromMeta = meta.previousClose;
-        priceSource = 'LIVE';
-        priceTimestamp = meta.regularMarketTime;
-      } else {
-        // CLOSED, or PRE/POST without extended-hours tick yet: fall back to most recent complete session
-        // Prefer post-market if available (latest tick of yesterday), else regular close
-        if (hasPost) {
-          currentPriceFromMeta = meta.postMarketPrice;
-          prevCloseFromMeta = meta.regularMarketPrice;
-          priceSource = 'POST-MARKET (clos)';
-          priceTimestamp = meta.postMarketTime;
-        } else {
-          currentPriceFromMeta = meta.regularMarketPrice;
-          prevCloseFromMeta = meta.previousClose;
-          priceSource = 'CLÔTURÉ';
-          priceTimestamp = meta.regularMarketTime;
-        }
-      }
-    }
+    // Use the shared selectPrices function (also used by the alert scanner) to ensure consistent behavior.
+    // It handles the early pre-market case where marketState is still CLOSED but a preMarketPrice exists.
+    const priced = selectPrices(meta);
+    const { currentPrice: currentPriceFromMeta, prevClose: prevCloseFromMeta, priceSource, priceTimestamp, marketState } = priced;
 
     const currentPrice = override.currentPrice ?? currentPriceFromMeta ?? (intraday5m.length ? intraday5m[intraday5m.length - 1].c : null);
     const prevClose = override.prevClose ?? prevCloseFromMeta ?? (daily.length > 1 ? daily[daily.length - 2].c : null);
@@ -698,7 +707,8 @@ export default function StrategyAnalyzer() {
           statuses={alertStatuses}
           alerts={alertHistory}
           onToggle={toggleAlerts}
-          onClear={() => setAlertHistory([])}
+          onClear={clearAlertHistory}
+          onReload={loadAlertHistory}
         />
 
         {/* ============ AI ANALYSIS PANEL ============ */}
@@ -710,6 +720,9 @@ export default function StrategyAnalyzer() {
           tfIndicators={tfIndicators}
           onOpenSettings={() => setShowSettings(true)}
         />
+
+        {/* ============ BACKTEST PANEL ============ */}
+        <BacktestPanel ticker={ticker} />
 
         {/* ============ MULTI-TIMEFRAME PANEL ============ */}
         <Section title="Vue multi-timeframe" subtitle="Trend / RSI / variation par fréquence" fonts={fonts}>

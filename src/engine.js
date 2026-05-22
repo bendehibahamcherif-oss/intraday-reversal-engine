@@ -1,8 +1,7 @@
 // ============ ENGINE: pure decision logic ============
 // Calcule la décision bayésienne pour un ticker à partir des données Yahoo brutes.
-// Utilisé par : (1) le composant principal pour le ticker actif, (2) le scanner d'alertes en background.
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:10000';
+import { api } from './api.js';
 
 // ---- Indicators ----
 export function ema(values, period) {
@@ -84,9 +83,7 @@ export function parseYahoo(data) {
 }
 
 export async function fetchYahoo(symbol, interval, range) {
-  const res = await fetch(`${API_BASE}/yahoo/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
+  const data = await api.yahooChart(symbol, interval, range);
   if (!data?.chart?.result?.[0]) throw new Error('Empty result');
   return parseYahoo(data);
 }
@@ -119,26 +116,64 @@ export function computeTfIndicators(tfData) {
 }
 
 // ---- Price selection based on market state ----
+// Yahoo's marketState is unreliable in early pre-market (4h-6h ET) and late post-market.
+// We use a hybrid approach: trust marketState when it says PRE/POST, but ALSO infer from timestamps
+// — if preMarketTime > regularMarketTime, we're in pre-market regardless of marketState.
 export function selectPrices(meta) {
-  const marketState = meta?.marketState || null;
   if (!meta) return { currentPrice: null, prevClose: null, priceSource: null };
 
+  const marketState = meta.marketState || null;
   const hasPre = meta.preMarketPrice != null && meta.preMarketPrice > 0;
   const hasPost = meta.postMarketPrice != null && meta.postMarketPrice > 0;
+  const regTime = meta.regularMarketTime || 0;
+  const preTime = meta.preMarketTime || 0;
+  const postTime = meta.postMarketTime || 0;
 
-  if ((marketState === 'PRE' || marketState === 'PREPRE') && hasPre) {
-    return { currentPrice: meta.preMarketPrice, prevClose: meta.regularMarketPrice, priceSource: 'PRE-MARKET', priceTimestamp: meta.preMarketTime, marketState };
+  // PRE-MARKET: trust marketState, OR infer from timestamps (preMarketTime more recent than regularMarketTime AND no post-market)
+  const isPreMarketByState = (marketState === 'PRE' || marketState === 'PREPRE');
+  const isPreMarketByTime = hasPre && preTime > regTime && !(hasPost && postTime > preTime);
+  if ((isPreMarketByState || isPreMarketByTime) && hasPre) {
+    return {
+      currentPrice: meta.preMarketPrice,
+      prevClose: meta.regularMarketPrice,
+      priceSource: 'PRE-MARKET',
+      priceTimestamp: meta.preMarketTime,
+      marketState,
+    };
   }
-  if ((marketState === 'POST' || marketState === 'POSTPOST') && hasPost) {
-    return { currentPrice: meta.postMarketPrice, prevClose: meta.regularMarketPrice, priceSource: 'POST-MARKET', priceTimestamp: meta.postMarketTime, marketState };
+
+  // POST-MARKET
+  const isPostMarketByState = (marketState === 'POST' || marketState === 'POSTPOST');
+  const isPostMarketByTime = hasPost && postTime > regTime;
+  if ((isPostMarketByState || isPostMarketByTime) && hasPost) {
+    return {
+      currentPrice: meta.postMarketPrice,
+      prevClose: meta.regularMarketPrice,
+      priceSource: isPostMarketByState ? 'POST-MARKET' : 'POST-MARKET (clos)',
+      priceTimestamp: meta.postMarketTime,
+      marketState,
+    };
   }
+
+  // LIVE regular session
   if (marketState === 'REGULAR') {
-    return { currentPrice: meta.regularMarketPrice, prevClose: meta.previousClose, priceSource: 'LIVE', priceTimestamp: meta.regularMarketTime, marketState };
+    return {
+      currentPrice: meta.regularMarketPrice,
+      prevClose: meta.previousClose,
+      priceSource: 'LIVE',
+      priceTimestamp: meta.regularMarketTime,
+      marketState,
+    };
   }
-  if (hasPost) {
-    return { currentPrice: meta.postMarketPrice, prevClose: meta.regularMarketPrice, priceSource: 'POST-MARKET (clos)', priceTimestamp: meta.postMarketTime, marketState };
-  }
-  return { currentPrice: meta.regularMarketPrice, prevClose: meta.previousClose, priceSource: 'CLÔTURÉ', priceTimestamp: meta.regularMarketTime, marketState };
+
+  // CLOSED fallback
+  return {
+    currentPrice: meta.regularMarketPrice,
+    prevClose: meta.previousClose,
+    priceSource: 'CLÔTURÉ',
+    priceTimestamp: meta.regularMarketTime,
+    marketState,
+  };
 }
 
 // ---- Bayesian engine ----
