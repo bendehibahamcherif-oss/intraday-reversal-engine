@@ -15,6 +15,8 @@ import WorkspacePanel from "./WorkspacePanel.jsx";
 import AdminUsersPanel from "./AdminUsersPanel.jsx";
 import AuthGate from "./AuthGate.jsx";
 import TerminalTopBar from "./TerminalTopBar.jsx";
+import MarketIntelligencePanel from "./MarketIntelligencePanel.jsx";
+import TerminalSidebar from "./TerminalSidebar.jsx";
 import { api, getToken, getUser } from "./api.js";
 import "./terminal.css";
 
@@ -58,15 +60,9 @@ export default function App() {
     }
 
     api.me()
-      .then((res) => {
-        setUser(res.user);
-      })
-      .catch(() => {
-        setUser(null);
-      })
-      .finally(() => {
-        setAuthReady(true);
-      });
+      .then((res) => setUser(res.user))
+      .catch(() => setUser(null))
+      .finally(() => setAuthReady(true));
   }, []);
 
   const socket = useMemo(() => io(api.base, {
@@ -107,13 +103,8 @@ export default function App() {
       }
     });
 
-    socket.on("connect_error", () => {
-      setSocketStatus("error");
-    });
-
-    socket.on("disconnect", () => {
-      setSocketStatus("disconnected");
-    });
+    socket.on("connect_error", () => setSocketStatus("error"));
+    socket.on("disconnect", () => setSocketStatus("disconnected"));
 
     return () => socket.disconnect();
   }, [socket, watchlist, alertsEnabled, user]);
@@ -148,47 +139,54 @@ export default function App() {
     <div className="terminal-shell">
       <TerminalTopBar user={user} onLogout={() => setUser(null)} />
 
-      <LiveTradingHeader livePrice={livePrice} socketStatus={socketStatus} />
+      <div style={{ display: "flex", minHeight: "calc(100vh - 58px)" }}>
+        <TerminalSidebar watchlist={watchlist} socketStatus={socketStatus} />
 
-      <div className="terminal-container">
-        <ExecutiveSummary
-          marketData={marketData}
-          alerts={alerts}
-          socketStatus={socketStatus}
-        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <LiveTradingHeader livePrice={livePrice} socketStatus={socketStatus} />
 
-        <TerminalControls
-          symbols={watchlist}
-          onSymbolsChange={setWatchlist}
-          alertsEnabled={alertsEnabled}
-          onAlertsToggle={() => setAlertsEnabled((v) => !v)}
-        />
+          <div className="terminal-container">
+            <ExecutiveSummary
+              marketData={marketData}
+              alerts={alerts}
+              socketStatus={socketStatus}
+            />
 
-        <div className="terminal-grid">
-          <div>
-            <AdvancedChartPanel ticks={ticks} />
-            <MiniChartPanel ticks={ticks} />
-            <LiveMarketBoard marketData={marketData} />
-          </div>
+            <TerminalControls
+              symbols={watchlist}
+              onSymbolsChange={setWatchlist}
+              alertsEnabled={alertsEnabled}
+              onAlertsToggle={() => setAlertsEnabled((v) => !v)}
+            />
 
-          <div>
-            <WorkspacePanel />
-            <QuantPanel marketData={marketData} />
-            <RiskAnalyticsPanel marketData={marketData} />
-            <AIAlertsPanel alerts={alerts} />
-
-            {user?.role === "admin" && (
-              <div style={{ marginTop: 16 }}>
-                <AdminUsersPanel />
+            <div className="terminal-grid">
+              <div>
+                <AdvancedChartPanel ticks={ticks} />
+                <MiniChartPanel ticks={ticks} />
+                <LiveMarketBoard marketData={marketData} />
               </div>
-            )}
+
+              <div>
+                <MarketIntelligencePanel />
+                <WorkspacePanel />
+                <QuantPanel marketData={marketData} />
+                <RiskAnalyticsPanel marketData={marketData} />
+                <AIAlertsPanel alerts={alerts} />
+
+                {user?.role === "admin" && (
+                  <div style={{ marginTop: 16 }}>
+                    <AdminUsersPanel />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <PortfolioRiskPanel marketData={marketData} />
+
+            <div style={{ marginTop: 16 }}>
+              <StrategyAnalyzer livePrice={livePrice} />
+            </div>
           </div>
-        </div>
-
-        <PortfolioRiskPanel marketData={marketData} />
-
-        <div style={{ marginTop: 16 }}>
-          <StrategyAnalyzer livePrice={livePrice} />
         </div>
       </div>
     </div>
