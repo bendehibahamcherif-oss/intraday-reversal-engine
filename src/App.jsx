@@ -17,6 +17,9 @@ import AuthGate from "./AuthGate.jsx";
 import TerminalTopBar from "./TerminalTopBar.jsx";
 import MarketIntelligencePanel from "./MarketIntelligencePanel.jsx";
 import TerminalSidebar from "./TerminalSidebar.jsx";
+import SignalRankingPanel from "./SignalRankingPanel.jsx";
+import VolatilityHeatmapPanel from "./VolatilityHeatmapPanel.jsx";
+import MarketRegimePanel from "./MarketRegimePanel.jsx";
 import { api, getToken, getUser } from "./api.js";
 import "./terminal.css";
 
@@ -163,11 +166,14 @@ export default function App() {
               <div>
                 <AdvancedChartPanel ticks={ticks} />
                 <MiniChartPanel ticks={ticks} />
+                <VolatilityHeatmapPanel marketData={marketData} />
                 <LiveMarketBoard marketData={marketData} />
               </div>
 
               <div>
+                <MarketRegimePanel marketData={marketData} />
                 <MarketIntelligencePanel />
+                <SignalRankingPanel marketData={marketData} />
                 <WorkspacePanel />
                 <QuantPanel marketData={marketData} />
                 <RiskAnalyticsPanel marketData={marketData} />
