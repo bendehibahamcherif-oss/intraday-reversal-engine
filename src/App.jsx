@@ -39,4 +39,11 @@ export default function App() {
             LIVE {livePrice.symbol}: {Number(livePrice.price).toFixed(2)}
           </strong>
         ) : (
-          <strong>Connexion live price...</strong
+          <strong>Connexion live price...</strong>
+        )}
+      </div>
+
+      <StrategyAnalyzer livePrice={livePrice} />
+    </>
+  );
+}
