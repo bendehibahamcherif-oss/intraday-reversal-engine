@@ -8,6 +8,7 @@ import AIAlertsPanel from "./AIAlertsPanel.jsx";
 import MiniChartPanel from "./MiniChartPanel.jsx";
 import QuantPanel from "./QuantPanel.jsx";
 import ExecutiveSummary from "./ExecutiveSummary.jsx";
+import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
 import { api, getToken } from "./api.js";
 import "./terminal.css";
 
@@ -133,6 +134,8 @@ export default function App() {
             <AIAlertsPanel alerts={alerts} />
           </div>
         </div>
+
+        <PortfolioRiskPanel marketData={marketData} />
 
         <div style={{ marginTop: 16 }}>
           <StrategyAnalyzer livePrice={livePrice} />
