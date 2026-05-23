@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import PanelContainer from '../components/PanelContainer';
 import ReplayControls from '../components/ReplayControls';
@@ -14,40 +14,50 @@ function ReplayChart() {
     (state) => state.replayIndex
   );
 
-  const visibleData = replayData.slice(
-    0,
-    replayIndex + 1
+  const [zoom, setZoom] = useState(1);
+  const [crosshair, setCrosshair] = useState(null);
+
+  const visibleData = useMemo(() => {
+    const full = replayData.slice(
+      0,
+      replayIndex + 1
+    );
+
+    const visibleCandles = Math.max(
+      20,
+      Math.floor(80 / zoom)
+    );
+
+    return full.slice(-visibleCandles);
+  }, [
+    replayData,
+    replayIndex,
+    zoom,
+  ]);
+
+  const highs = visibleData.map(
+    (c) => c.high
   );
 
-  const closes = visibleData.map(
-    (c) => c.close
+  const lows = visibleData.map(
+    (c) => c.low
   );
 
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
+  const volumes = visibleData.map(
+    (c) => c.volume
+  );
 
-  const width = 900;
-  const height = 320;
+  const min = Math.min(...lows);
+  const max = Math.max(...highs);
+  const maxVolume = Math.max(...volumes);
 
-  const points = visibleData
-    .map((candle, index) => {
-      const x =
-        (index /
-          Math.max(
-            visibleData.length - 1,
-            1
-          )) *
-        width;
+  const width = 1000;
+  const height = 420;
+  const volumeHeight = 80;
 
-      const y =
-        height -
-        ((candle.close - min) /
-          Math.max(max - min, 1)) *
-          height;
-
-      return `${x},${y}`;
-    })
-    .join(' ');
+  const candleWidth =
+    width /
+    Math.max(visibleData.length, 1);
 
   return (
     <div
@@ -60,30 +70,181 @@ function ReplayChart() {
     >
       <div
         style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: 12,
-          color: '#9ca3af',
-          fontSize: 12,
-          letterSpacing: 1,
         }}
       >
-        REPLAY CANDLE STREAM
+        <div
+          style={{
+            color: '#9ca3af',
+            fontSize: 12,
+            letterSpacing: 1,
+          }}
+        >
+          INSTITUTIONAL REPLAY ENGINE
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+          }}
+        >
+          <button
+            onClick={() =>
+              setZoom((z) =>
+                Math.max(0.5, z - 0.5)
+              )
+            }
+          >
+            Zoom -
+          </button>
+
+          <button
+            onClick={() =>
+              setZoom((z) =>
+                Math.min(5, z + 0.5)
+              )
+            }
+          >
+            Zoom +
+          </button>
+        </div>
       </div>
 
       <svg
         viewBox={`0 0 ${width} ${height}`}
         style={{
           width: '100%',
-          height: 320,
+          height: 420,
+          cursor: 'crosshair',
         }}
+        onMouseMove={(e) => {
+          const rect =
+            e.currentTarget.getBoundingClientRect();
+
+          setCrosshair({
+            x:
+              ((e.clientX - rect.left) /
+                rect.width) *
+              width,
+            y:
+              ((e.clientY - rect.top) /
+                rect.height) *
+              height,
+          });
+        }}
+        onMouseLeave={() =>
+          setCrosshair(null)
+        }
       >
-        <polyline
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="3"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          points={points}
-        />
+        {visibleData.map((candle, index) => {
+          const x =
+            index * candleWidth +
+            candleWidth / 2;
+
+          const highY =
+            height -
+            volumeHeight -
+            ((candle.high - min) /
+              Math.max(max - min, 1)) *
+              (height - volumeHeight);
+
+          const lowY =
+            height -
+            volumeHeight -
+            ((candle.low - min) /
+              Math.max(max - min, 1)) *
+              (height - volumeHeight);
+
+          const openY =
+            height -
+            volumeHeight -
+            ((candle.open - min) /
+              Math.max(max - min, 1)) *
+              (height - volumeHeight);
+
+          const closeY =
+            height -
+            volumeHeight -
+            ((candle.close - min) /
+              Math.max(max - min, 1)) *
+              (height - volumeHeight);
+
+          const volumeY =
+            height -
+            (candle.volume / maxVolume) *
+              volumeHeight;
+
+          const bullish =
+            candle.close >= candle.open;
+
+          return (
+            <g key={index}>
+              <line
+                x1={x}
+                y1={highY}
+                x2={x}
+                y2={lowY}
+                stroke={
+                  bullish
+                    ? '#22c55e'
+                    : '#ef4444'
+                }
+                strokeWidth="2"
+              />
+
+              <rect
+                x={x - candleWidth * 0.3}
+                y={Math.min(openY, closeY)}
+                width={candleWidth * 0.6}
+                height={Math.max(
+                  Math.abs(closeY - openY),
+                  2
+                )}
+                fill={
+                  bullish
+                    ? '#22c55e'
+                    : '#ef4444'
+                }
+                rx="2"
+              />
+
+              <rect
+                x={x - candleWidth * 0.3}
+                y={volumeY}
+                width={candleWidth * 0.6}
+                height={height - volumeY}
+                fill="#3b82f6"
+                opacity="0.45"
+              />
+            </g>
+          );
+        })}
+
+        {crosshair && (
+          <g>
+            <line
+              x1={crosshair.x}
+              y1="0"
+              x2={crosshair.x}
+              y2={height}
+              stroke="#9ca3af"
+              strokeDasharray="4"
+            />
+
+            <line
+              x1="0"
+              y1={crosshair.y}
+              x2={width}
+              y2={crosshair.y}
+              stroke="#9ca3af"
+              strokeDasharray="4"
+            />
+          </g>
+        )}
       </svg>
     </div>
   );
