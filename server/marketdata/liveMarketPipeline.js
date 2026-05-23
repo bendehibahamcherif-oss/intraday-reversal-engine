@@ -3,9 +3,10 @@ const tickAggregator = require('./tickAggregator');
 const orderBookEngine = require('./orderBookEngine');
 const broadcastEngine = require('../ws/broadcastEngine');
 const recoveryEngine = require('../ws/recoveryEngine');
+const livePersistencePipeline = require('../persistence/livePersistencePipeline');
 
 class LiveMarketPipeline {
-  processTick(rawTick) {
+  async processTick(rawTick) {
     const tick = tickAggregator.process(rawTick);
 
     if (!tick) {
@@ -35,6 +36,13 @@ class LiveMarketPipeline {
       '5m'
     );
 
+    await livePersistencePipeline.persistTick(tick);
+
+    await livePersistencePipeline.persistCandles([
+      candle1m,
+      candle5m,
+    ]);
+
     recoveryEngine.saveSnapshot(
       `market:${tick.symbol}`,
       {
@@ -60,7 +68,7 @@ class LiveMarketPipeline {
     };
   }
 
-  processOrderBook(symbol, updates = []) {
+  async processOrderBook(symbol, updates = []) {
     let latestBook = null;
 
     updates.forEach((update) => {
@@ -73,6 +81,11 @@ class LiveMarketPipeline {
     });
 
     if (latestBook) {
+      await livePersistencePipeline.persistOrderBook(
+        symbol,
+        latestBook
+      );
+
       recoveryEngine.saveSnapshot(
         `orderbook:${symbol}`,
         latestBook
