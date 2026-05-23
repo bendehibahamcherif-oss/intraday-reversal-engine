@@ -14,6 +14,7 @@ import RiskWorkspace from "./workspaces/RiskWorkspace.jsx";
 import MacroWorkspace from "./workspaces/MacroWorkspace.jsx";
 import PortfolioWorkspace from "./workspaces/PortfolioWorkspace.jsx";
 import ExecutionWorkspace from "./workspaces/ExecutionWorkspace.jsx";
+import ReplayWorkspace from "./workspaces/ReplayWorkspace.jsx";
 
 import { useWorkspaceStore } from "./store/workspaceStore";
 import { useMarketStore } from "./store/marketStore";
@@ -42,6 +43,9 @@ function WorkspaceRenderer({ workspace, marketData }) {
 
     case "Execution":
       return <ExecutionWorkspace />;
+
+    case "Replay":
+      return <ReplayWorkspace />;
 
     case "Risk":
     default:
