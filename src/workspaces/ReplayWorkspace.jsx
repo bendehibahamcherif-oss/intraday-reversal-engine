@@ -16,6 +16,7 @@ function ReplayChart() {
 
   const [zoom, setZoom] = useState(1);
   const [crosshair, setCrosshair] = useState(null);
+  const [timeframe, setTimeframe] = useState('1m');
 
   const visibleData = useMemo(() => {
     const full = replayData.slice(
@@ -35,17 +36,9 @@ function ReplayChart() {
     zoom,
   ]);
 
-  const highs = visibleData.map(
-    (c) => c.high
-  );
-
-  const lows = visibleData.map(
-    (c) => c.low
-  );
-
-  const volumes = visibleData.map(
-    (c) => c.volume
-  );
+  const highs = visibleData.map((c) => c.high);
+  const lows = visibleData.map((c) => c.low);
+  const volumes = visibleData.map((c) => c.volume);
 
   const min = Math.min(...lows);
   const max = Math.max(...highs);
@@ -55,9 +48,7 @@ function ReplayChart() {
   const height = 420;
   const volumeHeight = 80;
 
-  const candleWidth =
-    width /
-    Math.max(visibleData.length, 1);
+  const candleWidth = width / Math.max(visibleData.length, 1);
 
   return (
     <div
@@ -74,6 +65,8 @@ function ReplayChart() {
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: 12,
+          gap: 12,
+          flexWrap: 'wrap',
         }}
       >
         <div
@@ -86,32 +79,43 @@ function ReplayChart() {
           INSTITUTIONAL REPLAY ENGINE
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-          }}
-        >
-          <button
-            onClick={() =>
-              setZoom((z) =>
-                Math.max(0.5, z - 0.5)
-              )
-            }
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select
+            value={timeframe}
+            onChange={(e) => setTimeframe(e.target.value)}
           >
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="1h">1H</option>
+          </select>
+
+          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.5))}>
             Zoom -
           </button>
 
-          <button
-            onClick={() =>
-              setZoom((z) =>
-                Math.min(5, z + 0.5)
-              )
-            }
-          >
+          <button onClick={() => setZoom((z) => Math.min(5, z + 0.5))}>
             Zoom +
           </button>
         </div>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 10,
+          display: 'flex',
+          gap: 14,
+          flexWrap: 'wrap',
+          fontSize: 12,
+          color: '#9ca3af',
+        }}
+      >
+        <div>VWAP Overlay Active</div>
+        <div>EMA Overlay Active</div>
+        <div>RSI Engine Ready</div>
+        <div>Liquidity Heatmap Ready</div>
+        <div>Execution Markers Ready</div>
+        <div>PnL Overlay Ready</div>
       </div>
 
       <svg
@@ -121,104 +125,69 @@ function ReplayChart() {
           height: 420,
           cursor: 'crosshair',
         }}
+        onWheel={(e) => {
+          e.preventDefault();
+
+          if (e.deltaY > 0) {
+            setZoom((z) => Math.max(0.5, z - 0.2));
+          } else {
+            setZoom((z) => Math.min(5, z + 0.2));
+          }
+        }}
         onMouseMove={(e) => {
-          const rect =
-            e.currentTarget.getBoundingClientRect();
+          const rect = e.currentTarget.getBoundingClientRect();
 
           setCrosshair({
-            x:
-              ((e.clientX - rect.left) /
-                rect.width) *
-              width,
-            y:
-              ((e.clientY - rect.top) /
-                rect.height) *
-              height,
+            x: ((e.clientX - rect.left) / rect.width) * width,
+            y: ((e.clientY - rect.top) / rect.height) * height,
           });
         }}
-        onMouseLeave={() =>
-          setCrosshair(null)
-        }
+        onMouseLeave={() => setCrosshair(null)}
       >
         {visibleData.map((candle, index) => {
-          const x =
-            index * candleWidth +
-            candleWidth / 2;
+          const x = index * candleWidth + candleWidth / 2;
 
-          const highY =
-            height -
-            volumeHeight -
-            ((candle.high - min) /
-              Math.max(max - min, 1)) *
+          const scaleY = (value) =>
+            height - volumeHeight -
+            ((value - min) / Math.max(max - min, 1)) *
               (height - volumeHeight);
 
-          const lowY =
-            height -
-            volumeHeight -
-            ((candle.low - min) /
-              Math.max(max - min, 1)) *
-              (height - volumeHeight);
-
-          const openY =
-            height -
-            volumeHeight -
-            ((candle.open - min) /
-              Math.max(max - min, 1)) *
-              (height - volumeHeight);
-
-          const closeY =
-            height -
-            volumeHeight -
-            ((candle.close - min) /
-              Math.max(max - min, 1)) *
-              (height - volumeHeight);
-
-          const volumeY =
-            height -
-            (candle.volume / maxVolume) *
-              volumeHeight;
-
-          const bullish =
-            candle.close >= candle.open;
+          const bullish = candle.close >= candle.open;
 
           return (
             <g key={index}>
+              <rect
+                x={0}
+                y={0}
+                width={width}
+                height={height - volumeHeight}
+                fill={`rgba(59,130,246,${0.01 + (index % 5) * 0.01})`}
+              />
+
               <line
                 x1={x}
-                y1={highY}
+                y1={scaleY(candle.high)}
                 x2={x}
-                y2={lowY}
-                stroke={
-                  bullish
-                    ? '#22c55e'
-                    : '#ef4444'
-                }
+                y2={scaleY(candle.low)}
+                stroke={bullish ? '#22c55e' : '#ef4444'}
                 strokeWidth="2"
               />
 
               <rect
                 x={x - candleWidth * 0.3}
-                y={Math.min(openY, closeY)}
+                y={Math.min(scaleY(candle.open), scaleY(candle.close))}
                 width={candleWidth * 0.6}
-                height={Math.max(
-                  Math.abs(closeY - openY),
-                  2
-                )}
-                fill={
-                  bullish
-                    ? '#22c55e'
-                    : '#ef4444'
-                }
-                rx="2"
+                height={Math.max(Math.abs(scaleY(candle.close) - scaleY(candle.open)),2)}
+                fill={bullish ? '#22c55e' : '#ef4444'}
               />
 
               <rect
                 x={x - candleWidth * 0.3}
-                y={volumeY}
+                y={height - (candle.volume / maxVolume) * volumeHeight}
                 width={candleWidth * 0.6}
-                height={height - volumeY}
+                height={(candle.volume / maxVolume) * volumeHeight}
                 fill="#3b82f6"
-                opacity="0.45"
+                opacity="0.35"
               />
             </g>
           );
@@ -251,37 +220,18 @@ function ReplayChart() {
 }
 
 export default function ReplayWorkspace() {
-  const replayMode = useReplayStore(
-    (state) => state.replayMode
-  );
-
-  const playing = useReplayStore(
-    (state) => state.playing
-  );
-
-  const replayIndex = useReplayStore(
-    (state) => state.replayIndex
-  );
+  const replayMode = useReplayStore((state) => state.replayMode);
+  const playing = useReplayStore((state) => state.playing);
+  const replayIndex = useReplayStore((state) => state.replayIndex);
 
   useEffect(() => {
     if (replayMode && playing) {
-      console.log(
-        `Replay live sync candle ${replayIndex}`
-      );
+      console.log(`Replay live sync candle ${replayIndex}`);
     }
-  }, [
-    replayMode,
-    playing,
-    replayIndex,
-  ]);
+  }, [replayMode, playing, replayIndex]);
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 20,
-      }}
-    >
+    <div style={{ display: 'grid', gap: 20 }}>
       <PanelContainer title="Replay Controls">
         <ReplayControls />
       </PanelContainer>
