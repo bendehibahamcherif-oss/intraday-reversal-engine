@@ -1,12 +1,11 @@
 import PanelContainer from '../components/PanelContainer';
+import ExecutionBlotter from '../components/ExecutionBlotter';
 
 export default function ExecutionWorkspace() {
   return (
     <div>
       <PanelContainer title="Execution Blotter">
-        <div>
-          Institutional execution monitoring
-        </div>
+        <ExecutionBlotter />
       </PanelContainer>
 
       <PanelContainer title="Slippage Analytics">
