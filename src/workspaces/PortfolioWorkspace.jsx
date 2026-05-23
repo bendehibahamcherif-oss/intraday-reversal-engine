@@ -1,12 +1,11 @@
 import PanelContainer from '../components/PanelContainer';
+import PortfolioPanel from '../components/PortfolioPanel';
 
 export default function PortfolioWorkspace() {
   return (
     <div>
       <PanelContainer title="Portfolio Exposure">
-        <div>
-          Gross Exposure Analytics
-        </div>
+        <PortfolioPanel />
       </PanelContainer>
 
       <PanelContainer title="PnL Analytics">
