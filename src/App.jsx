@@ -9,10 +9,12 @@ import MiniChartPanel from "./MiniChartPanel.jsx";
 import QuantPanel from "./QuantPanel.jsx";
 import ExecutiveSummary from "./ExecutiveSummary.jsx";
 import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
+import PortfolioAnalyticsPanel from "./PortfolioAnalyticsPanel.jsx";
 import AdvancedChartPanel from "./AdvancedChartPanel.jsx";
 import RiskAnalyticsPanel from "./RiskAnalyticsPanel.jsx";
 import WorkspacePanel from "./WorkspacePanel.jsx";
 import AdminUsersPanel from "./AdminUsersPanel.jsx";
+import SecurityStatusPanel from "./SecurityStatusPanel.jsx";
 import AuthGate from "./AuthGate.jsx";
 import TerminalTopBar from "./TerminalTopBar.jsx";
 import MarketIntelligencePanel from "./MarketIntelligencePanel.jsx";
@@ -167,6 +169,7 @@ export default function App() {
                 <AdvancedChartPanel ticks={ticks} />
                 <MiniChartPanel ticks={ticks} />
                 <VolatilityHeatmapPanel marketData={marketData} />
+                <PortfolioAnalyticsPanel marketData={marketData} />
                 <LiveMarketBoard marketData={marketData} />
               </div>
 
@@ -174,6 +177,7 @@ export default function App() {
                 <MarketRegimePanel marketData={marketData} />
                 <MarketIntelligencePanel />
                 <SignalRankingPanel marketData={marketData} />
+                <SecurityStatusPanel user={user} />
                 <WorkspacePanel />
                 <QuantPanel marketData={marketData} />
                 <RiskAnalyticsPanel marketData={marketData} />
