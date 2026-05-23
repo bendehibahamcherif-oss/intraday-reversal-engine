@@ -8,6 +8,7 @@ export default function WorkspaceSwitcher() {
     'Macro',
     'Portfolio',
     'Execution',
+    'Replay',
   ];
 
   return (
@@ -16,6 +17,7 @@ export default function WorkspaceSwitcher() {
         display: 'flex',
         gap: 10,
         marginBottom: 20,
+        flexWrap: 'wrap',
       }}
     >
       {workspaces.map((w) => (
