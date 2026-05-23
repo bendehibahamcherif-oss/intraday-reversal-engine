@@ -6,6 +6,7 @@ class StreamManager {
   constructor() {
     this.socket = null;
     this.connected = false;
+    this.watchdog = null;
   }
 
   connect(symbols = []) {
@@ -18,6 +19,8 @@ class StreamManager {
       },
       reconnection: true,
       reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      timeout: 10000,
     });
 
     this.socket.on('connect', () => {
@@ -32,6 +35,10 @@ class StreamManager {
       this.connected = false;
     });
 
+    this.socket.on('connect_error', (err) => {
+      console.error('SOCKET_ERROR', err?.message);
+    });
+
     this.socket.on('price_update', (payload) => {
       eventBus.emit(EVENTS.PRICE_UPDATE, payload);
     });
@@ -40,7 +47,29 @@ class StreamManager {
       eventBus.emit(EVENTS.SIGNAL_UPDATE, payload);
     });
 
+    this.startWatchdog();
+
     return this.socket;
+  }
+
+  startWatchdog() {
+    if (this.watchdog) {
+      clearInterval(this.watchdog);
+    }
+
+    this.watchdog = setInterval(() => {
+      if (!this.socket) return;
+
+      if (!this.connected) {
+        console.warn('WATCHDOG_RECONNECT');
+
+        try {
+          this.socket.connect();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }, 5000);
   }
 }
 
