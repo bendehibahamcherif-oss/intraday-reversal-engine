@@ -10,6 +10,7 @@ import QuantPanel from "./QuantPanel.jsx";
 import ExecutiveSummary from "./ExecutiveSummary.jsx";
 import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
 import PortfolioAnalyticsPanel from "./PortfolioAnalyticsPanel.jsx";
+import StressTestPanel from "./StressTestPanel.jsx";
 import AdvancedChartPanel from "./AdvancedChartPanel.jsx";
 import RiskAnalyticsPanel from "./RiskAnalyticsPanel.jsx";
 import WorkspacePanel from "./WorkspacePanel.jsx";
@@ -151,11 +152,7 @@ export default function App() {
           <LiveTradingHeader livePrice={livePrice} socketStatus={socketStatus} />
 
           <div className="terminal-container">
-            <ExecutiveSummary
-              marketData={marketData}
-              alerts={alerts}
-              socketStatus={socketStatus}
-            />
+            <ExecutiveSummary marketData={marketData} alerts={alerts} socketStatus={socketStatus} />
 
             <TerminalControls
               symbols={watchlist}
@@ -170,6 +167,7 @@ export default function App() {
                 <MiniChartPanel ticks={ticks} />
                 <VolatilityHeatmapPanel marketData={marketData} />
                 <PortfolioAnalyticsPanel marketData={marketData} />
+                <StressTestPanel marketData={marketData} />
                 <LiveMarketBoard marketData={marketData} />
               </div>
 
