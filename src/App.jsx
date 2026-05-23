@@ -8,10 +8,12 @@ import TerminalSidebar from "./TerminalSidebar.jsx";
 import AuthGate from "./AuthGate.jsx";
 
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 import RiskWorkspace from "./workspaces/RiskWorkspace.jsx";
 import MacroWorkspace from "./workspaces/MacroWorkspace.jsx";
 import PortfolioWorkspace from "./workspaces/PortfolioWorkspace.jsx";
+import ExecutionWorkspace from "./workspaces/ExecutionWorkspace.jsx";
 
 import { useWorkspaceStore } from "./store/workspaceStore";
 import { useMarketStore } from "./store/marketStore";
@@ -37,6 +39,9 @@ function WorkspaceRenderer({ workspace, marketData }) {
 
     case "Portfolio":
       return <PortfolioWorkspace />;
+
+    case "Execution":
+      return <ExecutionWorkspace />;
 
     case "Risk":
     default:
@@ -116,55 +121,57 @@ export default function App() {
   }
 
   return (
-    <div className="terminal-shell">
-      <TerminalTopBar
-        user={user}
-        onLogout={() => setUser(null)}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          minHeight: "calc(100vh - 58px)",
-        }}
-      >
-        <TerminalSidebar
-          watchlist={watchlist}
-          socketStatus={socketStatus}
+    <ErrorBoundary>
+      <div className="terminal-shell">
+        <TerminalTopBar
+          user={user}
+          onLogout={() => setUser(null)}
         />
 
         <div
           style={{
-            flex: 1,
-            minWidth: 0,
-            padding: 20,
+            display: "flex",
+            minHeight: "calc(100vh - 58px)",
           }}
         >
-          <div style={{ marginBottom: 20 }}>
-            <div
-              style={{
-                color: "#9ca3af",
-                fontSize: 12,
-                letterSpacing: 1,
-                marginBottom: 6,
-              }}
-            >
-              INSTITUTIONAL OPERATING SYSTEM
+          <TerminalSidebar
+            watchlist={watchlist}
+            socketStatus={socketStatus}
+          />
+
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: 20,
+            }}
+          >
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  color: "#9ca3af",
+                  fontSize: 12,
+                  letterSpacing: 1,
+                  marginBottom: 6,
+                }}
+              >
+                INSTITUTIONAL OPERATING SYSTEM
+              </div>
+
+              <h1 style={{ margin: 0 }}>
+                Reversal Terminal
+              </h1>
             </div>
 
-            <h1 style={{ margin: 0 }}>
-              Reversal Terminal
-            </h1>
+            <WorkspaceSwitcher />
+
+            <WorkspaceRenderer
+              workspace={workspace}
+              marketData={marketData}
+            />
           </div>
-
-          <WorkspaceSwitcher />
-
-          <WorkspaceRenderer
-            workspace={workspace}
-            marketData={marketData}
-          />
         </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
