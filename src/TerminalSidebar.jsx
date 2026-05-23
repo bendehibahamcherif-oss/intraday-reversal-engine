@@ -1,4 +1,22 @@
+import { useWorkspaceStore } from './store/workspaceStore';
+
+const WORKSPACE_MAP = {
+  Dashboard: 'Risk',
+  'Live Markets': 'Macro',
+  'Quant Signals': 'Execution',
+  'Risk Analytics': 'Risk',
+  'Macro Intelligence': 'Macro',
+  Portfolio: 'Portfolio',
+  Admin: 'Replay',
+};
+
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
+  const workspace = useWorkspaceStore((state) => state.workspace);
+
+  const setWorkspace = useWorkspaceStore(
+    (state) => state.setWorkspace
+  );
+
   const nav = [
     'Dashboard',
     'Live Markets',
@@ -43,23 +61,32 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
       </div>
 
       <nav style={{ display: 'grid', gap: 8 }}>
-        {nav.map((item) => (
-          <button
-            key={item}
-            style={{
-              background: '#111111',
-              border: '1px solid #1f1f1f',
-              borderRadius: 10,
-              color: 'white',
-              textAlign: 'left',
-              padding: '10px 12px',
-              cursor: 'pointer',
-              fontWeight: 700,
-            }}
-          >
-            {item}
-          </button>
-        ))}
+        {nav.map((item) => {
+          const targetWorkspace = WORKSPACE_MAP[item];
+          const active = workspace === targetWorkspace;
+
+          return (
+            <button
+              key={item}
+              onClick={() => setWorkspace(targetWorkspace)}
+              style={{
+                background: active ? '#2563eb' : '#111111',
+                border: active
+                  ? '1px solid #3b82f6'
+                  : '1px solid #1f1f1f',
+                borderRadius: 10,
+                color: 'white',
+                textAlign: 'left',
+                padding: '10px 12px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {item}
+            </button>
+          );
+        })}
       </nav>
 
       <div>
