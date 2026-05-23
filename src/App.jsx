@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
-import StrategyAnalyzer from "./StrategyAnalyzer.jsx";
+
 import LiveTradingHeader from "./LiveTradingHeader.jsx";
 import LiveMarketBoard from "./LiveMarketBoard.jsx";
 import TerminalControls from "./TerminalControls.jsx";
 import AIAlertsPanel from "./AIAlertsPanel.jsx";
-import MiniChartPanel from "./MiniChartPanel.jsx";
 import QuantPanel from "./QuantPanel.jsx";
 import ExecutiveSummary from "./ExecutiveSummary.jsx";
 import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
@@ -28,7 +27,12 @@ import MarketRegimePanel from "./MarketRegimePanel.jsx";
 import { api, getToken, getUser } from "./api.js";
 import "./terminal.css";
 
-const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "MSFT"];
+const DEFAULT_WATCHLIST = [
+  "SPX",
+  "NDX",
+  "VIX",
+  "EURUSD",
+];
 
 function generateAlerts(marketData) {
   return Object.values(marketData)
@@ -97,44 +101,20 @@ export default function App() {
       }));
 
       setTicks((prev) => [...prev.slice(-119), data]);
-
-      if (
-        alertsEnabled &&
-        typeof window !== "undefined" &&
-        "Notification" in window &&
-        Notification.permission === "granted" &&
-        Number(data.signal?.confidence || 0) > 0.75
-      ) {
-        new Notification(`${data.symbol} ${data.signal?.signal}`, {
-          body: data.signal?.reason || "Realtime signal",
-        });
-      }
     });
 
     socket.on("connect_error", () => setSocketStatus("error"));
     socket.on("disconnect", () => setSocketStatus("disconnected"));
 
     return () => socket.disconnect();
-  }, [socket, watchlist, alertsEnabled, user]);
-
-  useEffect(() => {
-    if (socket.connected) {
-      socket.emit("subscribe", { symbols: watchlist });
-    }
-  }, [socket, watchlist]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      Notification.requestPermission().catch(() => {});
-    }
-  }, []);
+  }, [socket, watchlist, user]);
 
   const alerts = alertsEnabled ? generateAlerts(marketData) : [];
 
   if (!authReady) {
     return (
       <div className="terminal-shell" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-        Loading terminal...
+        Loading institutional terminal...
       </div>
     );
   }
@@ -166,7 +146,6 @@ export default function App() {
             <div className="terminal-grid">
               <div>
                 <AdvancedChartPanel ticks={ticks} />
-                <MiniChartPanel ticks={ticks} />
                 <VolatilityHeatmapPanel marketData={marketData} />
                 <PortfolioAnalyticsPanel marketData={marketData} />
                 <StressTestPanel marketData={marketData} />
@@ -194,10 +173,6 @@ export default function App() {
             </div>
 
             <PortfolioRiskPanel marketData={marketData} />
-
-            <div style={{ marginTop: 16 }}>
-              <StrategyAnalyzer livePrice={livePrice} />
-            </div>
           </div>
         </div>
       </div>
