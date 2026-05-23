@@ -1,30 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useState } from "react";
 
-import LiveTradingHeader from "./LiveTradingHeader.jsx";
-import LiveMarketBoard from "./LiveMarketBoard.jsx";
-import TerminalControls from "./TerminalControls.jsx";
-import AIAlertsPanel from "./AIAlertsPanel.jsx";
-import QuantPanel from "./QuantPanel.jsx";
-import ExecutiveSummary from "./ExecutiveSummary.jsx";
-import PortfolioRiskPanel from "./PortfolioRiskPanel.jsx";
-import PortfolioAnalyticsPanel from "./PortfolioAnalyticsPanel.jsx";
-import StressTestPanel from "./StressTestPanel.jsx";
-import FactorExposurePanel from "./FactorExposurePanel.jsx";
-import LiquidityPanel from "./LiquidityPanel.jsx";
-import AdvancedChartPanel from "./AdvancedChartPanel.jsx";
-import RiskAnalyticsPanel from "./RiskAnalyticsPanel.jsx";
-import WorkspacePanel from "./WorkspacePanel.jsx";
-import AdminUsersPanel from "./AdminUsersPanel.jsx";
-import SecurityStatusPanel from "./SecurityStatusPanel.jsx";
-import AuthGate from "./AuthGate.jsx";
+import { streamManager } from "./core/streamManager";
+import "./core/realtimeBindings";
+
 import TerminalTopBar from "./TerminalTopBar.jsx";
-import MarketIntelligencePanel from "./MarketIntelligencePanel.jsx";
 import TerminalSidebar from "./TerminalSidebar.jsx";
-import SignalRankingPanel from "./SignalRankingPanel.jsx";
-import VolatilityHeatmapPanel from "./VolatilityHeatmapPanel.jsx";
-import MarketRegimePanel from "./MarketRegimePanel.jsx";
+import AuthGate from "./AuthGate.jsx";
+
+import WorkspaceSwitcher from "./components/WorkspaceSwitcher.jsx";
+
+import RiskWorkspace from "./workspaces/RiskWorkspace.jsx";
+import MacroWorkspace from "./workspaces/MacroWorkspace.jsx";
+import PortfolioWorkspace from "./workspaces/PortfolioWorkspace.jsx";
+
+import { useWorkspaceStore } from "./store/workspaceStore";
+import { useMarketStore } from "./store/marketStore";
+
 import { api, getToken, getUser } from "./api.js";
+
 import "./terminal.css";
 
 const DEFAULT_WATCHLIST = [
@@ -32,36 +25,43 @@ const DEFAULT_WATCHLIST = [
   "NDX",
   "VIX",
   "EURUSD",
+  "USDJPY",
 ];
 
-function generateAlerts(marketData) {
-  return Object.values(marketData)
-    .filter((row) => row?.signal)
-    .map((row) => {
-      const confidence = Math.round(Number(row.signal?.confidence || 0) * 100);
-      const extension = Math.abs(Number(row.signal?.distancePct || 0));
+function WorkspaceRenderer({ workspace, marketData }) {
+  switch (workspace) {
+    case "Macro":
+      return (
+        <MacroWorkspace marketData={marketData} />
+      );
 
-      return {
-        symbol: row.symbol,
-        score: Math.min(99, Math.round(confidence + extension * 10)),
-        type: row.signal.signal,
-        message: row.signal.reason || "Realtime signal detected",
-      };
-    })
-    .filter((row) => row.score >= 60)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+    case "Portfolio":
+      return <PortfolioWorkspace />;
+
+    case "Risk":
+    default:
+      return (
+        <RiskWorkspace marketData={marketData} />
+      );
+  }
 }
 
 export default function App() {
-  const [livePrice, setLivePrice] = useState(null);
-  const [marketData, setMarketData] = useState({});
-  const [ticks, setTicks] = useState([]);
   const [socketStatus, setSocketStatus] = useState("connecting");
-  const [watchlist, setWatchlist] = useState(DEFAULT_WATCHLIST);
-  const [alertsEnabled, setAlertsEnabled] = useState(true);
-  const [user, setUser] = useState(getUser());
+
   const [authReady, setAuthReady] = useState(false);
+
+  const [user, setUser] = useState(getUser());
+
+  const [watchlist] = useState(DEFAULT_WATCHLIST);
+
+  const workspace = useWorkspaceStore(
+    (state) => state.workspace
+  );
+
+  const marketData = useMarketStore(
+    (state) => state.prices
+  );
 
   useEffect(() => {
     const token = getToken();
@@ -71,109 +71,98 @@ export default function App() {
       return;
     }
 
-    api.me()
+    api
+      .me()
       .then((res) => setUser(res.user))
       .catch(() => setUser(null))
       .finally(() => setAuthReady(true));
   }, []);
 
-  const socket = useMemo(() => io(api.base, {
-    transports: ["websocket", "polling"],
-    auth: {
-      token: getToken() || import.meta.env.VITE_USER_TOKEN || "",
-    },
-  }), [user]);
-
   useEffect(() => {
-    if (!user) return;
+    const socket = streamManager.connect(watchlist);
 
     socket.on("connect", () => {
       setSocketStatus("connected");
-      socket.emit("subscribe", { symbols: watchlist });
     });
 
-    socket.on("price_update", (data) => {
-      setLivePrice(data);
-
-      setMarketData((prev) => ({
-        ...prev,
-        [data.symbol]: data,
-      }));
-
-      setTicks((prev) => [...prev.slice(-119), data]);
+    socket.on("disconnect", () => {
+      setSocketStatus("disconnected");
     });
 
-    socket.on("connect_error", () => setSocketStatus("error"));
-    socket.on("disconnect", () => setSocketStatus("disconnected"));
-
-    return () => socket.disconnect();
-  }, [socket, watchlist, user]);
-
-  const alerts = alertsEnabled ? generateAlerts(marketData) : [];
+    socket.on("connect_error", () => {
+      setSocketStatus("error");
+    });
+  }, [watchlist]);
 
   if (!authReady) {
     return (
-      <div className="terminal-shell" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+      <div
+        className="terminal-shell"
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
         Loading institutional terminal...
       </div>
     );
   }
 
   if (!user) {
-    return <AuthGate onAuth={setUser} />;
+    return (
+      <AuthGate onAuth={setUser} />
+    );
   }
 
   return (
     <div className="terminal-shell">
-      <TerminalTopBar user={user} onLogout={() => setUser(null)} />
+      <TerminalTopBar
+        user={user}
+        onLogout={() => setUser(null)}
+      />
 
-      <div style={{ display: "flex", minHeight: "calc(100vh - 58px)" }}>
-        <TerminalSidebar watchlist={watchlist} socketStatus={socketStatus} />
+      <div
+        style={{
+          display: "flex",
+          minHeight: "calc(100vh - 58px)",
+        }}
+      >
+        <TerminalSidebar
+          watchlist={watchlist}
+          socketStatus={socketStatus}
+        />
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <LiveTradingHeader livePrice={livePrice} socketStatus={socketStatus} />
-
-          <div className="terminal-container">
-            <ExecutiveSummary marketData={marketData} alerts={alerts} socketStatus={socketStatus} />
-
-            <TerminalControls
-              symbols={watchlist}
-              onSymbolsChange={setWatchlist}
-              alertsEnabled={alertsEnabled}
-              onAlertsToggle={() => setAlertsEnabled((v) => !v)}
-            />
-
-            <div className="terminal-grid">
-              <div>
-                <AdvancedChartPanel ticks={ticks} />
-                <VolatilityHeatmapPanel marketData={marketData} />
-                <PortfolioAnalyticsPanel marketData={marketData} />
-                <StressTestPanel marketData={marketData} />
-                <FactorExposurePanel marketData={marketData} />
-                <LiveMarketBoard marketData={marketData} />
-              </div>
-
-              <div>
-                <MarketRegimePanel marketData={marketData} />
-                <MarketIntelligencePanel />
-                <SignalRankingPanel marketData={marketData} />
-                <LiquidityPanel marketData={marketData} />
-                <SecurityStatusPanel user={user} />
-                <WorkspacePanel />
-                <QuantPanel marketData={marketData} />
-                <RiskAnalyticsPanel marketData={marketData} />
-                <AIAlertsPanel alerts={alerts} />
-
-                {user?.role === "admin" && (
-                  <div style={{ marginTop: 16 }}>
-                    <AdminUsersPanel />
-                  </div>
-                )}
-              </div>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: 20,
+          }}
+        >
+          <div style={{ marginBottom: 20 }}>
+            <div
+              style={{
+                color: "#9ca3af",
+                fontSize: 12,
+                letterSpacing: 1,
+                marginBottom: 6,
+              }}
+            >
+              INSTITUTIONAL OPERATING SYSTEM
             </div>
 
-            <PortfolioRiskPanel marketData={marketData} />
+            <h1 style={{ margin: 0 }}>
+              Reversal Terminal
+            </h1>
           </div>
+
+          <WorkspaceSwitcher />
+
+          <WorkspaceRenderer
+            workspace={workspace}
+            marketData={marketData}
+          />
         </div>
       </div>
     </div>
