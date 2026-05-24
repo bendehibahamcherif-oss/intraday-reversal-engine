@@ -1,19 +1,32 @@
 services:
   - type: web
+    name: reversal-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run server:start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: intraday_reversal_engine
+      - key: MARKET_FEED_KEY
+        sync: false
+      - key: MARKET_FEED_SECRET
+        sync: false
+
+  - type: web
     name: reversal-frontend
     runtime: static
-
     buildCommand: npm install && npm run build
     staticPublishPath: dist
-
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-
     envVars:
       - key: VITE_API_URL
         sync: false
-
       - key: VITE_USER_TOKEN
         sync: false
