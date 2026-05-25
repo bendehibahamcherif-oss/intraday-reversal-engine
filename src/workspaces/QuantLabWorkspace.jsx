@@ -336,10 +336,44 @@ function formatMetric(value) {
   return value ?? '—';
 }
 
+function formatDecimal(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '—';
+  return num.toFixed(2);
+}
+
+function formatPercentage(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '—';
+  return `${num.toFixed(2)}%`;
+}
+
+function getPnLColor(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num === 0) return '#e5e7eb';
+  return num > 0 ? '#86efac' : '#fca5a5';
+}
+
 function BacktestResultsPanel({ results, selectedResult, loading, error, onSelect, onClear }) {
   const effectiveSelectedResult = selectedResult || (Array.isArray(results) ? results[0] : null);
   const metrics = effectiveSelectedResult?.metrics || effectiveSelectedResult?.summary || effectiveSelectedResult || {};
   const trades = effectiveSelectedResult?.trades || effectiveSelectedResult?.executions || [];
+  const hasBacktestResults = Array.isArray(results) && results.length > 0;
+  const showEmptyState = !effectiveSelectedResult && !hasBacktestResults;
+
+  const metricCards = [
+    { label: 'Total PnL', value: formatDecimal(metrics?.totalPnL), color: getPnLColor(metrics?.totalPnL) },
+    { label: 'Total PnL %', value: formatPercentage(metrics?.totalPnLPercent) },
+    { label: 'Win Rate', value: formatPercentage(metrics?.winRate) },
+    { label: 'Loss Rate', value: formatPercentage(metrics?.lossRate) },
+    { label: 'Average Win', value: formatDecimal(metrics?.averageWin) },
+    { label: 'Average Loss', value: formatDecimal(metrics?.averageLoss) },
+    { label: 'Max Drawdown', value: formatPercentage(metrics?.maxDrawdown) },
+    { label: 'Profit Factor', value: formatDecimal(metrics?.profitFactor) },
+    { label: 'Expectancy', value: formatDecimal(metrics?.expectancy) },
+    { label: 'Number of Trades', value: formatMetric(metrics?.numberOfTrades) },
+    { label: 'Avg Trade Duration', value: formatMetric(metrics?.averageTradeDuration) },
+  ];
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -348,7 +382,7 @@ function BacktestResultsPanel({ results, selectedResult, loading, error, onSelec
         <button onClick={onClear} disabled={loading} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '6px 10px' }}>Clear Backtests</button>
       </div>
       {error && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{error}</div>}
-      {!Array.isArray(results) || results.length === 0 ? (
+      {showEmptyState ? (
         <EmptyState text="No backtest results yet" />
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
@@ -359,20 +393,35 @@ function BacktestResultsPanel({ results, selectedResult, loading, error, onSelec
         </div>
       )}
       {effectiveSelectedResult && (
-        <article style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707', display: 'grid', gap: 6 }}>
-          <CompactRow label="totalPnL" value={formatMetric(metrics?.totalPnL)} />
-          <CompactRow label="totalPnLPercent" value={formatMetric(metrics?.totalPnLPercent)} />
-          <CompactRow label="winRate" value={formatMetric(metrics?.winRate)} />
-          <CompactRow label="lossRate" value={formatMetric(metrics?.lossRate)} />
-          <CompactRow label="averageWin" value={formatMetric(metrics?.averageWin)} />
-          <CompactRow label="averageLoss" value={formatMetric(metrics?.averageLoss)} />
-          <CompactRow label="maxDrawdown" value={formatMetric(metrics?.maxDrawdown)} />
-          <CompactRow label="profitFactor" value={formatMetric(metrics?.profitFactor)} />
-          <CompactRow label="expectancy" value={formatMetric(metrics?.expectancy)} />
-          <CompactRow label="numberOfTrades" value={formatMetric(metrics?.numberOfTrades)} />
-          <CompactRow label="averageTradeDuration" value={formatMetric(metrics?.averageTradeDuration)} />
-          {Array.isArray(trades) && trades.length > 0 && <div style={{ marginTop: 8 }}><strong style={{ fontSize: 12 }}>Trades</strong><pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, color: '#9ca3af' }}>{JSON.stringify(trades, null, 2)}</pre></div>}
-        </article>
+        <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
+            {metricCards.map((metric) => (
+              <article key={metric.label} style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707' }}>
+                <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 6 }}>{metric.label}</div>
+                <div style={{ color: metric.color || '#e5e7eb', fontWeight: 700, fontSize: 16 }}>{metric.value}</div>
+              </article>
+            ))}
+          </div>
+          {Array.isArray(trades) && trades.length > 0 && (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <strong style={{ fontSize: 13 }}>Trades</strong>
+              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                {trades.map((trade, index) => (
+                  <article key={`trade-${index}`} style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707', display: 'grid', gap: 4 }}>
+                    <CompactRow label="Direction" value={getText(trade, ['direction'])} color={directionColor(getText(trade, ['direction']))} />
+                    <CompactRow label="Entry Time" value={getText(trade, ['entryTime'])} />
+                    <CompactRow label="Entry Price" value={formatDecimal(trade?.entryPrice)} />
+                    <CompactRow label="Exit Time" value={getText(trade, ['exitTime'])} />
+                    <CompactRow label="Exit Price" value={formatDecimal(trade?.exitPrice)} />
+                    <CompactRow label="PnL" value={formatDecimal(trade?.pnl)} color={getPnLColor(trade?.pnl)} />
+                    <CompactRow label="PnL %" value={formatPercentage(trade?.pnlPercent)} color={getPnLColor(trade?.pnlPercent)} />
+                    <CompactRow label="Reason" value={getText(trade, ['reason'])} />
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
