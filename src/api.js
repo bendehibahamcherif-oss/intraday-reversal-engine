@@ -97,4 +97,9 @@ export const api = {
   setSetting: async (key, value) => fetch(`${API_BASE}/settings/${key}`, { method: 'PUT', headers: headers(), body: JSON.stringify({ value }) }).then(handle),
 
   yahooChart: async (symbol, interval, range) => fetch(`${API_BASE}/yahoo/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`).then(handle),
+
+  replayStart: async ({ sessionId, symbol, options = {} }) => fetch(`${API_BASE}/api/replay/start`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId, symbol, options }) }).then(handle),
+  replayPause: async (sessionId) => fetch(`${API_BASE}/api/replay/pause`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId }) }).then(handle),
+  replayResume: async (sessionId) => fetch(`${API_BASE}/api/replay/resume`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId }) }).then(handle),
+  replayStop: async (sessionId) => fetch(`${API_BASE}/api/replay/stop`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId }) }).then(handle),
 };

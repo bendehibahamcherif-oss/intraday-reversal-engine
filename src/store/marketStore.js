@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import wsClient from '../services/wsClient';
+import { useReplayStore } from './replayStore';
 
 function buildCandle(existing, tick) {
   if (!existing) {
@@ -35,29 +36,36 @@ export const useMarketStore = create((set, get) => ({
   initialize: () => {
     wsClient.onMessage((message) => {
       if (message.type === 'tick') {
-        get().processTick(message.payload);
+        get().processTick(message.payload || message);
+      }
+
+      if (message.type === 'candle') {
+        get().processCandle(message.payload || message);
       }
 
       if (message.type === 'orderbook') {
+        const symbol = message.symbol || message.payload?.symbol;
+        if (!symbol) return;
+
         set((state) => ({
           orderBook: {
             ...state.orderBook,
-            [message.symbol]: message.payload,
+            [symbol]: message.payload || message,
           },
         }));
+      }
+
+      if (message.type === 'replay') {
+        useReplayStore.getState().setFromReplayEvent(message.payload || message);
       }
     });
   },
 
   processTick: (tick) => {
-    const bucket = new Date(tick.time)
-      .toISOString()
-      .slice(0, 16);
+    const bucket = new Date(tick.time).toISOString().slice(0, 16);
 
     set((state) => {
-      const symbolCandles =
-        state.candles1m[tick.symbol] || {};
-
+      const symbolCandles = state.candles1m[tick.symbol] || {};
       const current = symbolCandles[bucket];
 
       return {
@@ -65,26 +73,40 @@ export const useMarketStore = create((set, get) => ({
           ...state.prices,
           [tick.symbol]: tick.price,
         },
-
         ticks: [tick, ...state.ticks].slice(0, 2000),
-
         candles1m: {
           ...state.candles1m,
-
           [tick.symbol]: {
             ...symbolCandles,
-
             [bucket]: buildCandle(current, tick),
           },
         },
-
         lastSequence: tick.sequence || state.lastSequence,
       };
     });
   },
 
+  processCandle: (candle) => {
+    const symbol = candle.symbol;
+    if (!symbol) return;
+
+    const bucket = new Date(candle.time).toISOString().slice(0, 16);
+
+    set((state) => ({
+      candles1m: {
+        ...state.candles1m,
+        [symbol]: {
+          ...(state.candles1m[symbol] || {}),
+          [bucket]: candle,
+        },
+      },
+    }));
+  },
+
   subscribeSymbol: (symbol) => {
     wsClient.subscribe(`market:${symbol}`);
+    wsClient.subscribe(`orderbook:${symbol}`);
+    wsClient.subscribe(`replay:${symbol}`);
   },
 
   updatePrice: (symbol, price) =>
@@ -96,6 +118,5 @@ export const useMarketStore = create((set, get) => ({
     })),
 
   setSignals: (signals) => set({ signals }),
-
   setRegime: (regime) => set({ regime }),
 }));
