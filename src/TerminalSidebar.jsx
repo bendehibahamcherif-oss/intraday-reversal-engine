@@ -7,7 +7,7 @@ const WORKSPACE_MAP = {
   'Risk Analytics': 'Risk',
   'Macro Intelligence': 'Macro',
   Portfolio: 'Portfolio',
-  Admin: 'Replay',
+  Replay: 'Replay',
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
@@ -24,6 +24,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'Risk Analytics',
     'Macro Intelligence',
     'Portfolio',
+    'Replay',
     'Admin',
   ];
 
@@ -64,11 +65,13 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
         {nav.map((item) => {
           const targetWorkspace = WORKSPACE_MAP[item];
           const active = workspace === targetWorkspace;
+          const isConnected = Boolean(targetWorkspace);
 
           return (
             <button
               key={item}
-              onClick={() => setWorkspace(targetWorkspace)}
+              onClick={() => isConnected && setWorkspace(targetWorkspace)}
+              title={isConnected ? `Open ${item} workspace` : 'Not connected yet: workspace coming soon'}
               style={{
                 background: active ? '#2563eb' : '#111111',
                 border: active
@@ -78,12 +81,18 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
                 color: 'white',
                 textAlign: 'left',
                 padding: '10px 12px',
-                cursor: 'pointer',
+                cursor: isConnected ? 'pointer' : 'not-allowed',
+                opacity: isConnected ? 1 : 0.6,
                 fontWeight: 700,
                 transition: 'all 0.2s ease',
               }}
             >
               {item}
+              {!isConnected && (
+                <span style={{ display: 'block', fontSize: 10, color: '#f59e0b', marginTop: 4 }}>
+                  Not connected yet
+                </span>
+              )}
             </button>
           );
         })}
