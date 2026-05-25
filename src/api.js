@@ -116,6 +116,11 @@ export const api = {
   getQuantFeatures: async (symbol) => fetch(`${API_BASE}/api/quant/features/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
   extractQuantFeatures: async (symbol) => fetch(`${API_BASE}/api/quant/extract/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
 
+  runQuantPipeline: async (symbol, timeframe) => fetch(
+    `${API_BASE}/api/quant/pipeline/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ timeframe }) }
+  ).then(handle),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });
