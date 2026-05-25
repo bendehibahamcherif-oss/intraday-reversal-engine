@@ -181,7 +181,7 @@ function PatternSignalsPanel({ items, loading }) {
   );
 }
 
-function StrategyCandidatesPanel({ items, loading, onRunBacktest, backtestLoading }) {
+function StrategyCandidatesPanel({ items, loading, onRunBacktest, backtestLoading, onValidate, validationLoading }) {
   if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
   if (items.length === 0) return <EmptyState text="No strategies yet" />;
 
@@ -209,10 +209,60 @@ function StrategyCandidatesPanel({ items, loading, onRunBacktest, backtestLoadin
             >
               {backtestLoading ? 'Running…' : 'Backtest'}
             </button>
+            <button
+              onClick={() => onValidate?.(item?.id || item?._id || item?.strategyId || item?.name)}
+              disabled={validationLoading}
+              style={{ marginTop: 8, marginLeft: 8, background: '#1e3a8a', color: 'white', border: '1px solid #60a5fa', borderRadius: 6, padding: '6px 10px' }}
+            >
+              {validationLoading ? 'Validating…' : 'Validate'}
+            </button>
           </article>
         );
       })}
     </CardGrid>
+  );
+}
+function validationStatusStyle(status = '') {
+  const normalized = String(status).toLowerCase();
+  if (normalized === 'validated') return { color: '#86efac', border: '#14532d' };
+  if (normalized === 'watchlist') return { color: '#fde68a', border: '#1e3a8a' };
+  if (normalized === 'weak') return { color: '#fdba74', border: '#7c2d12' };
+  if (normalized === 'rejected') return { color: '#fca5a5', border: '#7f1d1d' };
+  return { color: '#e5e7eb', border: '#374151' };
+}
+function ValidationResultsPanel({ results, selectedResult, loading, error, onSelect, onClear }) {
+  const active = selectedResult || (Array.isArray(results) ? results[0] : null);
+  const hasResults = Array.isArray(results) && results.length > 0;
+  const status = getText(active, ['status'], '—');
+  const statusStyle = validationStatusStyle(status);
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ color: '#9ca3af', fontSize: 12 }}>Validate a strategy candidate to populate results.</div>
+        <button onClick={onClear} disabled={loading} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '6px 10px' }}>Clear Validations</button>
+      </div>
+      {error && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{error}</div>}
+      {!hasResults ? <EmptyState text="No validation results yet" /> : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {results.map((item, index) => {
+            const id = item?.id || item?._id || item?.resultId || item?.validationId || `validation-${index}`;
+            return <button key={id} onClick={() => onSelect(id)} style={{ textAlign: 'left', border: '1px solid #1f2937', background: '#070707', color: '#e5e7eb', borderRadius: 8, padding: 8 }}>{item?.strategyName || item?.strategyId || id}</button>;
+          })}
+        </div>
+      )}
+      {active && (
+        <article style={{ border: `1px solid ${statusStyle.border}`, borderRadius: 8, padding: 10, background: '#070707', display: 'grid', gap: 6 }}>
+          <CompactRow label="Validation Score" value={getText(active, ['validationScore', 'score'])} />
+          <CompactRow label="Grade" value={getText(active, ['grade'])} />
+          <CompactRow label="Status" value={status} color={statusStyle.color} />
+          <CompactRow label="Reasons" value={listToText(active?.reasons)} />
+          <CompactRow label="Warnings" value={listToText(active?.warnings)} />
+          <CompactRow label="Backtest Summary" value={listToText(active?.backtestSummary)} />
+          <CompactRow label="Quality Summary" value={listToText(active?.qualitySummary)} />
+          <CompactRow label="Risk Summary" value={listToText(active?.riskSummary)} />
+        </article>
+      )}
+    </div>
   );
 }
 
@@ -469,6 +519,14 @@ export default function QuantLabWorkspace() {
     loadBacktestResults,
     selectBacktestResult,
     clearBacktestResults,
+    validationResults,
+    selectedValidationResult,
+    validationLoading,
+    validationError,
+    validateStrategy,
+    loadValidationResults,
+    selectValidationResult,
+    clearValidationResults,
   } = useQuantLabStore();
 
   const [draftSymbol, setDraftSymbol] = useState(symbol);
@@ -481,6 +539,7 @@ export default function QuantLabWorkspace() {
     loadHistory();
     loadAnalytics();
     loadBacktestResults();
+    loadValidationResults();
   }, [symbol, loadHistory, loadAnalytics]);
 
   const handleClearHistory = async () => {
@@ -521,7 +580,7 @@ export default function QuantLabWorkspace() {
         </div>
 
         {Array.isArray(strategyCandidates) && strategyCandidates.length === 0 && (
-          <div style={{ marginTop: 10, background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: 10, color: '#cbd5e1' }}>No strategies to backtest yet</div>
+          <div style={{ marginTop: 10, background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: 10, color: '#cbd5e1' }}>No strategies to validate yet</div>
         )}
 
         {Array.isArray(warnings) && warnings.length > 0 && (
@@ -629,7 +688,8 @@ export default function QuantLabWorkspace() {
 
       <Panel title="Alpha Signals"><AlphaSignalsPanel items={alphaSignals} loading={loading} /></Panel>
       <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>
-      <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} /></Panel>
+      <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} onValidate={validateStrategy} validationLoading={validationLoading} /></Panel>
+      <Panel title="Strategy Validation"><ValidationResultsPanel results={validationResults} selectedResult={selectedValidationResult} loading={validationLoading} error={validationError} onSelect={selectValidationResult} onClear={clearValidationResults} /></Panel>
       <Panel title="Backtest Results"><BacktestResultsPanel results={backtestResults} selectedResult={selectedBacktestResult} loading={backtestLoading} error={backtestError} onSelect={selectBacktestResult} onClear={clearBacktestResults} /></Panel>
       <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
       <Panel title="Quality Scores"><QualityScoresPanel items={qualityScores} loading={loading} /></Panel>
