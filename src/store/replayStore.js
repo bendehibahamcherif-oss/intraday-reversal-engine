@@ -28,21 +28,29 @@ export const useReplayStore = create((set, get) => ({
   backendHealthLastError: '',
 
   checkBackendHealth: async () => {
+    const healthUrl = `${api.base}/api/runtime/health`;
+
+    if (import.meta.env.DEV) {
+      console.info('[Replay] runtime health URL:', healthUrl);
+    }
+
+    set({ backendHealthLastUrl: healthUrl });
+
     try {
       const result = await api.runtimeHealth();
       const backendAvailable = Boolean(
-        result?.ok === true || result?.success === true || result?.runtime === 'active'
+        result?._httpOk === true && (result?.ok === true || result?.runtime === 'active')
       );
 
       set({
         backendAvailable,
-        backendHealthLastUrl: result?._url || `${api.base}/api/runtime/health`,
+        backendHealthLastUrl: result?._url || healthUrl,
         backendHealthLastError: '',
       });
     } catch (err) {
       set({
         backendAvailable: false,
-        backendHealthLastUrl: `${api.base}/api/runtime/health`,
+        backendHealthLastUrl: healthUrl,
         backendHealthLastError: err?.message || 'Health request failed',
       });
     }

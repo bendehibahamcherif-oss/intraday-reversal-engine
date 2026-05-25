@@ -105,8 +105,16 @@ export const api = {
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
-    const response = await fetch(url, { headers: headers() });
-    const data = await handle(response);
-    return { ...data, _url: url };
+    const response = await fetch(url, { method: 'GET' });
+
+    if (!response.ok) {
+      const err = new Error(`HTTP ${response.status}`);
+      err.status = response.status;
+      err.url = url;
+      throw err;
+    }
+
+    const data = await response.json().catch(() => ({}));
+    return { ...data, _url: url, _httpOk: response.ok };
   },
 };
