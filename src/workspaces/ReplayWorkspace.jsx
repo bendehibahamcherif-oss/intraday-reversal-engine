@@ -16,8 +16,9 @@ function ReplayChart() {
 
   const [zoom, setZoom] = useState(1);
   const [crosshair, setCrosshair] = useState(null);
-  const [timeframe, setTimeframe] = useState('1m');
-  const timeframeConnected = false;
+  const timeframe = useReplayStore((state) => state.timeframe);
+  const setTimeframe = useReplayStore((state) => state.setTimeframe);
+  const timeframeStatus = useReplayStore((state) => state.timeframeStatus);
 
   const visibleData = useMemo(() => {
     const full = replayData.slice(
@@ -84,8 +85,7 @@ function ReplayChart() {
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value)}
-            disabled={!timeframeConnected}
-            title={timeframeConnected ? 'Replay timeframe' : 'Not connected yet: replay timeframe aggregation backend is not available'}
+            title="Replay timeframe"
           >
             <option value="1m">1m</option>
             <option value="5m">5m</option>
@@ -103,9 +103,9 @@ function ReplayChart() {
         </div>
       </div>
 
-      {!timeframeConnected && (
+      {timeframeStatus && (
         <div style={{ marginBottom: 10, color: '#f59e0b', fontSize: 12 }}>
-          Timeframe selector is visible but not connected yet (coming soon).
+          {timeframeStatus}
         </div>
       )}
 
