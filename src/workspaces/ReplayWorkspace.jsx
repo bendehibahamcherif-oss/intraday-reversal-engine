@@ -17,6 +17,7 @@ function ReplayChart() {
   const [zoom, setZoom] = useState(1);
   const [crosshair, setCrosshair] = useState(null);
   const [timeframe, setTimeframe] = useState('1m');
+  const timeframeConnected = false;
 
   const visibleData = useMemo(() => {
     const full = replayData.slice(
@@ -83,6 +84,8 @@ function ReplayChart() {
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value)}
+            disabled={!timeframeConnected}
+            title={timeframeConnected ? 'Replay timeframe' : 'Not connected yet: replay timeframe aggregation backend is not available'}
           >
             <option value="1m">1m</option>
             <option value="5m">5m</option>
@@ -99,6 +102,12 @@ function ReplayChart() {
           </button>
         </div>
       </div>
+
+      {!timeframeConnected && (
+        <div style={{ marginBottom: 10, color: '#f59e0b', fontSize: 12 }}>
+          Timeframe selector is visible but not connected yet (coming soon).
+        </div>
+      )}
 
       <div
         style={{
@@ -220,9 +229,6 @@ function ReplayChart() {
 }
 
 export default function ReplayWorkspace() {
-  const replayMode = useReplayStore((state) => state.replayMode);
-  const playing = useReplayStore((state) => state.playing);
-  const replayIndex = useReplayStore((state) => state.replayIndex);
   const checkBackendHealth = useReplayStore((state) => state.checkBackendHealth);
 
 
@@ -236,11 +242,6 @@ export default function ReplayWorkspace() {
     return () => clearInterval(timer);
   }, [checkBackendHealth]);
 
-  useEffect(() => {
-    if (replayMode && playing) {
-      console.log(`Replay live sync candle ${replayIndex}`);
-    }
-  }, [replayMode, playing, replayIndex]);
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
