@@ -2,6 +2,41 @@ import { useEffect } from 'react';
 import { useStrategyLabStore } from '../store/strategyLabStore.js';
 
 const panel = { background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 };
+const cardStyle = { background: '#050505', border: '1px solid #1f2937', borderRadius: 10, padding: 10 };
+
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const showValue = (value, fallback = '—') => {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.length ? value.join(', ') : fallback;
+  return String(value);
+};
+
+const pickStatus = (strategy) => strategy?.status || strategy?.state || strategy?.lifecycle || '—';
+const pickConfidence = (strategy) => {
+  const raw = strategy?.confidence ?? strategy?.score ?? strategy?.metrics?.confidence;
+  if (raw === null || raw === undefined || raw === '') return '—';
+  return typeof raw === 'number' ? raw.toFixed(2) : String(raw);
+};
+const pickTimeframe = (strategy) => strategy?.timeframe || strategy?.interval || strategy?.horizon || '—';
+
+const summarizeRun = (run, label) => {
+  if (!run || typeof run !== 'object') return `No ${label}`;
+  const summary = run.summary || run.resultSummary || run.results || run.metrics || null;
+  if (typeof summary === 'string') return summary;
+  if (summary && typeof summary === 'object') {
+    const winRate = summary.winRate ?? summary.win_rate ?? summary.winrate;
+    const pnl = summary.pnl ?? summary.netPnl ?? summary.net_profit;
+    const trades = summary.trades ?? summary.tradeCount ?? summary.totalTrades;
+    const parts = [
+      winRate !== undefined ? `Win rate: ${showValue(winRate)}` : null,
+      pnl !== undefined ? `PnL: ${showValue(pnl)}` : null,
+      trades !== undefined ? `Trades: ${showValue(trades)}` : null,
+    ].filter(Boolean);
+    if (parts.length) return parts.join(' • ');
+  }
+  return showValue(summary || run.status || run.result || `No ${label}`);
+};
 
 export default function StrategyLabWorkspace() {
   const {
@@ -17,6 +52,23 @@ export default function StrategyLabWorkspace() {
   }, [symbol, loadSavedStrategies]);
 
   const selectedStrategy = savedStrategies.find((s) => String(s?.id || s?._id || s?.strategyId || '') === selectedStrategyId) || null;
+  const compareItems = asArray(compareResult?.strategies || compareResult?.items || compareResult?.results);
+  const compareSymbol = compareResult?.symbol || compareResult?.meta?.symbol || symbol || '—';
+  const comparedCount = compareItems.length || Number(compareResult?.count) || 0;
+  const bestConfidenceItem = compareItems.reduce((best, item) => {
+    const confidence = Number(item?.confidence ?? item?.score ?? item?.metrics?.confidence);
+    if (!Number.isFinite(confidence)) return best;
+    if (!best || confidence > best.confidence) return { confidence, item };
+    return best;
+  }, null);
+  const validatedCount = compareItems.filter((item) => {
+    const status = String(pickStatus(item)).toLowerCase();
+    return status.includes('validated') || Boolean(item?.latestValidation);
+  }).length;
+  const draftResearchCount = compareItems.filter((item) => {
+    const status = String(pickStatus(item)).toLowerCase();
+    return status.includes('draft') || status.includes('research');
+  }).length;
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
@@ -85,7 +137,39 @@ export default function StrategyLabWorkspace() {
       <div style={panel}>
         <h3 style={{ marginTop: 0 }}>Strategy Comparison</h3>
         <button onClick={compareSelectedStrategies} disabled={comparing || compareSelection.length < 2} style={{ background: '#1e3a8a', color: 'white', border: '1px solid #60a5fa', borderRadius: 8, padding: '6px 10px' }}>{comparing ? 'Comparing…' : 'Compare'}</button>
-        {!compareResult ? <div style={{ color: '#9ca3af', marginTop: 8 }}>Select 2+ strategies and run compare.</div> : <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{JSON.stringify(compareResult, null, 2)}</pre>}
+        {!compareResult ? (
+          <div style={{ color: '#9ca3af', marginTop: 8 }}>No comparison yet</div>
+        ) : (
+          <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
+            <div style={{ ...cardStyle, display: 'grid', gap: 4 }}>
+              <div><strong>Symbol:</strong> {showValue(compareSymbol)}</div>
+              <div><strong>Compared:</strong> {comparedCount}</div>
+              <div><strong>Best confidence:</strong> {bestConfidenceItem ? `${showValue(bestConfidenceItem.item?.name || bestConfidenceItem.item?.strategyName || 'Unnamed')} (${bestConfidenceItem.confidence.toFixed(2)})` : '—'}</div>
+              <div><strong>Validated strategies:</strong> {validatedCount}</div>
+              <div><strong>Draft/Research strategies:</strong> {draftResearchCount}</div>
+            </div>
+
+            {!compareItems.length ? (
+              <div style={{ color: '#9ca3af' }}>No strategy comparison rows returned.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
+                {compareItems.map((strategy, idx) => (
+                  <div key={String(strategy?.id || strategy?._id || strategy?.strategyId || idx)} style={cardStyle}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>{showValue(strategy?.name || strategy?.strategyName || `Strategy ${idx + 1}`)}</div>
+                    <div><strong>Status:</strong> {showValue(pickStatus(strategy))}</div>
+                    <div><strong>Direction:</strong> {showValue(strategy?.direction)}</div>
+                    <div><strong>Confidence:</strong> {showValue(pickConfidence(strategy))}</div>
+                    <div><strong>Timeframe:</strong> {showValue(pickTimeframe(strategy))}</div>
+                    <div><strong>Backtest:</strong> {summarizeRun(strategy?.latestBacktest, 'backtest')}</div>
+                    <div><strong>Validation:</strong> {summarizeRun(strategy?.latestValidation, 'validation')}</div>
+                    <div><strong>Warnings:</strong> {showValue(strategy?.warnings, 'None')}</div>
+                    <div><strong>Tags:</strong> {showValue(strategy?.tags, 'None')}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
