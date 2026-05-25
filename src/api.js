@@ -66,14 +66,13 @@ async function authResult(promise) {
 }
 
 const strategyLabDebugState = {
-  lastUrl: '',
-  lastError: '',
+  lastStrategyLabUrl: '',
+  lastStrategyLabError: '',
 };
 
 function setStrategyLabDebug(url, err = null) {
-  if (!import.meta.env.DEV) return;
-  strategyLabDebugState.lastUrl = url;
-  strategyLabDebugState.lastError = err ? (err.message || String(err)) : '';
+  strategyLabDebugState.lastStrategyLabUrl = url;
+  strategyLabDebugState.lastStrategyLabError = err ? (err.message || String(err)) : '';
 }
 
 async function strategyLabFetch(path, options) {
@@ -82,6 +81,10 @@ async function strategyLabFetch(path, options) {
   try {
     return await fetch(url, options).then(handle);
   } catch (err) {
+    if (!err.url) err.url = url;
+    if (err.status === 404) {
+      err.message = `HTTP 404 for ${err.url}`;
+    }
     setStrategyLabDebug(url, err);
     throw err;
   }
