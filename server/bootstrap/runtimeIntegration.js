@@ -19,6 +19,7 @@ function integrateRuntime({
   const limiter = rateLimiter.middleware();
 
   app.use('/api/replay', limiter, replayRoutes);
+  app.use('/api/replay-session', limiter, replayRoutes);
   app.use('/api/realtime-replay', limiter, realtimeReplayRoutes);
   app.use('/api/replay-legacy', limiter, replayRoutesLegacy);
 
