@@ -16,6 +16,7 @@ export default function ReplayControls() {
     backendAvailable,
     backendHealthLastUrl,
     backendHealthLastError,
+    backendHealthLastResponse,
     currentCandle,
   } = useReplayStore();
 
@@ -45,17 +46,15 @@ export default function ReplayControls() {
       </div>
 
       <div style={{ color: backendAvailable ? '#22c55e' : '#f59e0b' }}>
-        Backend: {backendAvailable ? 'Available' : 'Unavailable (Fallback Mode)'}
+        Backend: {backendAvailable ? 'Available' : 'Unavailable'}
       </div>
 
-
-
-      {import.meta.env.DEV && (
-        <div style={{ color: '#9ca3af', fontSize: 12 }}>
-          <div>Health URL: {backendHealthLastUrl || 'n/a'}</div>
-          {backendHealthLastError ? <div>Health Error: {backendHealthLastError}</div> : null}
-        </div>
-      )}
+      <div style={{ color: '#9ca3af', fontSize: 12, display: 'grid', gap: 4 }}>
+        <div>healthUrl: {backendHealthLastUrl || 'n/a'}</div>
+        <div>backendAvailable: {String(backendAvailable)}</div>
+        <div>lastHealthError: {backendHealthLastError || 'n/a'}</div>
+        <div>lastHealthResponse: {backendHealthLastResponse ? JSON.stringify(backendHealthLastResponse) : 'n/a'}</div>
+      </div>
 
       <div>Replay Candle: {replayIndex + 1}/{replayData.length}</div>
 
