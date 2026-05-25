@@ -168,6 +168,22 @@ export const api = {
     `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
   ).then(handle),
+  validateStrategy: async (symbol, strategyId) => fetch(
+    `${API_BASE}/api/validation/strategy/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId }) }
+  ).then(handle),
+  getValidationResults: async (symbol) => fetch(
+    `${API_BASE}/api/validation/results/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getValidationResult: async (symbol, id) => fetch(
+    `${API_BASE}/api/validation/results/${encodeURIComponent(symbol)}/${encodeURIComponent(id)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  clearValidationResults: async (symbol) => fetch(
+    `${API_BASE}/api/validation/results/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;

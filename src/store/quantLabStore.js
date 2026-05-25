@@ -36,6 +36,20 @@ function normalizeBacktestResult(payload) {
 function getBacktestResultId(result) {
   return String(result?.id || result?._id || result?.resultId || result?.backtestId || '');
 }
+function normalizeValidationResult(payload) {
+  if (!payload) return null;
+  if (Array.isArray(payload)) return payload[0] || null;
+  if (payload?.result) return payload.result;
+  if (payload?.validationResult) return payload.validationResult;
+  if (payload?.validation) return payload.validation;
+  if (Array.isArray(payload?.results)) return payload.results[0] || null;
+  if (Array.isArray(payload?.data)) return payload.data[0] || null;
+  if (payload?.data) return payload.data;
+  return payload;
+}
+function getValidationResultId(result) {
+  return String(result?.id || result?._id || result?.resultId || result?.validationId || '');
+}
 
 export const useQuantLabStore = create((set, get) => ({
   symbol: 'SPY',
@@ -59,6 +73,10 @@ export const useQuantLabStore = create((set, get) => ({
   selectedBacktestResult: null,
   backtestLoading: false,
   backtestError: '',
+  validationResults: [],
+  selectedValidationResult: null,
+  validationLoading: false,
+  validationError: '',
   loading: false,
   error: '',
   lastUpdated: null,
@@ -266,6 +284,76 @@ export const useQuantLabStore = create((set, get) => ({
       set({ backtestLoading: false, backtestError: normalizeError(err) });
     }
   },
+  loadValidationResults: async () => {
+    const symbol = get().symbol;
+    set({ validationLoading: true, validationError: '' });
+    try {
+      const payload = await api.getValidationResults(symbol);
+      const rawResults = normalizeListPayload(payload);
+      const results = rawResults.map((item) => normalizeValidationResult(item)).filter(Boolean);
+      const currentSelected = get().selectedValidationResult;
+      const selectedId = getValidationResultId(currentSelected);
+      const persistedSelection = selectedId ? results.find((item) => getValidationResultId(item) === selectedId) : null;
+      set({
+        validationResults: results,
+        selectedValidationResult: persistedSelection || currentSelected || results[0] || null,
+        validationLoading: false,
+      });
+    } catch (err) {
+      set({ validationLoading: false, validationError: normalizeError(err), validationResults: [], selectedValidationResult: null });
+    }
+  },
+  validateStrategy: async (strategyId) => {
+    const { symbol, strategyCandidates } = get();
+    if (!strategyId) {
+      set({ validationError: 'No strategy selected for validation.' });
+      return;
+    }
+    const selectedStrategy = strategyCandidates.find((item) => String(item?.id || item?._id || item?.strategyId || item?.name) === String(strategyId));
+    if (!selectedStrategy) {
+      set({ validationError: 'Selected strategy is unavailable.' });
+      return;
+    }
+    set({ validationLoading: true, validationError: '' });
+    try {
+      const payload = await api.validateStrategy(symbol, strategyId);
+      const result = normalizeValidationResult(payload);
+      if (!result) {
+        set({ validationLoading: false, validationError: 'Validation completed but the backend returned no result payload.' });
+        return;
+      }
+      const resultId = getValidationResultId(result);
+      const nextResults = [result, ...get().validationResults.filter((item) => getValidationResultId(item) !== resultId)];
+      set({ validationResults: nextResults, selectedValidationResult: result, validationLoading: false });
+      await get().loadValidationResults();
+    } catch (err) {
+      set({ validationLoading: false, validationError: normalizeError(err) });
+    }
+  },
+  selectValidationResult: async (id) => {
+    const symbol = get().symbol;
+    if (!id) {
+      set({ selectedValidationResult: null });
+      return;
+    }
+    set({ validationLoading: true, validationError: '' });
+    try {
+      const payload = await api.getValidationResult(symbol, id);
+      set({ selectedValidationResult: normalizeValidationResult(payload), validationLoading: false });
+    } catch (err) {
+      set({ validationLoading: false, validationError: normalizeError(err) });
+    }
+  },
+  clearValidationResults: async () => {
+    const symbol = get().symbol;
+    set({ validationLoading: true, validationError: '' });
+    try {
+      await api.clearValidationResults(symbol);
+      set({ validationResults: [], selectedValidationResult: null, validationLoading: false });
+    } catch (err) {
+      set({ validationLoading: false, validationError: normalizeError(err) });
+    }
+  },
 
   refreshAll: async () => {
     const symbol = get().symbol;
@@ -290,7 +378,7 @@ export const useQuantLabStore = create((set, get) => ({
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
-      await Promise.all([get().loadAnalytics(), get().loadBacktestResults()]);
+      await Promise.all([get().loadAnalytics(), get().loadBacktestResults(), get().loadValidationResults()]);
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }
