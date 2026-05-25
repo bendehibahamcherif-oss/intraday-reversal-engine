@@ -265,6 +265,8 @@ export default function QuantLabWorkspace() {
     qualityScores,
     rankedSignals,
     warnings,
+    analysisHistory,
+    snapshotId,
     loading,
     error,
     lastUpdated,
@@ -273,6 +275,9 @@ export default function QuantLabWorkspace() {
     setTimeframe,
     refreshAll,
     analyzeAll,
+    loadHistory,
+    selectSnapshot,
+    clearHistory,
     clearError,
   } = useQuantLabStore();
 
@@ -281,6 +286,15 @@ export default function QuantLabWorkspace() {
   useEffect(() => {
     setDraftSymbol(symbol);
   }, [symbol]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [symbol, loadHistory]);
+
+  const handleClearHistory = async () => {
+    if (!window.confirm(`Clear all analysis history for ${symbol}?`)) return;
+    await clearHistory();
+  };
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
@@ -306,6 +320,8 @@ export default function QuantLabWorkspace() {
 
           <button onClick={refreshAll} disabled={loading} style={{ background: '#2563eb', color: 'white', border: '1px solid #3b82f6', borderRadius: 8, padding: '8px 12px' }}>Refresh</button>
           <button onClick={analyzeAll} disabled={loading} style={{ background: '#7c3aed', color: 'white', border: '1px solid #8b5cf6', borderRadius: 8, padding: '8px 12px' }}>Analyze</button>
+          <button onClick={handleClearHistory} disabled={loading} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '8px 12px' }}>Clear History</button>
+          {snapshotId && <span style={{ color: '#9ca3af', fontSize: 12 }}>Snapshot ID: {snapshotId}</span>}
           {analyzedAt && <span style={{ color: '#9ca3af', fontSize: 12 }}>Analyzed at: {new Date(analyzedAt).toLocaleString()}</span>}
           {lastUpdated && <span style={{ color: '#9ca3af', fontSize: 12 }}>Last updated: {new Date(lastUpdated).toLocaleString()}</span>}
         </div>
@@ -328,6 +344,34 @@ export default function QuantLabWorkspace() {
           </div>
         )}
       </section>
+
+      <Panel title="Analysis History">
+        {!Array.isArray(analysisHistory) || analysisHistory.length === 0 ? (
+          <EmptyState text="No analysis history yet" />
+        ) : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {analysisHistory.map((item, index) => {
+              const id = item?.id || item?._id || item?.snapshotId;
+              const createdAt = item?.createdAt || item?.analyzedAt;
+              return (
+                <button
+                  key={id || `history-${index}`}
+                  onClick={() => id && selectSnapshot(id)}
+                  style={{ textAlign: 'left', border: '1px solid #1f2937', background: '#070707', color: '#e5e7eb', borderRadius: 8, padding: 10, cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <strong>{createdAt ? new Date(createdAt).toLocaleString() : 'Unknown date'}</strong>
+                    <span style={{ color: '#9ca3af' }}>{item?.timeframe || '—'}</span>
+                  </div>
+                  <div style={{ marginTop: 6, color: '#9ca3af', fontSize: 12 }}>
+                    α: {item?.alphaCount ?? item?.counts?.alpha ?? 0} · Patterns: {item?.patternCount ?? item?.counts?.patterns ?? 0} · Strategies: {item?.strategyCount ?? item?.counts?.strategies ?? 0} · Features: {item?.quantFeatureCount ?? item?.counts?.quantFeatures ?? 0} · Quality: {item?.qualityScoreCount ?? item?.counts?.qualityScores ?? 0}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
 
       <Panel title="Alpha Signals"><AlphaSignalsPanel items={alphaSignals} loading={loading} /></Panel>
       <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>

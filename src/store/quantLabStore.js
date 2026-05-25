@@ -23,6 +23,9 @@ export const useQuantLabStore = create((set, get) => ({
   qualityScores: [],
   rankedSignals: [],
   warnings: [],
+  analysisHistory: [],
+  selectedSnapshot: null,
+  snapshotId: '',
   loading: false,
   error: '',
   lastUpdated: null,
@@ -32,6 +35,52 @@ export const useQuantLabStore = create((set, get) => ({
   setTimeframe: (timeframe) => set({ timeframe: timeframe || '5m' }),
 
   clearError: () => set({ error: '' }),
+
+  loadHistory: async (limit = 20) => {
+    const symbol = get().symbol;
+    try {
+      const payload = await api.getAnalysisHistory(symbol, limit);
+      set({ analysisHistory: normalizeListPayload(payload) });
+    } catch (err) {
+      set({ error: normalizeError(err), analysisHistory: [] });
+    }
+  },
+
+  selectSnapshot: async (id) => {
+    if (!id) return;
+    set({ loading: true, error: '' });
+    try {
+      const snapshot = await api.getAnalysisSnapshot(id);
+      const data = snapshot?.snapshot || snapshot?.data || snapshot;
+      set({
+        selectedSnapshot: data,
+        snapshotId: data?.id || data?._id || id,
+        alphaSignals: normalizeListPayload(data?.alphaSignals),
+        patternSignals: normalizeListPayload(data?.patternSignals),
+        strategyCandidates: normalizeListPayload(data?.strategyCandidates),
+        quantFeatures: normalizeListPayload(data?.quantFeatures),
+        qualityScores: normalizeListPayload(data?.qualityScores),
+        rankedSignals: normalizeListPayload(data?.rankedSignals),
+        warnings: normalizeListPayload(data?.warnings),
+        analyzedAt: data?.createdAt || data?.analyzedAt || null,
+        loading: false,
+        lastUpdated: new Date().toISOString(),
+      });
+    } catch (err) {
+      set({ loading: false, error: normalizeError(err) });
+    }
+  },
+
+  clearHistory: async () => {
+    const symbol = get().symbol;
+    set({ loading: true, error: '' });
+    try {
+      await api.clearAnalysisHistory(symbol);
+      set({ analysisHistory: [], selectedSnapshot: null, snapshotId: '', loading: false });
+    } catch (err) {
+      set({ loading: false, error: normalizeError(err) });
+    }
+  },
 
   refreshAll: async () => {
     const symbol = get().symbol;
@@ -76,10 +125,13 @@ export const useQuantLabStore = create((set, get) => ({
         qualityScores: normalizeListPayload(pipeline?.qualityScores),
         rankedSignals: normalizeListPayload(pipeline?.rankedSignals),
         warnings: normalizeListPayload(pipeline?.warnings),
+        snapshotId: pipeline?.snapshotId || '',
+        selectedSnapshot: null,
         analyzedAt: pipeline?.analyzedAt || null,
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
+      await get().loadHistory();
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }

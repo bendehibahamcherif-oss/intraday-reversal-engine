@@ -122,6 +122,18 @@ export const api = {
     `${API_BASE}/api/quant/pipeline/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ timeframe }) }
   ).then(handle),
+  getAnalysisHistory: async (symbol, limit = 20) => fetch(
+    `${API_BASE}/api/quant/history/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getAnalysisSnapshot: async (id) => fetch(
+    `${API_BASE}/api/quant/history/snapshot/${encodeURIComponent(id)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  clearAnalysisHistory: async (symbol) => fetch(
+    `${API_BASE}/api/quant/history/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
