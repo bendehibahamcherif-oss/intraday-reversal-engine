@@ -43,6 +43,57 @@ function formatFeatureDetails(value) {
   return null;
 }
 
+
+function formatRiskRuleValue(value) {
+  if (value === null || value === undefined || value === '') return '—';
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (typeof value === 'object') {
+    const json = JSON.stringify(value);
+    return json && json !== '{}' ? json : '—';
+  }
+  return String(value);
+}
+
+function RiskRulesValue({ value }) {
+  if (value === null || value === undefined || value === '') {
+    return <span>—</span>;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span>—</span>;
+    return (
+      <ul style={{ margin: 0, paddingLeft: 16, display: 'grid', gap: 2 }}>
+        {value.map((rule, index) => (
+          <li key={`risk-rule-${index}`} style={{ lineHeight: 1.35 }}>{formatRiskRuleValue(rule)}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (typeof value === 'object') {
+    const fields = [
+      ['Max risk/trade', value?.maxRiskPerTrade],
+      ['Stop loss', value?.stopLossLogic],
+      ['Take profit', value?.takeProfitLogic],
+      ['Invalidation', value?.invalidationCondition],
+    ].filter(([, fieldValue]) => fieldValue !== undefined && fieldValue !== null && fieldValue !== '');
+
+    if (fields.length === 0) return <span>—</span>;
+
+    return (
+      <div style={{ display: 'grid', gap: 2 }}>
+        {fields.map(([label, fieldValue]) => (
+          <div key={label} style={{ lineHeight: 1.35 }}>
+            <span style={{ color: '#9ca3af' }}>{label}:</span> {formatRiskRuleValue(fieldValue)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <span>{String(value)}</span>;
+}
+
 function directionColor(direction = '') {
   const normalized = String(direction).toLowerCase();
   if (normalized.includes('bull')) return '#86efac';
@@ -148,7 +199,7 @@ function StrategyCandidatesPanel({ items, loading, onRunBacktest, backtestLoadin
             <CompactRow label="Confidence" value={getText(item, ['confidence'])} />
             <CompactRow label="Entry logic" value={getText(item, ['entryLogic', 'entry'])} />
             <CompactRow label="Exit logic" value={getText(item, ['exitLogic', 'exit'])} />
-            <CompactRow label="Risk rules" value={getText(item, ['riskRules', 'risk'])} />
+            <CompactRow label="Risk rules" value={<RiskRulesValue value={item?.riskRules ?? item?.risk} />} />
             <CompactRow label="Warnings" value={warningText} />
             <button
               onClick={() => onRunBacktest?.(item?.id || item?._id || item?.strategyId || item?.name)}
