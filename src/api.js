@@ -115,6 +115,8 @@ export const api = {
   generateStrategies: async (symbol) => fetch(`${API_BASE}/api/strategies/generate/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
   getQuantFeatures: async (symbol) => fetch(`${API_BASE}/api/quant/features/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
   extractQuantFeatures: async (symbol) => fetch(`${API_BASE}/api/quant/extract/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
+  getQualityScores: async (symbol) => fetch(`${API_BASE}/api/quality/scores/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
+  scoreQuality: async (symbol) => fetch(`${API_BASE}/api/quality/score/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
 
   runQuantPipeline: async (symbol, timeframe) => fetch(
     `${API_BASE}/api/quant/pipeline/${encodeURIComponent(symbol)}`,
