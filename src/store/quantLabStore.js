@@ -24,6 +24,11 @@ export const useQuantLabStore = create((set, get) => ({
   rankedSignals: [],
   warnings: [],
   analysisHistory: [],
+  analyticsTrend: [],
+  latestAnalytics: null,
+  snapshotComparison: null,
+  selectedBaseSnapshotId: '',
+  selectedCompareSnapshotId: '',
   selectedSnapshot: null,
   snapshotId: '',
   loading: false,
@@ -43,6 +48,50 @@ export const useQuantLabStore = create((set, get) => ({
       set({ analysisHistory: normalizeListPayload(payload) });
     } catch (err) {
       set({ error: normalizeError(err), analysisHistory: [] });
+    }
+  },
+
+  setSelectedBaseSnapshotId: (id) => set({ selectedBaseSnapshotId: id || '' }),
+  setSelectedCompareSnapshotId: (id) => set({ selectedCompareSnapshotId: id || '' }),
+
+  loadAnalytics: async (limit = 20) => {
+    const symbol = get().symbol;
+    try {
+      const [trendPayload, latestPayload] = await Promise.all([
+        api.getAnalyticsTrend(symbol, limit),
+        api.getLatestAnalytics(symbol).catch(() => null),
+      ]);
+      set({
+        analyticsTrend: normalizeListPayload(trendPayload),
+        latestAnalytics: latestPayload?.data || latestPayload?.latest || latestPayload || null,
+      });
+    } catch (err) {
+      set({
+        analyticsTrend: [],
+        latestAnalytics: null,
+        snapshotComparison: null,
+        error: normalizeError(err),
+      });
+    }
+  },
+
+  compareSelectedSnapshots: async () => {
+    const { symbol, selectedBaseSnapshotId, selectedCompareSnapshotId } = get();
+    if (!selectedBaseSnapshotId || !selectedCompareSnapshotId) {
+      set({ error: 'Select both base and comparison snapshots before comparing.', snapshotComparison: null });
+      return;
+    }
+
+    set({ loading: true, error: '' });
+    try {
+      const payload = await api.compareSnapshots(symbol, selectedBaseSnapshotId, selectedCompareSnapshotId);
+      set({
+        snapshotComparison: payload?.comparison || payload?.data || payload || null,
+        loading: false,
+        lastUpdated: new Date().toISOString(),
+      });
+    } catch (err) {
+      set({ loading: false, error: normalizeError(err), snapshotComparison: null });
     }
   },
 
@@ -76,7 +125,17 @@ export const useQuantLabStore = create((set, get) => ({
     set({ loading: true, error: '' });
     try {
       await api.clearAnalysisHistory(symbol);
-      set({ analysisHistory: [], selectedSnapshot: null, snapshotId: '', loading: false });
+      set({
+        analysisHistory: [],
+        analyticsTrend: [],
+        latestAnalytics: null,
+        snapshotComparison: null,
+        selectedSnapshot: null,
+        selectedBaseSnapshotId: '',
+        selectedCompareSnapshotId: '',
+        snapshotId: '',
+        loading: false,
+      });
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }
@@ -105,6 +164,7 @@ export const useQuantLabStore = create((set, get) => ({
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
+      await get().loadAnalytics();
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }
@@ -127,11 +187,13 @@ export const useQuantLabStore = create((set, get) => ({
         warnings: normalizeListPayload(pipeline?.warnings),
         snapshotId: pipeline?.snapshotId || '',
         selectedSnapshot: null,
+        snapshotComparison: null,
         analyzedAt: pipeline?.analyzedAt || null,
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
       await get().loadHistory();
+      await get().loadAnalytics();
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }

@@ -254,6 +254,23 @@ function Panel({ title, children }) {
   );
 }
 
+function TrendPanel({ trend }) {
+  if (!Array.isArray(trend) || trend.length === 0) return <EmptyState text="No trend data yet" />;
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {trend.map((item, index) => (
+        <article key={`trend-${item?.snapshotId || index}`} style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707' }}>
+          <CompactRow label="Snapshot" value={getText(item, ['snapshotId', 'id'])} />
+          <CompactRow label="Quality trend" value={getText(item, ['qualityTrend', 'qualityScoreTrend', 'qualityScore'])} />
+          <CompactRow label="Signal count" value={getText(item, ['signalCountTrend', 'signalCount', 'totalSignals'])} />
+          <CompactRow label="Direction bias" value={getText(item, ['directionBiasTrend', 'directionBias', 'bias'])} />
+          <CompactRow label="Analyzed at" value={item?.createdAt ? new Date(item.createdAt).toLocaleString() : '—'} />
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export default function QuantLabWorkspace() {
   const {
     symbol,
@@ -266,6 +283,11 @@ export default function QuantLabWorkspace() {
     rankedSignals,
     warnings,
     analysisHistory,
+    analyticsTrend,
+    latestAnalytics,
+    snapshotComparison,
+    selectedBaseSnapshotId,
+    selectedCompareSnapshotId,
     snapshotId,
     loading,
     error,
@@ -276,6 +298,10 @@ export default function QuantLabWorkspace() {
     refreshAll,
     analyzeAll,
     loadHistory,
+    loadAnalytics,
+    compareSelectedSnapshots,
+    setSelectedBaseSnapshotId,
+    setSelectedCompareSnapshotId,
     selectSnapshot,
     clearHistory,
     clearError,
@@ -289,7 +315,8 @@ export default function QuantLabWorkspace() {
 
   useEffect(() => {
     loadHistory();
-  }, [symbol, loadHistory]);
+    loadAnalytics();
+  }, [symbol, loadHistory, loadAnalytics]);
 
   const handleClearHistory = async () => {
     if (!window.confirm(`Clear all analysis history for ${symbol}?`)) return;
@@ -369,6 +396,60 @@ export default function QuantLabWorkspace() {
                 </button>
               );
             })}
+          </div>
+        )}
+      </Panel>
+
+      <Panel title="Analytics Trend">
+        <TrendPanel trend={analyticsTrend} />
+        {latestAnalytics && (
+          <div style={{ marginTop: 10, border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707' }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>Latest analytics</div>
+            <CompactRow label="Quality" value={getText(latestAnalytics, ['qualityTrend', 'qualityScore', 'quality'])} />
+            <CompactRow label="Signals" value={getText(latestAnalytics, ['signalCountTrend', 'signalCount', 'totalSignals'])} />
+            <CompactRow label="Bias" value={getText(latestAnalytics, ['directionBiasTrend', 'directionBias', 'bias'])} />
+          </div>
+        )}
+      </Panel>
+
+      <Panel title="Snapshot Comparison">
+        {!Array.isArray(analysisHistory) || analysisHistory.length < 2 ? (
+          <EmptyState text="Need at least two snapshots in history to compare." />
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+              <select value={selectedBaseSnapshotId} onChange={(e) => setSelectedBaseSnapshotId(e.target.value)} style={{ background: '#050505', color: 'white', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px' }}>
+                <option value="">Select base snapshot</option>
+                {analysisHistory.map((item, index) => {
+                  const id = item?.id || item?._id || item?.snapshotId;
+                  const createdAt = item?.createdAt || item?.analyzedAt;
+                  return <option key={`base-${id || index}`} value={id || ''}>{createdAt ? new Date(createdAt).toLocaleString() : id || `Snapshot ${index + 1}`}</option>;
+                })}
+              </select>
+              <select value={selectedCompareSnapshotId} onChange={(e) => setSelectedCompareSnapshotId(e.target.value)} style={{ background: '#050505', color: 'white', border: '1px solid #2a2a2a', borderRadius: 8, padding: '8px 10px' }}>
+                <option value="">Select comparison snapshot</option>
+                {analysisHistory.map((item, index) => {
+                  const id = item?.id || item?._id || item?.snapshotId;
+                  const createdAt = item?.createdAt || item?.analyzedAt;
+                  return <option key={`compare-${id || index}`} value={id || ''}>{createdAt ? new Date(createdAt).toLocaleString() : id || `Snapshot ${index + 1}`}</option>;
+                })}
+              </select>
+            </div>
+            <button onClick={compareSelectedSnapshots} disabled={loading || !selectedBaseSnapshotId || !selectedCompareSnapshotId} style={{ width: 'fit-content', background: '#1d4ed8', color: 'white', border: '1px solid #3b82f6', borderRadius: 8, padding: '8px 12px' }}>Compare Selected Snapshots</button>
+            {!snapshotComparison ? (
+              <EmptyState text="No comparison yet." />
+            ) : (
+              <article style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707', display: 'grid', gap: 6 }}>
+                <CompactRow label="Alpha Δ" value={getText(snapshotComparison, ['alphaDelta'])} />
+                <CompactRow label="Pattern Δ" value={getText(snapshotComparison, ['patternDelta'])} />
+                <CompactRow label="Strategy Δ" value={getText(snapshotComparison, ['strategyDelta'])} />
+                <CompactRow label="Feature Δ" value={getText(snapshotComparison, ['quantFeatureDelta'])} />
+                <CompactRow label="Quality Δ" value={getText(snapshotComparison, ['qualityScoreDelta'])} />
+                <CompactRow label="Direction shift" value={getText(snapshotComparison, ['directionShift'])} />
+                <CompactRow label="Confidence shift" value={getText(snapshotComparison, ['confidenceShift'])} />
+                <CompactRow label="Warnings" value={listToText(snapshotComparison?.warnings)} />
+              </article>
+            )}
           </div>
         )}
       </Panel>
