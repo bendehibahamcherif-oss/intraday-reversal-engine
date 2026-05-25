@@ -29,10 +29,11 @@ export default function StrategyLabWorkspace() {
 
       {error ? <div style={{ ...panel, background: '#2a0f10', borderColor: '#7f1d1d', color: '#fecaca' }}><div>{error}</div><button onClick={clearError}>Dismiss</button></div> : null}
 
-      {import.meta.env.DEV ? (
+      {import.meta.env.VITE_STRATEGY_LAB_DEBUG === 'true' ? (
         <div style={{ ...panel, background: '#0f172a', borderColor: '#334155', color: '#bfdbfe' }}>
-          <div><strong>Strategy Lab Debug URL:</strong> {debug?.lastUrl || '—'}</div>
-          <div><strong>Strategy Lab Debug Error:</strong> {debug?.lastError || '—'}</div>
+          <div><strong>lastStrategyLabUrl:</strong> {debug?.lastStrategyLabUrl || '—'}</div>
+          <div><strong>lastStrategyLabError:</strong> {debug?.lastStrategyLabError || '—'}</div>
+          <div><strong>VITE_API_BASE:</strong> {import.meta.env.VITE_API_BASE || '—'}</div>
         </div>
       ) : null}
 

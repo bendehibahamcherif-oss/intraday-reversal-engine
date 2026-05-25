@@ -21,6 +21,9 @@ function strategyId(item) {
 }
 
 function normalizeError(err, fallback) {
+  if (!err) return fallback;
+  if (err?.status === 404 && err?.url) return `HTTP 404 for ${err.url}`;
+  if (err?.url && err?.message?.startsWith('HTTP')) return `${err.message} (${err.url})`;
   return err?.message || fallback;
 }
 
@@ -41,7 +44,7 @@ export const useStrategyLabStore = create((set, get) => ({
   saving: false,
   comparing: false,
   error: '',
-  debug: { lastUrl: '', lastError: '' },
+  debug: { lastStrategyLabUrl: '', lastStrategyLabError: '' },
 
   setSymbol: (symbol) => set({ symbol: symbol?.trim()?.toUpperCase() || 'SPY' }),
   setManualField: (key, value) => set((state) => ({ manualStrategy: { ...state.manualStrategy, [key]: value } })),
