@@ -15,15 +15,19 @@ function normalizeError(err) {
 
 export const useQuantLabStore = create((set, get) => ({
   symbol: 'SPY',
+  timeframe: '5m',
   alphaSignals: [],
   patternSignals: [],
   strategyCandidates: [],
   quantFeatures: [],
+  warnings: [],
   loading: false,
   error: '',
   lastUpdated: null,
+  analyzedAt: null,
 
   setSymbol: (symbol) => set({ symbol: symbol?.trim()?.toUpperCase() || 'SPY' }),
+  setTimeframe: (timeframe) => set({ timeframe: timeframe || '5m' }),
 
   clearError: () => set({ error: '' }),
 
@@ -53,18 +57,22 @@ export const useQuantLabStore = create((set, get) => ({
   },
 
   analyzeAll: async () => {
-    const symbol = get().symbol;
+    const { symbol, timeframe } = get();
     set({ loading: true, error: '' });
 
     try {
-      await Promise.all([
-        api.analyzeAlpha(symbol),
-        api.analyzePatterns(symbol),
-        api.generateStrategies(symbol),
-        api.extractQuantFeatures(symbol),
-      ]);
+      const pipeline = await api.runQuantPipeline(symbol, timeframe);
 
-      await get().refreshAll();
+      set({
+        alphaSignals: normalizeListPayload(pipeline?.alphaSignals),
+        patternSignals: normalizeListPayload(pipeline?.patternSignals),
+        strategyCandidates: normalizeListPayload(pipeline?.strategyCandidates),
+        quantFeatures: normalizeListPayload(pipeline?.quantFeatures),
+        warnings: normalizeListPayload(pipeline?.warnings),
+        analyzedAt: pipeline?.analyzedAt || null,
+        loading: false,
+        lastUpdated: new Date().toISOString(),
+      });
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }
