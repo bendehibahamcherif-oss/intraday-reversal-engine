@@ -9,6 +9,7 @@ export default function WorkspaceSwitcher() {
     'Portfolio',
     'Execution',
     'Replay',
+    'QuantLab',
   ];
 
   return (
