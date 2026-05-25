@@ -23,6 +23,8 @@ export const useReplayStore = create((set, get) => ({
   playing: false,
   sessionId: null,
   symbol: 'SPX',
+  timeframe: '1m',
+  timeframeStatus: '',
   backendAvailable: true,
   backendHealthLastUrl: '',
   backendHealthLastError: '',
@@ -70,6 +72,36 @@ export const useReplayStore = create((set, get) => ({
   setPlaybackSpeed: (playbackSpeed) => set({ playbackSpeed }),
 
   loadReplayData: (replayData) => set({ replayData, replayIndex: 0 }),
+
+  setTimeframe: async (timeframe) => {
+    const normalizedTimeframe = timeframe === '1H' ? '1h' : timeframe;
+    const { symbol } = get();
+
+    set({ timeframe: normalizedTimeframe, timeframeStatus: '' });
+
+    try {
+      const result = await api.replayLegacyCandles(symbol, normalizedTimeframe);
+      const candles = Array.isArray(result?.candles) ? result.candles : [];
+
+      if (candles.length > 0) {
+        set({ replayData: candles, replayIndex: 0, timeframeStatus: '' });
+        return;
+      }
+
+      set({
+        replayData: fallbackReplayData(),
+        replayIndex: 0,
+        timeframeStatus: 'No historical candles for this timeframe yet — using fallback replay data.',
+      });
+    } catch (err) {
+      console.warn('Replay timeframe load failed.', err?.message);
+      set({
+        replayData: fallbackReplayData(),
+        replayIndex: 0,
+        timeframeStatus: 'No historical candles for this timeframe yet — using fallback replay data.',
+      });
+    }
+  },
 
   setFromReplayEvent: (payload) => {
     if (!payload) return;

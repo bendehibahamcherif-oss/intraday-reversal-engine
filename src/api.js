@@ -102,6 +102,10 @@ export const api = {
   replayPause: async (sessionId) => fetch(`${API_BASE}/api/replay/pause`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId }) }).then(handle),
   replayResume: async (sessionId) => fetch(`${API_BASE}/api/replay/resume`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId }) }).then(handle),
   replayStop: async (sessionId) => fetch(`${API_BASE}/api/replay/stop`, { method: 'POST', headers: headers(), body: JSON.stringify({ sessionId }) }).then(handle),
+  replayLegacyCandles: async (symbol, timeframe) => fetch(
+    `${API_BASE}/api/replay-legacy/candles/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
