@@ -22,7 +22,19 @@ function normalizeError(err) {
 }
 
 function normalizeBacktestResult(payload) {
-  return payload?.result || payload?.backtest || payload?.data || payload || null;
+  if (!payload) return null;
+  if (Array.isArray(payload)) return payload[0] || null;
+  if (payload?.result) return payload.result;
+  if (payload?.backtestResult) return payload.backtestResult;
+  if (payload?.backtest) return payload.backtest;
+  if (Array.isArray(payload?.results)) return payload.results[0] || null;
+  if (Array.isArray(payload?.data)) return payload.data[0] || null;
+  if (payload?.data) return payload.data;
+  return payload;
+}
+
+function getBacktestResultId(result) {
+  return String(result?.id || result?._id || result?.resultId || result?.backtestId || '');
 }
 
 export const useQuantLabStore = create((set, get) => ({
@@ -163,10 +175,18 @@ export const useQuantLabStore = create((set, get) => ({
     set({ backtestLoading: true, backtestError: '' });
     try {
       const payload = await api.getBacktestResults(symbol);
-      const results = normalizeListPayload(payload);
+      const rawResults = normalizeListPayload(payload);
+      const results = rawResults
+        .map((item) => normalizeBacktestResult(item))
+        .filter(Boolean);
+      const currentSelected = get().selectedBacktestResult;
+      const selectedId = getBacktestResultId(currentSelected);
+      const persistedSelection = selectedId
+        ? results.find((item) => getBacktestResultId(item) === selectedId)
+        : null;
       set({
         backtestResults: results,
-        selectedBacktestResult: results[0] || null,
+        selectedBacktestResult: persistedSelection || currentSelected || results[0] || null,
         backtestLoading: false,
       });
     } catch (err) {
@@ -195,12 +215,25 @@ export const useQuantLabStore = create((set, get) => ({
     try {
       const payload = await api.runBacktest(symbol, strategyId, timeframe);
       const result = normalizeBacktestResult(payload);
-      const nextResults = result ? [result, ...get().backtestResults.filter((item) => String(item?.id || item?._id || item?.resultId || '') !== String(result?.id || result?._id || result?.resultId || ''))] : get().backtestResults;
+      if (!result) {
+        set({
+          backtestLoading: false,
+          backtestError: 'Backtest completed but the backend returned no result payload.',
+        });
+        return;
+      }
+
+      const resultId = getBacktestResultId(result);
+      const nextResults = [
+        result,
+        ...get().backtestResults.filter((item) => getBacktestResultId(item) !== resultId),
+      ];
       set({
         backtestResults: nextResults,
-        selectedBacktestResult: result || get().selectedBacktestResult,
+        selectedBacktestResult: result,
         backtestLoading: false,
       });
+
       await get().loadBacktestResults();
     } catch (err) {
       set({ backtestLoading: false, backtestError: normalizeError(err) });
@@ -291,7 +324,7 @@ export const useQuantLabStore = create((set, get) => ({
         lastUpdated: new Date().toISOString(),
       });
       await get().loadHistory();
-      await Promise.all([get().loadAnalytics(), get().loadBacktestResults()]);
+      await get().loadAnalytics();
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }

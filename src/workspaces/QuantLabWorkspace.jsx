@@ -46,10 +46,11 @@ function formatFeatureDetails(value) {
 
 function formatRiskRuleValue(value) {
   if (value === null || value === undefined || value === '') return '—';
-  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (Array.isArray(value)) return value.length ? value.map((item) => formatRiskRuleValue(item)).join(', ') : '—';
   if (typeof value === 'object') {
-    const json = JSON.stringify(value);
-    return json && json !== '{}' ? json : '—';
+    const entries = Object.entries(value).filter(([, nested]) => nested !== undefined && nested !== null && nested !== '');
+    if (!entries.length) return '—';
+    return entries.map(([key, nested]) => `${key}: ${formatRiskRuleValue(nested)}`).join('; ');
   }
   return String(value);
 }
@@ -336,8 +337,9 @@ function formatMetric(value) {
 }
 
 function BacktestResultsPanel({ results, selectedResult, loading, error, onSelect, onClear }) {
-  const metrics = selectedResult?.metrics || selectedResult?.summary || selectedResult || {};
-  const trades = selectedResult?.trades || selectedResult?.executions || [];
+  const effectiveSelectedResult = selectedResult || (Array.isArray(results) ? results[0] : null);
+  const metrics = effectiveSelectedResult?.metrics || effectiveSelectedResult?.summary || effectiveSelectedResult || {};
+  const trades = effectiveSelectedResult?.trades || effectiveSelectedResult?.executions || [];
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -356,7 +358,7 @@ function BacktestResultsPanel({ results, selectedResult, loading, error, onSelec
           })}
         </div>
       )}
-      {selectedResult && (
+      {effectiveSelectedResult && (
         <article style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707', display: 'grid', gap: 6 }}>
           <CompactRow label="totalPnL" value={formatMetric(metrics?.totalPnL)} />
           <CompactRow label="totalPnLPercent" value={formatMetric(metrics?.totalPnLPercent)} />
