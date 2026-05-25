@@ -134,6 +134,22 @@ export const api = {
     `${API_BASE}/api/quant/history/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
   ).then(handle),
+  getAnalyticsTrend: async (symbol, limit = 20) => fetch(
+    `${API_BASE}/api/analytics/trend/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getLatestAnalytics: async (symbol) => fetch(
+    `${API_BASE}/api/analytics/latest/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  compareSnapshots: async (symbol, baseSnapshotId, compareSnapshotId) => fetch(
+    `${API_BASE}/api/analytics/compare/${encodeURIComponent(symbol)}`,
+    {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ baseSnapshotId, compareSnapshotId }),
+    }
+  ).then(handle),
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
