@@ -223,6 +223,18 @@ export default function ReplayWorkspace() {
   const replayMode = useReplayStore((state) => state.replayMode);
   const playing = useReplayStore((state) => state.playing);
   const replayIndex = useReplayStore((state) => state.replayIndex);
+  const checkBackendHealth = useReplayStore((state) => state.checkBackendHealth);
+
+
+  useEffect(() => {
+    checkBackendHealth();
+
+    const timer = setInterval(() => {
+      checkBackendHealth();
+    }, 15000);
+
+    return () => clearInterval(timer);
+  }, [checkBackendHealth]);
 
   useEffect(() => {
     if (replayMode && playing) {

@@ -24,6 +24,29 @@ export const useReplayStore = create((set, get) => ({
   sessionId: null,
   symbol: 'SPX',
   backendAvailable: true,
+  backendHealthLastUrl: '',
+  backendHealthLastError: '',
+
+  checkBackendHealth: async () => {
+    try {
+      const result = await api.runtimeHealth();
+      const backendAvailable = Boolean(
+        result?.ok === true || result?.success === true || result?.runtime === 'active'
+      );
+
+      set({
+        backendAvailable,
+        backendHealthLastUrl: result?._url || `${api.base}/api/runtime/health`,
+        backendHealthLastError: '',
+      });
+    } catch (err) {
+      set({
+        backendAvailable: false,
+        backendHealthLastUrl: `${api.base}/api/runtime/health`,
+        backendHealthLastError: err?.message || 'Health request failed',
+      });
+    }
+  },
 
   setReplayMode: async (replayMode) => {
     set({ replayMode });
@@ -69,10 +92,10 @@ export const useReplayStore = create((set, get) => ({
         options: { speed: state.playbackSpeed },
       });
 
-      set({ playing: true, sessionId, backendAvailable: true });
+      set({ playing: true, sessionId });
     } catch (err) {
-      console.warn('Replay backend unavailable, fallback mode enabled.', err?.message);
-      set({ playing: true, backendAvailable: false });
+      console.warn('Replay start failed.', err?.message);
+      set({ playing: true });
     }
   },
 
@@ -81,9 +104,9 @@ export const useReplayStore = create((set, get) => ({
 
     try {
       if (sessionId) await api.replayPause(sessionId);
-      set({ playing: false, backendAvailable: true });
+      set({ playing: false });
     } catch {
-      set({ playing: false, backendAvailable: false });
+      set({ playing: false });
     }
   },
 
@@ -92,9 +115,9 @@ export const useReplayStore = create((set, get) => ({
 
     try {
       if (sessionId) await api.replayResume(sessionId);
-      set({ playing: true, backendAvailable: true });
+      set({ playing: true });
     } catch {
-      set({ playing: true, backendAvailable: false });
+      set({ playing: true });
     }
   },
 
