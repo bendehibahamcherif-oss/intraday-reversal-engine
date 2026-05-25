@@ -6,7 +6,7 @@ const panel = { background: '#0a0a0a', border: '1px solid #202020', borderRadius
 export default function StrategyLabWorkspace() {
   const {
     symbol, savedStrategies, selectedStrategyId, compareSelection, compareResult, manualStrategy,
-    loading, saving, comparing, error,
+    loading, saving, comparing, error, debug,
     setSymbol, setManualField, clearError,
     loadSavedStrategies, selectStrategy, saveManualStrategy,
     deleteSelectedStrategy, clearSavedStrategies, toggleCompareStrategy, compareSelectedStrategies,
@@ -28,6 +28,13 @@ export default function StrategyLabWorkspace() {
       </div>
 
       {error ? <div style={{ ...panel, background: '#2a0f10', borderColor: '#7f1d1d', color: '#fecaca' }}><div>{error}</div><button onClick={clearError}>Dismiss</button></div> : null}
+
+      {import.meta.env.DEV ? (
+        <div style={{ ...panel, background: '#0f172a', borderColor: '#334155', color: '#bfdbfe' }}>
+          <div><strong>Strategy Lab Debug URL:</strong> {debug?.lastUrl || '—'}</div>
+          <div><strong>Strategy Lab Debug Error:</strong> {debug?.lastError || '—'}</div>
+        </div>
+      ) : null}
 
       <div style={{ ...panel }}>
         <h3 style={{ marginTop: 0 }}>Saved Strategies</h3>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '../api.js';
+import { api, getStrategyLabDebug } from '../api.js';
 
 function normalizeList(payload) {
   if (Array.isArray(payload)) return payload;
@@ -41,6 +41,7 @@ export const useStrategyLabStore = create((set, get) => ({
   saving: false,
   comparing: false,
   error: '',
+  debug: { lastUrl: '', lastError: '' },
 
   setSymbol: (symbol) => set({ symbol: symbol?.trim()?.toUpperCase() || 'SPY' }),
   setManualField: (key, value) => set((state) => ({ manualStrategy: { ...state.manualStrategy, [key]: value } })),
@@ -58,9 +59,10 @@ export const useStrategyLabStore = create((set, get) => ({
         loading: false,
         savedStrategies,
         selectedStrategyId: hasSelected ? selectedStrategyId : strategyId(savedStrategies[0]) || '',
+        debug: getStrategyLabDebug(),
       });
     } catch (err) {
-      set({ loading: false, savedStrategies: [], selectedStrategyId: '', error: normalizeError(err, 'Failed to load saved strategies.') });
+      set({ loading: false, savedStrategies: [], selectedStrategyId: '', error: normalizeError(err, 'Failed to load saved strategies.'), debug: getStrategyLabDebug() });
     }
   },
 
@@ -75,7 +77,7 @@ export const useStrategyLabStore = create((set, get) => ({
         savedStrategies: state.savedStrategies.map((item) => (strategyId(item) === String(id) ? { ...item, ...detail } : item)),
       }));
     } catch (err) {
-      set({ error: normalizeError(err, 'Failed to load strategy details.') });
+      set({ error: normalizeError(err, 'Failed to load strategy details.'), debug: getStrategyLabDebug() });
     }
   },
 
@@ -90,9 +92,10 @@ export const useStrategyLabStore = create((set, get) => ({
         saving: false,
         manualStrategy: { name: '', type: '', direction: '', entryLogic: '', exitLogic: '' },
         selectedStrategyId: strategyId(saved) || get().selectedStrategyId,
+        debug: getStrategyLabDebug(),
       });
     } catch (err) {
-      set({ saving: false, error: normalizeError(err, 'Failed to save strategy.') });
+      set({ saving: false, error: normalizeError(err, 'Failed to save strategy.'), debug: getStrategyLabDebug() });
     }
   },
 
@@ -103,9 +106,9 @@ export const useStrategyLabStore = create((set, get) => ({
     try {
       await api.updateSavedStrategy(id, updates || {});
       await get().loadSavedStrategies();
-      set({ saving: false });
+      set({ saving: false, debug: getStrategyLabDebug() });
     } catch (err) {
-      set({ saving: false, error: normalizeError(err, 'Failed to update strategy.') });
+      set({ saving: false, error: normalizeError(err, 'Failed to update strategy.'), debug: getStrategyLabDebug() });
     }
   },
 
@@ -119,9 +122,10 @@ export const useStrategyLabStore = create((set, get) => ({
       set((state) => ({
         saving: false,
         compareSelection: state.compareSelection.filter((item) => item !== id),
+        debug: getStrategyLabDebug(),
       }));
     } catch (err) {
-      set({ saving: false, error: normalizeError(err, 'Failed to delete strategy.') });
+      set({ saving: false, error: normalizeError(err, 'Failed to delete strategy.'), debug: getStrategyLabDebug() });
     }
   },
 
@@ -130,9 +134,9 @@ export const useStrategyLabStore = create((set, get) => ({
     set({ saving: true, error: '' });
     try {
       await api.clearSavedStrategies(symbol);
-      set({ saving: false, savedStrategies: [], selectedStrategyId: '', compareSelection: [], compareResult: null });
+      set({ saving: false, savedStrategies: [], selectedStrategyId: '', compareSelection: [], compareResult: null, debug: getStrategyLabDebug() });
     } catch (err) {
-      set({ saving: false, error: normalizeError(err, 'Failed to clear strategies.') });
+      set({ saving: false, error: normalizeError(err, 'Failed to clear strategies.'), debug: getStrategyLabDebug() });
     }
   },
 
@@ -152,9 +156,9 @@ export const useStrategyLabStore = create((set, get) => ({
     set({ comparing: true, error: '' });
     try {
       const payload = await api.compareSavedStrategies(symbol, compareSelection);
-      set({ comparing: false, compareResult: payload?.comparison || payload?.data || payload || null });
+      set({ comparing: false, compareResult: payload?.comparison || payload?.data || payload || null, debug: getStrategyLabDebug() });
     } catch (err) {
-      set({ comparing: false, compareResult: null, error: normalizeError(err, 'Failed to compare strategies.') });
+      set({ comparing: false, compareResult: null, error: normalizeError(err, 'Failed to compare strategies.'), debug: getStrategyLabDebug() });
     }
   },
 }));

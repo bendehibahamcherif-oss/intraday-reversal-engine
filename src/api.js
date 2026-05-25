@@ -65,6 +65,32 @@ async function authResult(promise) {
   return data;
 }
 
+const strategyLabDebugState = {
+  lastUrl: '',
+  lastError: '',
+};
+
+function setStrategyLabDebug(url, err = null) {
+  if (!import.meta.env.DEV) return;
+  strategyLabDebugState.lastUrl = url;
+  strategyLabDebugState.lastError = err ? (err.message || String(err)) : '';
+}
+
+async function strategyLabFetch(path, options) {
+  const url = `${API_BASE}${path}`;
+  setStrategyLabDebug(url, null);
+  try {
+    return await fetch(url, options).then(handle);
+  } catch (err) {
+    setStrategyLabDebug(url, err);
+    throw err;
+  }
+}
+
+export function getStrategyLabDebug() {
+  return { ...strategyLabDebugState };
+}
+
 export const api = {
   base: API_BASE,
 
@@ -151,34 +177,34 @@ export const api = {
     }
   ).then(handle),
 
-  getSavedStrategies: async (symbol) => fetch(
-    `${API_BASE}/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,
+  getSavedStrategies: async (symbol) => strategyLabFetch(
+    `/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  getSavedStrategy: async (id) => fetch(
-    `${API_BASE}/api/strategy-lab/strategy/${encodeURIComponent(id)}`,
+  ),
+  getSavedStrategy: async (id) => strategyLabFetch(
+    `/api/strategy-lab/strategy/${encodeURIComponent(id)}`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  saveStrategy: async (symbol, strategy) => fetch(
-    `${API_BASE}/api/strategy-lab/save/${encodeURIComponent(symbol)}`,
+  ),
+  saveStrategy: async (symbol, strategy) => strategyLabFetch(
+    `/api/strategy-lab/save/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify(strategy || {}) }
-  ).then(handle),
-  updateSavedStrategy: async (id, updates) => fetch(
-    `${API_BASE}/api/strategy-lab/strategy/${encodeURIComponent(id)}`,
+  ),
+  updateSavedStrategy: async (id, updates) => strategyLabFetch(
+    `/api/strategy-lab/strategy/${encodeURIComponent(id)}`,
     { method: 'PUT', headers: headers(), body: JSON.stringify(updates || {}) }
-  ).then(handle),
-  deleteSavedStrategy: async (id) => fetch(
-    `${API_BASE}/api/strategy-lab/strategy/${encodeURIComponent(id)}`,
+  ),
+  deleteSavedStrategy: async (id) => strategyLabFetch(
+    `/api/strategy-lab/strategy/${encodeURIComponent(id)}`,
     { method: 'DELETE', headers: headers() }
-  ).then(handle),
-  clearSavedStrategies: async (symbol) => fetch(
-    `${API_BASE}/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,
+  ),
+  clearSavedStrategies: async (symbol) => strategyLabFetch(
+    `/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
-  ).then(handle),
-  compareSavedStrategies: async (symbol, strategyIds) => fetch(
-    `${API_BASE}/api/strategy-lab/compare/${encodeURIComponent(symbol)}`,
+  ),
+  compareSavedStrategies: async (symbol, strategyIds) => strategyLabFetch(
+    `/api/strategy-lab/compare/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ strategyIds: strategyIds || [] }) }
-  ).then(handle),
+  ),
 
 
   runBacktest: async (symbol, strategyId, timeframe) => fetch(
