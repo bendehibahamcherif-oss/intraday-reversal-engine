@@ -21,6 +21,10 @@ function normalizeError(err) {
   return err?.message || 'Failed to load Quant Lab data';
 }
 
+function normalizeBacktestResult(payload) {
+  return payload?.result || payload?.backtest || payload?.data || payload || null;
+}
+
 export const useQuantLabStore = create((set, get) => ({
   symbol: 'SPY',
   timeframe: '5m',
@@ -39,6 +43,10 @@ export const useQuantLabStore = create((set, get) => ({
   selectedCompareSnapshotId: '',
   selectedSnapshot: null,
   snapshotId: '',
+  backtestResults: [],
+  selectedBacktestResult: null,
+  backtestLoading: false,
+  backtestError: '',
   loading: false,
   error: '',
   lastUpdated: null,
@@ -149,6 +157,83 @@ export const useQuantLabStore = create((set, get) => ({
     }
   },
 
+
+  loadBacktestResults: async () => {
+    const symbol = get().symbol;
+    set({ backtestLoading: true, backtestError: '' });
+    try {
+      const payload = await api.getBacktestResults(symbol);
+      const results = normalizeListPayload(payload);
+      set({
+        backtestResults: results,
+        selectedBacktestResult: results[0] || null,
+        backtestLoading: false,
+      });
+    } catch (err) {
+      set({ backtestLoading: false, backtestError: normalizeError(err), backtestResults: [], selectedBacktestResult: null });
+    }
+  },
+
+  runBacktest: async (strategyId) => {
+    const { symbol, timeframe, strategyCandidates } = get();
+    if (!strategyId) {
+      set({ backtestError: 'No strategy selected for backtest.' });
+      return;
+    }
+
+    const selectedStrategy = strategyCandidates.find((item) => {
+      const id = item?.id || item?._id || item?.strategyId || item?.name;
+      return String(id) === String(strategyId);
+    });
+
+    if (!selectedStrategy) {
+      set({ backtestError: 'Selected strategy is unavailable.' });
+      return;
+    }
+
+    set({ backtestLoading: true, backtestError: '' });
+    try {
+      const payload = await api.runBacktest(symbol, strategyId, timeframe);
+      const result = normalizeBacktestResult(payload);
+      const nextResults = result ? [result, ...get().backtestResults.filter((item) => String(item?.id || item?._id || item?.resultId || '') !== String(result?.id || result?._id || result?.resultId || ''))] : get().backtestResults;
+      set({
+        backtestResults: nextResults,
+        selectedBacktestResult: result || get().selectedBacktestResult,
+        backtestLoading: false,
+      });
+      await get().loadBacktestResults();
+    } catch (err) {
+      set({ backtestLoading: false, backtestError: normalizeError(err) });
+    }
+  },
+
+  selectBacktestResult: async (id) => {
+    const symbol = get().symbol;
+    if (!id) {
+      set({ selectedBacktestResult: null });
+      return;
+    }
+
+    set({ backtestLoading: true, backtestError: '' });
+    try {
+      const payload = await api.getBacktestResult(symbol, id);
+      set({ selectedBacktestResult: normalizeBacktestResult(payload), backtestLoading: false });
+    } catch (err) {
+      set({ backtestLoading: false, backtestError: normalizeError(err) });
+    }
+  },
+
+  clearBacktestResults: async () => {
+    const symbol = get().symbol;
+    set({ backtestLoading: true, backtestError: '' });
+    try {
+      await api.clearBacktestResults(symbol);
+      set({ backtestResults: [], selectedBacktestResult: null, backtestLoading: false });
+    } catch (err) {
+      set({ backtestLoading: false, backtestError: normalizeError(err) });
+    }
+  },
+
   refreshAll: async () => {
     const symbol = get().symbol;
     set({ loading: true, error: '' });
@@ -172,7 +257,7 @@ export const useQuantLabStore = create((set, get) => ({
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
-      await get().loadAnalytics();
+      await Promise.all([get().loadAnalytics(), get().loadBacktestResults()]);
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }
@@ -206,7 +291,7 @@ export const useQuantLabStore = create((set, get) => ({
         lastUpdated: new Date().toISOString(),
       });
       await get().loadHistory();
-      await get().loadAnalytics();
+      await Promise.all([get().loadAnalytics(), get().loadBacktestResults()]);
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }

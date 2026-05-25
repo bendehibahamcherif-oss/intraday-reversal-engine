@@ -151,6 +151,24 @@ export const api = {
     }
   ).then(handle),
 
+
+  runBacktest: async (symbol, strategyId, timeframe) => fetch(
+    `${API_BASE}/api/backtest/run/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId, timeframe }) }
+  ).then(handle),
+  getBacktestResults: async (symbol) => fetch(
+    `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getBacktestResult: async (symbol, id) => fetch(
+    `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}/${encodeURIComponent(id)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  clearBacktestResults: async (symbol) => fetch(
+    `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });

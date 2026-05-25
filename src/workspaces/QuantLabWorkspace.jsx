@@ -129,7 +129,7 @@ function PatternSignalsPanel({ items, loading }) {
   );
 }
 
-function StrategyCandidatesPanel({ items, loading }) {
+function StrategyCandidatesPanel({ items, loading, onRunBacktest, backtestLoading }) {
   if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
   if (items.length === 0) return <EmptyState text="No strategies yet" />;
 
@@ -150,6 +150,13 @@ function StrategyCandidatesPanel({ items, loading }) {
             <CompactRow label="Exit logic" value={getText(item, ['exitLogic', 'exit'])} />
             <CompactRow label="Risk rules" value={getText(item, ['riskRules', 'risk'])} />
             <CompactRow label="Warnings" value={warningText} />
+            <button
+              onClick={() => onRunBacktest?.(item?.id || item?._id || item?.strategyId || item?.name)}
+              disabled={backtestLoading}
+              style={{ marginTop: 8, background: '#065f46', color: 'white', border: '1px solid #10b981', borderRadius: 6, padding: '6px 10px' }}
+            >
+              {backtestLoading ? 'Running…' : 'Backtest'}
+            </button>
           </article>
         );
       })}
@@ -271,6 +278,53 @@ function TrendPanel({ trend }) {
   );
 }
 
+
+function formatMetric(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return Number(value.toFixed(4)).toString();
+  return value ?? '—';
+}
+
+function BacktestResultsPanel({ results, selectedResult, loading, error, onSelect, onClear }) {
+  const metrics = selectedResult?.metrics || selectedResult?.summary || selectedResult || {};
+  const trades = selectedResult?.trades || selectedResult?.executions || [];
+
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ color: '#9ca3af', fontSize: 12 }}>Run a strategy backtest to populate results.</div>
+        <button onClick={onClear} disabled={loading} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '6px 10px' }}>Clear Backtests</button>
+      </div>
+      {error && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{error}</div>}
+      {!Array.isArray(results) || results.length === 0 ? (
+        <EmptyState text="No backtest results yet" />
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {results.map((item, index) => {
+            const id = item?.id || item?._id || item?.resultId || `result-${index}`;
+            return <button key={id} onClick={() => onSelect(id)} style={{ textAlign: 'left', border: '1px solid #1f2937', background: '#070707', color: '#e5e7eb', borderRadius: 8, padding: 8 }}>{item?.strategyName || item?.strategyId || id}</button>;
+          })}
+        </div>
+      )}
+      {selectedResult && (
+        <article style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#070707', display: 'grid', gap: 6 }}>
+          <CompactRow label="totalPnL" value={formatMetric(metrics?.totalPnL)} />
+          <CompactRow label="totalPnLPercent" value={formatMetric(metrics?.totalPnLPercent)} />
+          <CompactRow label="winRate" value={formatMetric(metrics?.winRate)} />
+          <CompactRow label="lossRate" value={formatMetric(metrics?.lossRate)} />
+          <CompactRow label="averageWin" value={formatMetric(metrics?.averageWin)} />
+          <CompactRow label="averageLoss" value={formatMetric(metrics?.averageLoss)} />
+          <CompactRow label="maxDrawdown" value={formatMetric(metrics?.maxDrawdown)} />
+          <CompactRow label="profitFactor" value={formatMetric(metrics?.profitFactor)} />
+          <CompactRow label="expectancy" value={formatMetric(metrics?.expectancy)} />
+          <CompactRow label="numberOfTrades" value={formatMetric(metrics?.numberOfTrades)} />
+          <CompactRow label="averageTradeDuration" value={formatMetric(metrics?.averageTradeDuration)} />
+          {Array.isArray(trades) && trades.length > 0 && <div style={{ marginTop: 8 }}><strong style={{ fontSize: 12 }}>Trades</strong><pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, color: '#9ca3af' }}>{JSON.stringify(trades, null, 2)}</pre></div>}
+        </article>
+      )}
+    </div>
+  );
+}
+
 export default function QuantLabWorkspace() {
   const {
     symbol,
@@ -305,6 +359,14 @@ export default function QuantLabWorkspace() {
     selectSnapshot,
     clearHistory,
     clearError,
+    backtestResults,
+    selectedBacktestResult,
+    backtestLoading,
+    backtestError,
+    runBacktest,
+    loadBacktestResults,
+    selectBacktestResult,
+    clearBacktestResults,
   } = useQuantLabStore();
 
   const [draftSymbol, setDraftSymbol] = useState(symbol);
@@ -316,6 +378,7 @@ export default function QuantLabWorkspace() {
   useEffect(() => {
     loadHistory();
     loadAnalytics();
+    loadBacktestResults();
   }, [symbol, loadHistory, loadAnalytics]);
 
   const handleClearHistory = async () => {
@@ -354,6 +417,10 @@ export default function QuantLabWorkspace() {
           {analyzedAt && <span style={{ color: '#9ca3af', fontSize: 12 }}>Analyzed at: {new Date(analyzedAt).toLocaleString()}</span>}
           {lastUpdated && <span style={{ color: '#9ca3af', fontSize: 12 }}>Last updated: {new Date(lastUpdated).toLocaleString()}</span>}
         </div>
+
+        {Array.isArray(strategyCandidates) && strategyCandidates.length === 0 && (
+          <div style={{ marginTop: 10, background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: 10, color: '#cbd5e1' }}>No strategies to backtest yet</div>
+        )}
 
         {Array.isArray(warnings) && warnings.length > 0 && (
           <div style={{ marginTop: 10, background: '#2a220f', border: '1px solid #92400e', borderRadius: 8, padding: 10, color: '#fde68a' }}>
@@ -460,7 +527,8 @@ export default function QuantLabWorkspace() {
 
       <Panel title="Alpha Signals"><AlphaSignalsPanel items={alphaSignals} loading={loading} /></Panel>
       <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>
-      <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} /></Panel>
+      <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} /></Panel>
+      <Panel title="Backtest Results"><BacktestResultsPanel results={backtestResults} selectedResult={selectedBacktestResult} loading={backtestLoading} error={backtestError} onSelect={selectBacktestResult} onClear={clearBacktestResults} /></Panel>
       <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
       <Panel title="Quality Scores"><QualityScoresPanel items={qualityScores} loading={loading} /></Panel>
       <Panel title="Ranked Signals"><RankedSignalsPanel items={rankedSignals} loading={loading} /></Panel>
