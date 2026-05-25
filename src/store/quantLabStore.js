@@ -20,6 +20,8 @@ export const useQuantLabStore = create((set, get) => ({
   patternSignals: [],
   strategyCandidates: [],
   quantFeatures: [],
+  qualityScores: [],
+  rankedSignals: [],
   warnings: [],
   loading: false,
   error: '',
@@ -36,11 +38,12 @@ export const useQuantLabStore = create((set, get) => ({
     set({ loading: true, error: '' });
 
     try {
-      const [alpha, patterns, strategies, features] = await Promise.all([
+      const [alpha, patterns, strategies, features, quality] = await Promise.all([
         api.getAlphaSignals(symbol),
         api.getPatternSignals(symbol),
         api.getStrategyCandidates(symbol),
         api.getQuantFeatures(symbol),
+        api.getQualityScores(symbol).catch(() => []),
       ]);
 
       set({
@@ -48,6 +51,8 @@ export const useQuantLabStore = create((set, get) => ({
         patternSignals: normalizeListPayload(patterns),
         strategyCandidates: normalizeListPayload(strategies),
         quantFeatures: normalizeListPayload(features),
+        qualityScores: normalizeListPayload(quality),
+        rankedSignals: [],
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
@@ -68,6 +73,8 @@ export const useQuantLabStore = create((set, get) => ({
         patternSignals: normalizeListPayload(pipeline?.patternSignals),
         strategyCandidates: normalizeListPayload(pipeline?.strategyCandidates),
         quantFeatures: normalizeListPayload(pipeline?.quantFeatures),
+        qualityScores: normalizeListPayload(pipeline?.qualityScores),
+        rankedSignals: normalizeListPayload(pipeline?.rankedSignals),
         warnings: normalizeListPayload(pipeline?.warnings),
         analyzedAt: pipeline?.analyzedAt || null,
         loading: false,

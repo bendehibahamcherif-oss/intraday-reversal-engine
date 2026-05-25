@@ -67,6 +67,22 @@ function EmptyState({ text }) {
   return <div style={{ color: '#9ca3af' }}>{text}</div>;
 }
 
+function gradeStyle(grade = '') {
+  const normalized = String(grade).toUpperCase();
+  if (normalized.startsWith('A')) return { color: '#86efac', border: '#14532d', label: 'strong' };
+  if (normalized.startsWith('B')) return { color: '#bfdbfe', border: '#1e3a8a', label: 'good' };
+  if (normalized.startsWith('C')) return { color: '#fef08a', border: '#713f12', label: 'neutral' };
+  if (normalized.startsWith('D')) return { color: '#fdba74', border: '#7c2d12', label: 'weak' };
+  if (normalized.startsWith('F')) return { color: '#fca5a5', border: '#7f1d1d', label: 'poor' };
+  return { color: '#e5e7eb', border: '#374151', label: 'unrated' };
+}
+
+function listToText(value) {
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return value ?? '—';
+}
+
 function AlphaSignalsPanel({ items, loading }) {
   if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
   if (items.length === 0) return <EmptyState text="No signals yet" />;
@@ -180,6 +196,55 @@ function QuantFeaturesPanel({ items, loading }) {
   );
 }
 
+function QualityScoresPanel({ items, loading }) {
+  if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
+  if (!Array.isArray(items) || items.length === 0) return <EmptyState text="No quality scores yet" />;
+
+  return (
+    <CardGrid>
+      {items.map((item, index) => {
+        const grade = getText(item, ['grade'], '—');
+        const style = gradeStyle(grade);
+        return (
+          <article key={`quality-${index}`} style={{ border: `1px solid ${style.border}`, borderRadius: 10, padding: 10, background: '#070707' }}>
+            <CompactRow label="Signal type" value={getText(item, ['signalType', 'type'])} />
+            <CompactRow label="Score" value={getText(item, ['score'])} />
+            <CompactRow label="Grade" value={`${grade} (${style.label})`} color={style.color} />
+            <CompactRow label="Reasons" value={listToText(item?.reasons)} />
+            <CompactRow label="Bonuses" value={listToText(item?.bonuses)} />
+            <CompactRow label="Penalties" value={listToText(item?.penalties)} />
+          </article>
+        );
+      })}
+    </CardGrid>
+  );
+}
+
+function RankedSignalsPanel({ items, loading }) {
+  if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
+  if (!Array.isArray(items) || items.length === 0) return <EmptyState text="No ranked signals yet" />;
+
+  return (
+    <CardGrid>
+      {items.map((item, index) => {
+        const grade = getText(item, ['grade'], '—');
+        const style = gradeStyle(grade);
+        return (
+          <article key={`ranked-${index}`} style={{ border: `1px solid ${style.border}`, borderRadius: 10, padding: 10, background: '#070707' }}>
+            <CompactRow label="Rank" value={getText(item, ['rank', 'position'])} />
+            <CompactRow label="Signal type" value={getText(item, ['signalType', 'type'])} />
+            <CompactRow label="Score" value={getText(item, ['score'])} />
+            <CompactRow label="Grade" value={`${grade} (${style.label})`} color={style.color} />
+            <CompactRow label="Reasons" value={listToText(item?.reasons)} />
+            <CompactRow label="Bonuses" value={listToText(item?.bonuses)} />
+            <CompactRow label="Penalties" value={listToText(item?.penalties)} />
+          </article>
+        );
+      })}
+    </CardGrid>
+  );
+}
+
 function Panel({ title, children }) {
   return (
     <section style={panelStyle}>
@@ -197,6 +262,8 @@ export default function QuantLabWorkspace() {
     patternSignals,
     strategyCandidates,
     quantFeatures,
+    qualityScores,
+    rankedSignals,
     warnings,
     loading,
     error,
@@ -266,6 +333,8 @@ export default function QuantLabWorkspace() {
       <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>
       <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} /></Panel>
       <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
+      <Panel title="Quality Scores"><QualityScoresPanel items={qualityScores} loading={loading} /></Panel>
+      <Panel title="Ranked Signals"><RankedSignalsPanel items={rankedSignals} loading={loading} /></Panel>
     </div>
   );
 }
