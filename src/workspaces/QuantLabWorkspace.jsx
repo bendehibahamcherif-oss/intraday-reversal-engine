@@ -3,17 +3,164 @@ import { useQuantLabStore } from '../store/quantLabStore.js';
 
 const TIMEFRAME_OPTIONS = ['1m', '5m', '15m', '1H'];
 
-function Panel({ title, items, loading }) {
+const panelStyle = { background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 };
+
+function getText(item, keys, fallback = '—') {
+  for (const key of keys) {
+    const value = item?.[key];
+    if (value !== undefined && value !== null && value !== '') {
+      return String(value);
+    }
+  }
+  return fallback;
+}
+
+function directionColor(direction = '') {
+  const normalized = String(direction).toLowerCase();
+  if (normalized.includes('bull')) return '#86efac';
+  if (normalized.includes('bear')) return '#fca5a5';
+  return '#cbd5e1';
+}
+
+function CompactRow({ label, value, color }) {
   return (
-    <section style={{ background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 6, alignItems: 'start' }}>
+      <span style={{ color: '#9ca3af', fontSize: 12 }}>{label}</span>
+      <span style={{ color: color ?? '#e5e7eb', fontSize: 12, wordBreak: 'break-word' }}>{value}</span>
+    </div>
+  );
+}
+
+function CardGrid({ children }) {
+  return <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>{children}</div>;
+}
+
+function EmptyState({ text }) {
+  return <div style={{ color: '#9ca3af' }}>{text}</div>;
+}
+
+function AlphaSignalsPanel({ items, loading }) {
+  if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
+  if (items.length === 0) return <EmptyState text="No signals yet" />;
+
+  return (
+    <CardGrid>
+      {items.map((item, index) => {
+        const direction = getText(item, ['direction', 'bias', 'signalDirection']);
+        return (
+          <article key={`alpha-${index}`} style={{ border: '1px solid #1f2937', borderRadius: 10, padding: 10, background: '#070707' }}>
+            <CompactRow label="Type" value={getText(item, ['type', 'signalType'])} />
+            <CompactRow label="Direction" value={direction} color={directionColor(direction)} />
+            <CompactRow label="Confidence" value={getText(item, ['confidence'])} />
+            <CompactRow label="Strength" value={getText(item, ['strength', 'score'])} />
+            <CompactRow label="Timeframe" value={getText(item, ['timeframe', 'tf'])} />
+            <CompactRow label="Reason" value={getText(item, ['reason', 'rationale', 'description'])} />
+          </article>
+        );
+      })}
+    </CardGrid>
+  );
+}
+
+function PatternSignalsPanel({ items, loading }) {
+  if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
+  if (items.length === 0) return <EmptyState text="No patterns yet" />;
+
+  return (
+    <CardGrid>
+      {items.map((item, index) => {
+        const direction = getText(item, ['direction', 'bias']);
+        return (
+          <article key={`pattern-${index}`} style={{ border: '1px solid #1f2937', borderRadius: 10, padding: 10, background: '#070707' }}>
+            <CompactRow label="Pattern" value={getText(item, ['pattern', 'name'])} />
+            <CompactRow label="Category" value={getText(item, ['category'])} />
+            <CompactRow label="Direction" value={direction} color={directionColor(direction)} />
+            <CompactRow label="Confidence" value={getText(item, ['confidence'])} />
+            <CompactRow label="Timeframe" value={getText(item, ['timeframe', 'tf'])} />
+            <CompactRow label="Reason" value={getText(item, ['reason', 'rationale', 'description'])} />
+          </article>
+        );
+      })}
+    </CardGrid>
+  );
+}
+
+function StrategyCandidatesPanel({ items, loading }) {
+  if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
+  if (items.length === 0) return <EmptyState text="No strategies yet" />;
+
+  return (
+    <CardGrid>
+      {items.map((item, index) => {
+        const direction = getText(item, ['direction', 'bias']);
+        const warnings = item?.warnings;
+        const warningText = Array.isArray(warnings) ? warnings.join(', ') : getText(item, ['warnings', 'warning'], '—');
+
+        return (
+          <article key={`strategy-${index}`} style={{ border: '1px solid #1f2937', borderRadius: 10, padding: 10, background: '#070707' }}>
+            <CompactRow label="Name" value={getText(item, ['name'])} />
+            <CompactRow label="Type" value={getText(item, ['type'])} />
+            <CompactRow label="Direction" value={direction} color={directionColor(direction)} />
+            <CompactRow label="Confidence" value={getText(item, ['confidence'])} />
+            <CompactRow label="Entry logic" value={getText(item, ['entryLogic', 'entry'])} />
+            <CompactRow label="Exit logic" value={getText(item, ['exitLogic', 'exit'])} />
+            <CompactRow label="Risk rules" value={getText(item, ['riskRules', 'risk'])} />
+            <CompactRow label="Warnings" value={warningText} />
+          </article>
+        );
+      })}
+    </CardGrid>
+  );
+}
+
+function QuantFeaturesPanel({ items, loading }) {
+  if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
+  if (items.length === 0) return <EmptyState text="No features yet" />;
+
+  const grouped = items.reduce((acc, feature) => {
+    const category = getText(feature, ['category'], 'Uncategorized');
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(feature);
+    return acc;
+  }, {});
+
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      {Object.entries(grouped).map(([category, features]) => (
+        <section key={category} style={{ border: '1px solid #1f2937', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ background: '#111827', padding: '8px 10px', fontWeight: 700 }}>{category}</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+              <thead>
+                <tr style={{ background: '#090909' }}>
+                  {['Name', 'Value', 'Timeframe', 'Confidence'].map((header) => (
+                    <th key={header} style={{ textAlign: 'left', padding: 8, fontSize: 12, color: '#9ca3af', borderBottom: '1px solid #1f2937' }}>{header}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {features.map((feature, index) => (
+                  <tr key={`${category}-${index}`}>
+                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['name'])}</td>
+                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['value'])}</td>
+                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['timeframe', 'tf'])}</td>
+                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['confidence'])}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function Panel({ title, children }) {
+  return (
+    <section style={panelStyle}>
       <div style={{ marginBottom: 8, fontWeight: 800 }}>{title}</div>
-      {loading ? (
-        <div style={{ color: '#9ca3af' }}>Loading…</div>
-      ) : items.length === 0 ? (
-        <div style={{ color: '#9ca3af' }}>No signals yet</div>
-      ) : (
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', color: '#d1d5db', fontSize: 12 }}>{JSON.stringify(items, null, 2)}</pre>
-      )}
+      {children}
     </section>
   );
 }
@@ -46,7 +193,7 @@ export default function QuantLabWorkspace() {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      <section style={{ background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 }}>
+      <section style={panelStyle}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             value={draftSymbol}
@@ -91,10 +238,10 @@ export default function QuantLabWorkspace() {
         )}
       </section>
 
-      <Panel title="Alpha Signals" items={alphaSignals} loading={loading} />
-      <Panel title="Pattern Signals" items={patternSignals} loading={loading} />
-      <Panel title="Strategy Candidates" items={strategyCandidates} loading={loading} />
-      <Panel title="Quant Features" items={quantFeatures} loading={loading} />
+      <Panel title="Alpha Signals"><AlphaSignalsPanel items={alphaSignals} loading={loading} /></Panel>
+      <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>
+      <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} /></Panel>
+      <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
     </div>
   );
 }
