@@ -1,5 +1,7 @@
 import { useReplayStore } from '../store/replayStore';
 
+const SHOW_REPLAY_DEBUG = import.meta.env.DEV || import.meta.env.VITE_REPLAY_DEBUG === 'true';
+
 export default function ReplayControls() {
   const {
     replayMode,
@@ -49,12 +51,14 @@ export default function ReplayControls() {
         Backend: {backendAvailable ? 'Available' : 'Unavailable'}
       </div>
 
-      <div style={{ color: '#9ca3af', fontSize: 12, display: 'grid', gap: 4 }}>
-        <div>healthUrl: {backendHealthLastUrl || 'n/a'}</div>
-        <div>backendAvailable: {String(backendAvailable)}</div>
-        <div>lastHealthError: {backendHealthLastError || 'n/a'}</div>
-        <div>lastHealthResponse: {backendHealthLastResponse ? JSON.stringify(backendHealthLastResponse) : 'n/a'}</div>
-      </div>
+      {SHOW_REPLAY_DEBUG && (
+        <div style={{ color: '#9ca3af', fontSize: 12, display: 'grid', gap: 4 }}>
+          <div>healthUrl: {backendHealthLastUrl || 'n/a'}</div>
+          <div>backendAvailable: {String(backendAvailable)}</div>
+          <div>lastHealthError: {backendHealthLastError || 'n/a'}</div>
+          <div>lastHealthResponse: {backendHealthLastResponse ? JSON.stringify(backendHealthLastResponse) : 'n/a'}</div>
+        </div>
+      )}
 
       <div>Replay Candle: {replayIndex + 1}/{replayData.length}</div>
 
