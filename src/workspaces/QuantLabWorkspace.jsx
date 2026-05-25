@@ -15,6 +15,34 @@ function getText(item, keys, fallback = '—') {
   return fallback;
 }
 
+
+function formatFeatureValue(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Number(value.toFixed(4)).toString();
+  }
+  if (typeof value === 'string') {
+    return value || '—';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (value === null || value === undefined) {
+    return '—';
+  }
+  if (Array.isArray(value) || typeof value === 'object') {
+    return 'See details';
+  }
+  return String(value);
+}
+
+function formatFeatureDetails(value) {
+  if (Array.isArray(value) || (value && typeof value === 'object')) {
+    const json = JSON.stringify(value);
+    return json.length > 180 ? `${json.slice(0, 177)}...` : json;
+  }
+  return null;
+}
+
 function directionColor(direction = '') {
   const normalized = String(direction).toLowerCase();
   if (normalized.includes('bull')) return '#86efac';
@@ -115,7 +143,7 @@ function StrategyCandidatesPanel({ items, loading }) {
 
 function QuantFeaturesPanel({ items, loading }) {
   if (loading) return <div style={{ color: '#9ca3af' }}>Loading…</div>;
-  if (items.length === 0) return <EmptyState text="No features yet" />;
+  if (!Array.isArray(items) || items.length === 0) return <EmptyState text="No features yet" />;
 
   const grouped = items.reduce((acc, feature) => {
     const category = getText(feature, ['category'], 'Uncategorized');
@@ -129,26 +157,22 @@ function QuantFeaturesPanel({ items, loading }) {
       {Object.entries(grouped).map(([category, features]) => (
         <section key={category} style={{ border: '1px solid #1f2937', borderRadius: 10, overflow: 'hidden' }}>
           <div style={{ background: '#111827', padding: '8px 10px', fontWeight: 700 }}>{category}</div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
-              <thead>
-                <tr style={{ background: '#090909' }}>
-                  {['Name', 'Value', 'Timeframe', 'Confidence'].map((header) => (
-                    <th key={header} style={{ textAlign: 'left', padding: 8, fontSize: 12, color: '#9ca3af', borderBottom: '1px solid #1f2937' }}>{header}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {features.map((feature, index) => (
-                  <tr key={`${category}-${index}`}>
-                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['name'])}</td>
-                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['value'])}</td>
-                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['timeframe', 'tf'])}</td>
-                    <td style={{ padding: 8, borderBottom: '1px solid #111827', fontSize: 12 }}>{getText(feature, ['confidence'])}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: 'grid', gap: 8, padding: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {features.map((feature, index) => {
+              const value = formatFeatureValue(feature?.value);
+              const details = formatFeatureDetails(feature?.value);
+              return (
+                <article key={`${category}-${index}`} style={{ border: '1px solid #111827', borderRadius: 8, padding: 10, background: '#070707' }}>
+                  <CompactRow label="Category" value={getText(feature, ['category'], 'Uncategorized')} />
+                  <CompactRow label="Name" value={getText(feature, ['name'])} />
+                  <CompactRow label="Value" value={value} />
+                  <CompactRow label="Timeframe" value={getText(feature, ['timeframe', 'tf'])} />
+                  <CompactRow label="Confidence" value={formatFeatureValue(feature?.confidence)} />
+                  <CompactRow label="Source" value={getText(feature, ['source', 'origin'])} />
+                  {details && <CompactRow label="Details" value={details} color="#9ca3af" />}
+                </article>
+              );
+            })}
           </div>
         </section>
       ))}
