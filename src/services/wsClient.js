@@ -92,7 +92,7 @@ class ResilientWebSocket {
 }
 
 const wsClient = new ResilientWebSocket(
-  import.meta.env.VITE_WS_URL || 'wss://reversal.onrender.com'
+  import.meta.env.VITE_WS_URL || 'ws://localhost:3001/ws'
 );
 
 export default wsClient;
