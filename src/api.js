@@ -107,6 +107,15 @@ export const api = {
     { method: 'GET', headers: headers() }
   ).then(handle),
 
+  getAlphaSignals: async (symbol) => fetch(`${API_BASE}/api/alpha/signals/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
+  analyzeAlpha: async (symbol) => fetch(`${API_BASE}/api/alpha/analyze/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
+  getPatternSignals: async (symbol) => fetch(`${API_BASE}/api/patterns/signals/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
+  analyzePatterns: async (symbol) => fetch(`${API_BASE}/api/patterns/analyze/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
+  getStrategyCandidates: async (symbol) => fetch(`${API_BASE}/api/strategies/candidates/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
+  generateStrategies: async (symbol) => fetch(`${API_BASE}/api/strategies/generate/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
+  getQuantFeatures: async (symbol) => fetch(`${API_BASE}/api/quant/features/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
+  extractQuantFeatures: async (symbol) => fetch(`${API_BASE}/api/quant/extract/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });

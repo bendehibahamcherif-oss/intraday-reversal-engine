@@ -8,6 +8,7 @@ const WORKSPACE_MAP = {
   'Macro Intelligence': 'Macro',
   Portfolio: 'Portfolio',
   Replay: 'Replay',
+  'Quant Lab': 'QuantLab',
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
@@ -25,6 +26,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'Macro Intelligence',
     'Portfolio',
     'Replay',
+    'Quant Lab',
     'Admin',
   ];
 
