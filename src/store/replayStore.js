@@ -26,6 +26,7 @@ export const useReplayStore = create((set, get) => ({
   backendAvailable: true,
   backendHealthLastUrl: '',
   backendHealthLastError: '',
+  backendHealthLastResponse: null,
 
   checkBackendHealth: async () => {
     const healthUrl = `${api.base}/api/runtime/health`;
@@ -46,12 +47,14 @@ export const useReplayStore = create((set, get) => ({
         backendAvailable,
         backendHealthLastUrl: result?._url || healthUrl,
         backendHealthLastError: '',
+        backendHealthLastResponse: result,
       });
     } catch (err) {
       set({
         backendAvailable: false,
         backendHealthLastUrl: healthUrl,
         backendHealthLastError: err?.message || 'Health request failed',
+        backendHealthLastResponse: null,
       });
     }
   },
