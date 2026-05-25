@@ -9,6 +9,14 @@ function normalizeListPayload(payload) {
   return [];
 }
 
+function normalizeHistoryPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.snapshots)) return payload.snapshots;
+  if (Array.isArray(payload?.history)) return payload.history;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
 function normalizeError(err) {
   return err?.message || 'Failed to load Quant Lab data';
 }
@@ -45,7 +53,7 @@ export const useQuantLabStore = create((set, get) => ({
     const symbol = get().symbol;
     try {
       const payload = await api.getAnalysisHistory(symbol, limit);
-      set({ analysisHistory: normalizeListPayload(payload) });
+      set({ analysisHistory: normalizeHistoryPayload(payload) });
     } catch (err) {
       set({ error: normalizeError(err), analysisHistory: [] });
     }
@@ -176,6 +184,11 @@ export const useQuantLabStore = create((set, get) => ({
 
     try {
       const pipeline = await api.runQuantPipeline(symbol, timeframe);
+      const nextSnapshotId = pipeline?.snapshotId || pipeline?.snapshot?.id || pipeline?.snapshot?._id || pipeline?.data?.snapshotId || '';
+      const pipelineWarnings = normalizeListPayload(pipeline?.warnings);
+      const warningsWithSnapshotStatus = nextSnapshotId
+        ? pipelineWarnings
+        : [...pipelineWarnings, 'Analysis completed but no snapshot was saved.'];
 
       set({
         alphaSignals: normalizeListPayload(pipeline?.alphaSignals),
@@ -184,8 +197,8 @@ export const useQuantLabStore = create((set, get) => ({
         quantFeatures: normalizeListPayload(pipeline?.quantFeatures),
         qualityScores: normalizeListPayload(pipeline?.qualityScores),
         rankedSignals: normalizeListPayload(pipeline?.rankedSignals),
-        warnings: normalizeListPayload(pipeline?.warnings),
-        snapshotId: pipeline?.snapshotId || '',
+        warnings: warningsWithSnapshotStatus,
+        snapshotId: nextSnapshotId,
         selectedSnapshot: null,
         snapshotComparison: null,
         analyzedAt: pipeline?.analyzedAt || null,
