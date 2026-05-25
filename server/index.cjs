@@ -31,11 +31,18 @@ async function start() {
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws' });
 
-  app.use(cors());
+  app.use(cors({
+    origin: [
+      'https://intraday-reversal-engine.onrender.com',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ],
+  }));
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
   app.use('/api/monitoring', runtimeHealthEndpoint);
+  app.use('/api/runtime', runtimeHealthEndpoint);
 
   const mongoClient = await connectMongo().catch((err) => {
     console.error('Mongo connection failed, continuing without mongo:', err.message);
