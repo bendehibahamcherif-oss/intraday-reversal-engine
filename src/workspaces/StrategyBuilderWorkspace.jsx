@@ -8,6 +8,7 @@ const valueOrDash = (value) => (value === undefined || value === null || value =
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
 const pickFirstArray = (obj, keys) => keys.map((key) => obj?.[key]).find(Array.isArray) || [];
+const itemId = (item) => String(item?.id || item?._id || item?.ruleSetId || item?.templateId || '');
 
 const renderInfoCard = (label, value) => (
   <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#050505' }}>
@@ -18,15 +19,17 @@ const renderInfoCard = (label, value) => (
 
 export default function StrategyBuilderWorkspace() {
   const {
-    symbol, ruleSets, selectedRuleSet, draftRuleSet, evaluationResult, convertedStrategy, loading, error, lastUpdated,
+    symbol, ruleSets, selectedRuleSet, draftRuleSet, evaluationResult, convertedStrategy, loading, error,
+    templates, selectedTemplate, templateLoading, templateError, lastUpdated,
     setSymbol, loadRuleSets, createRuleSet, selectRuleSet, updateDraftField,
     addCondition, updateCondition, removeCondition,
     addAction, updateAction, removeAction,
     saveDraft, evaluateSelected, convertSelected,
     deleteSelected, clearRuleSets, clearError,
+    loadTemplates, selectTemplate, createFromTemplate, clearTemplateError,
   } = useRuleBuilderStore();
 
-  useEffect(() => { loadRuleSets(); }, [symbol, loadRuleSets]);
+  useEffect(() => { loadRuleSets(); loadTemplates(); }, [symbol, loadRuleSets, loadTemplates]);
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
@@ -41,6 +44,38 @@ export default function StrategyBuilderWorkspace() {
       </div>
 
       {error ? <div style={{ ...panel, background: '#2a0f10', borderColor: '#7f1d1d', color: '#fecaca' }}><div>{error}</div><button onClick={clearError}>Dismiss</button></div> : null}
+      {templateError ? <div style={{ ...panel, background: '#2a0f10', borderColor: '#7f1d1d', color: '#fecaca' }}><div>{templateError}</div><button onClick={clearTemplateError}>Dismiss</button></div> : null}
+
+
+      <div style={panel}>
+        <h3 style={{ marginTop: 0 }}>Strategy Templates</h3>
+        <div style={{ color: '#fca5a5', fontSize: 12, marginBottom: 10 }}>
+          Templates create draft/research rule sets. They are not validated and do not imply profitability.
+        </div>
+        {!templates.length ? <div style={{ color: '#9ca3af' }}>No templates available</div> : (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {templates.map((item, idx) => {
+              const id = String(item?.id || item?._id || item?.templateId || `t-${idx}`);
+              const active = String(selectedTemplate?.id || selectedTemplate?._id || selectedTemplate?.templateId || '') === id;
+              return (
+                <button key={id} onClick={() => selectTemplate(id)} style={{ textAlign: 'left', borderRadius: 8, padding: 10, border: active ? '1px solid #3b82f6' : '1px solid #1f2937', background: active ? '#0f172a' : '#050505', color: 'white' }}>
+                  <div style={{ fontWeight: 600 }}>{item?.name || `Template ${idx + 1}`}</div>
+                  <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>{valueOrDash(item?.category)} · {valueOrDash(item?.defaultTimeframe)}</div>
+                  <div style={{ marginTop: 6, color: '#d1d5db' }}>{valueOrDash(item?.description)}</div>
+                  <div style={{ marginTop: 6, color: '#fbbf24', fontSize: 12 }}>
+                    Warnings: {toArray(item?.warnings).length ? toArray(item?.warnings).join(' | ') : 'None'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ marginTop: 10 }}>
+          <button onClick={() => createFromTemplate(itemId(selectedTemplate))} disabled={templateLoading || !selectedTemplate}>
+            Create Rule Set from Template
+          </button>
+        </div>
+      </div>
 
       <div style={panel}>
         <h3 style={{ marginTop: 0 }}>Rule Set list</h3>
