@@ -61,6 +61,9 @@ export const useQuantLabStore = create((set, get) => ({
   qualityScores: [],
   rankedSignals: [],
   warnings: [],
+  reversalPoints: [],
+  reversalLoading: false,
+  reversalError: '',
   analysisHistory: [],
   analyticsTrend: [],
   latestAnalytics: null,
@@ -180,6 +183,8 @@ export const useQuantLabStore = create((set, get) => ({
         selectedBaseSnapshotId: '',
         selectedCompareSnapshotId: '',
         snapshotId: '',
+        reversalPoints: [],
+        reversalError: '',
         loading: false,
       });
     } catch (err) {
@@ -344,6 +349,40 @@ export const useQuantLabStore = create((set, get) => ({
       set({ validationLoading: false, validationError: normalizeError(err) });
     }
   },
+
+  loadReversalPoints: async () => {
+    const symbol = get().symbol;
+    set({ reversalLoading: true, reversalError: '' });
+    try {
+      const payload = await api.getReversalPoints(symbol);
+      set({ reversalPoints: normalizeListPayload(payload), reversalLoading: false });
+    } catch (err) {
+      set({ reversalLoading: false, reversalError: normalizeError(err), reversalPoints: [] });
+    }
+  },
+
+  detectReversals: async () => {
+    const { symbol, timeframe } = get();
+    set({ reversalLoading: true, reversalError: '' });
+    try {
+      const payload = await api.detectReversalPoints(symbol, timeframe);
+      set({ reversalPoints: normalizeListPayload(payload), reversalLoading: false, lastUpdated: new Date().toISOString() });
+    } catch (err) {
+      set({ reversalLoading: false, reversalError: normalizeError(err) });
+    }
+  },
+
+  clearReversalPoints: async () => {
+    const symbol = get().symbol;
+    set({ reversalLoading: true, reversalError: '' });
+    try {
+      await api.clearReversalPoints(symbol);
+      set({ reversalPoints: [], reversalLoading: false });
+    } catch (err) {
+      set({ reversalLoading: false, reversalError: normalizeError(err) });
+    }
+  },
+
   clearValidationResults: async () => {
     const symbol = get().symbol;
     set({ validationLoading: true, validationError: '' });
@@ -378,7 +417,7 @@ export const useQuantLabStore = create((set, get) => ({
         loading: false,
         lastUpdated: new Date().toISOString(),
       });
-      await Promise.all([get().loadAnalytics(), get().loadBacktestResults(), get().loadValidationResults()]);
+      await Promise.all([get().loadAnalytics(), get().loadBacktestResults(), get().loadValidationResults(), get().loadReversalPoints()]);
     } catch (err) {
       set({ loading: false, error: normalizeError(err) });
     }
