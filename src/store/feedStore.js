@@ -71,10 +71,13 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     const source = pickProviderName(payload);
     if (source) {
+      const normalizedStatus = typeof topLevel === 'string'
+        ? topLevel
+        : (typeof payload?.status === 'string' ? payload.status : payload?.state);
       pushStatus({
         ...payload,
         source,
-        status: typeof topLevel === 'string' ? topLevel : (payload?.state || payload?.status),
+        status: normalizedStatus,
       });
     }
   }
