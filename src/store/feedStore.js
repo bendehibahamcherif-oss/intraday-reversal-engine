@@ -73,7 +73,9 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
     if (source) {
       const normalizedStatus = typeof topLevel === 'string'
         ? topLevel
-        : (typeof payload?.status === 'string' ? payload.status : payload?.state);
+        : (typeof payload?.status === 'string'
+          ? payload.status
+          : (typeof payload?.state === 'string' ? payload.state : undefined));
       pushStatus({
         ...payload,
         source,
