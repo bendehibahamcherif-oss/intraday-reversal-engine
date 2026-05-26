@@ -354,6 +354,43 @@ function RankedSignalsPanel({ items, loading }) {
   );
 }
 
+
+function ReversalPointsPanel({ items, loading, error, onDetect, onClear, disabled }) {
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={onDetect} disabled={loading || disabled} style={{ background: '#065f46', color: 'white', border: '1px solid #10b981', borderRadius: 8, padding: '8px 12px' }}>{loading ? 'Detecting…' : 'Detect Reversals'}</button>
+        <button onClick={onClear} disabled={loading || disabled} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '8px 12px' }}>Clear Reversals</button>
+      </div>
+      {error && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{error}</div>}
+      {!Array.isArray(items) || items.length === 0 ? <EmptyState text="No reversal points detected yet" /> : (
+        <CardGrid>
+          {items.map((item, index) => {
+            const grade = getText(item, ['grade'], '—');
+            const style = gradeStyle(grade);
+            return (
+              <article key={`reversal-${index}`} style={{ border: `1px solid ${style.border}`, borderRadius: 10, padding: 10, background: '#070707' }}>
+                <CompactRow label="Direction" value={getText(item, ['direction'])} color={directionColor(getText(item, ['direction']))} />
+                <CompactRow label="Score" value={getText(item, ['score'])} />
+                <CompactRow label="Grade" value={`${grade} (${style.label})`} color={style.color} />
+                <CompactRow label="Timeframe" value={getText(item, ['timeframe', 'tf'])} />
+                <CompactRow label="Zone" value={listToText(item?.zone)} />
+                <CompactRow label="Entry" value={getText(item, ['entrySuggestion'])} />
+                <CompactRow label="Stop" value={getText(item, ['stopSuggestion'])} />
+                <CompactRow label="Target" value={getText(item, ['targetSuggestion'])} />
+                <CompactRow label="Invalidation" value={getText(item, ['invalidationCondition'])} />
+                <CompactRow label="Reasons" value={listToText(item?.reasons)} />
+                <CompactRow label="Warnings" value={listToText(item?.warnings)} />
+                <CompactRow label="Source" value={getText(item, ['source'])} />
+              </article>
+            );
+          })}
+        </CardGrid>
+      )}
+    </div>
+  );
+}
+
 function Panel({ title, children }) {
   return (
     <section style={panelStyle}>
@@ -488,6 +525,9 @@ export default function QuantLabWorkspace() {
     qualityScores,
     rankedSignals,
     warnings,
+    reversalPoints,
+    reversalLoading,
+    reversalError,
     analysisHistory,
     analyticsTrend,
     latestAnalytics,
@@ -527,6 +567,9 @@ export default function QuantLabWorkspace() {
     loadValidationResults,
     selectValidationResult,
     clearValidationResults,
+    detectReversals,
+    loadReversalPoints,
+    clearReversalPoints,
   } = useQuantLabStore();
 
   const [draftSymbol, setDraftSymbol] = useState(symbol);
@@ -540,6 +583,7 @@ export default function QuantLabWorkspace() {
     loadAnalytics();
     loadBacktestResults();
     loadValidationResults();
+    loadReversalPoints();
   }, [symbol, loadHistory, loadAnalytics]);
 
   const handleClearHistory = async () => {
@@ -691,6 +735,7 @@ export default function QuantLabWorkspace() {
       <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} onValidate={validateStrategy} validationLoading={validationLoading} /></Panel>
       <Panel title="Strategy Validation"><ValidationResultsPanel results={validationResults} selectedResult={selectedValidationResult} loading={validationLoading} error={validationError} onSelect={selectValidationResult} onClear={clearValidationResults} /></Panel>
       <Panel title="Backtest Results"><BacktestResultsPanel results={backtestResults} selectedResult={selectedBacktestResult} loading={backtestLoading} error={backtestError} onSelect={selectBacktestResult} onClear={clearBacktestResults} /></Panel>
+      <Panel title="Potential Reversal Points"><ReversalPointsPanel items={reversalPoints} loading={reversalLoading} error={reversalError} onDetect={detectReversals} onClear={clearReversalPoints} disabled={loading} /></Panel>
       <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
       <Panel title="Quality Scores"><QualityScoresPanel items={qualityScores} loading={loading} /></Panel>
       <Panel title="Ranked Signals"><RankedSignalsPanel items={rankedSignals} loading={loading} /></Panel>

@@ -147,6 +147,20 @@ export const api = {
   getQualityScores: async (symbol) => fetch(`${API_BASE}/api/quality/scores/${encodeURIComponent(symbol)}`, { method: 'GET', headers: headers() }).then(handle),
   scoreQuality: async (symbol) => fetch(`${API_BASE}/api/quality/score/${encodeURIComponent(symbol)}`, { method: 'POST', headers: headers() }).then(handle),
 
+
+  getReversalPoints: async (symbol) => fetch(
+    `${API_BASE}/api/reversals/points/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  detectReversalPoints: async (symbol, timeframe) => fetch(
+    `${API_BASE}/api/reversals/detect/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ timeframe }) }
+  ).then(handle),
+  clearReversalPoints: async (symbol) => fetch(
+    `${API_BASE}/api/reversals/points/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+
   runQuantPipeline: async (symbol, timeframe) => fetch(
     `${API_BASE}/api/quant/pipeline/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ timeframe }) }
