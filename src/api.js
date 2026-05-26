@@ -161,6 +161,15 @@ export const api = {
     { method: 'DELETE', headers: headers() }
   ).then(handle),
 
+  createStrategyFromReversal: async (symbol, reversalPointId) => fetch(
+    `${API_BASE}/api/reversals/strategy/${encodeURIComponent(symbol)}/${encodeURIComponent(reversalPointId)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  saveStrategyFromReversal: async (symbol, reversalPointId) => fetch(
+    `${API_BASE}/api/reversals/save-strategy/${encodeURIComponent(symbol)}/${encodeURIComponent(reversalPointId)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+
   runQuantPipeline: async (symbol, timeframe) => fetch(
     `${API_BASE}/api/quant/pipeline/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ timeframe }) }

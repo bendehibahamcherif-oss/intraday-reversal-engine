@@ -355,14 +355,16 @@ function RankedSignalsPanel({ items, loading }) {
 }
 
 
-function ReversalPointsPanel({ items, loading, error, onDetect, onClear, disabled }) {
+function ReversalPointsPanel({ items, loading, error, strategyLoading, strategyError, onDetect, onClear, onCreateStrategy, onSaveStrategy, disabled }) {
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={onDetect} disabled={loading || disabled} style={{ background: '#065f46', color: 'white', border: '1px solid #10b981', borderRadius: 8, padding: '8px 12px' }}>{loading ? 'Detecting…' : 'Detect Reversals'}</button>
         <button onClick={onClear} disabled={loading || disabled} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '8px 12px' }}>Clear Reversals</button>
       </div>
+      <div style={{ color: '#9ca3af', fontSize: 12 }}>Reversal-derived strategies are research-only until backtested and validated.</div>
       {error && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{error}</div>}
+      {strategyError && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{strategyError}</div>}
       {!Array.isArray(items) || items.length === 0 ? <EmptyState text="No reversal points detected yet" /> : (
         <CardGrid>
           {items.map((item, index) => {
@@ -382,6 +384,24 @@ function ReversalPointsPanel({ items, loading, error, onDetect, onClear, disable
                 <CompactRow label="Reasons" value={listToText(item?.reasons)} />
                 <CompactRow label="Warnings" value={listToText(item?.warnings)} />
                 <CompactRow label="Source" value={getText(item, ['source'])} />
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => onCreateStrategy?.(item?.id || item?._id || item?.reversalPointId)} disabled={loading || strategyLoading} style={{ background: '#1d4ed8', color: 'white', border: '1px solid #60a5fa', borderRadius: 6, padding: '6px 10px' }}>{strategyLoading ? 'Creating…' : 'Create Strategy'}</button>
+                  <button onClick={() => onSaveStrategy?.(item?.id || item?._id || item?.reversalPointId)} disabled={loading || strategyLoading} style={{ background: '#065f46', color: 'white', border: '1px solid #10b981', borderRadius: 6, padding: '6px 10px' }}>{strategyLoading ? 'Saving…' : 'Save to Strategy Lab'}</button>
+                </div>
+                {item?.generatedStrategy && (
+                  <div style={{ marginTop: 8, border: '1px solid #1f2937', borderRadius: 8, padding: 8, display: 'grid', gap: 4 }}>
+                    <CompactRow label="Name" value={getText(item.generatedStrategy, ['name'])} />
+                    <CompactRow label="Type" value={getText(item.generatedStrategy, ['type'])} />
+                    <CompactRow label="Status" value={getText(item.generatedStrategy, ['status'])} />
+                    <CompactRow label="Direction" value={getText(item.generatedStrategy, ['direction'])} color={directionColor(getText(item.generatedStrategy, ['direction']))} />
+                    <CompactRow label="Confidence" value={getText(item.generatedStrategy, ['confidence'])} />
+                    <CompactRow label="Entry logic" value={getText(item.generatedStrategy, ['entryLogic'])} />
+                    <CompactRow label="Stop loss logic" value={getText(item.generatedStrategy, ['stopLossLogic'])} />
+                    <CompactRow label="Exit logic" value={getText(item.generatedStrategy, ['targetLogic', 'exitLogic'])} />
+                    <CompactRow label="Invalidation" value={getText(item.generatedStrategy, ['invalidationCondition'])} />
+                    <CompactRow label="Warnings" value={listToText(item.generatedStrategy?.warnings)} />
+                  </div>
+                )}
               </article>
             );
           })}
@@ -468,7 +488,9 @@ function BacktestResultsPanel({ results, selectedResult, loading, error, onSelec
         <div style={{ color: '#9ca3af', fontSize: 12 }}>Run a strategy backtest to populate results.</div>
         <button onClick={onClear} disabled={loading} style={{ background: '#3b0a0a', color: 'white', border: '1px solid #7f1d1d', borderRadius: 8, padding: '6px 10px' }}>Clear Backtests</button>
       </div>
+      <div style={{ color: '#9ca3af', fontSize: 12 }}>Reversal-derived strategies are research-only until backtested and validated.</div>
       {error && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{error}</div>}
+      {strategyError && <div style={{ background: '#2a0f10', border: '1px solid #7f1d1d', borderRadius: 8, padding: 10, color: '#fecaca' }}>{strategyError}</div>}
       {showEmptyState ? (
         <EmptyState text="No backtest results yet" />
       ) : (
@@ -528,6 +550,8 @@ export default function QuantLabWorkspace() {
     reversalPoints,
     reversalLoading,
     reversalError,
+    reversalStrategyLoading,
+    reversalStrategyError,
     analysisHistory,
     analyticsTrend,
     latestAnalytics,
@@ -570,6 +594,8 @@ export default function QuantLabWorkspace() {
     detectReversals,
     loadReversalPoints,
     clearReversalPoints,
+    createStrategyFromReversal,
+    saveStrategyFromReversal,
   } = useQuantLabStore();
 
   const [draftSymbol, setDraftSymbol] = useState(symbol);
@@ -735,7 +761,7 @@ export default function QuantLabWorkspace() {
       <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} onValidate={validateStrategy} validationLoading={validationLoading} /></Panel>
       <Panel title="Strategy Validation"><ValidationResultsPanel results={validationResults} selectedResult={selectedValidationResult} loading={validationLoading} error={validationError} onSelect={selectValidationResult} onClear={clearValidationResults} /></Panel>
       <Panel title="Backtest Results"><BacktestResultsPanel results={backtestResults} selectedResult={selectedBacktestResult} loading={backtestLoading} error={backtestError} onSelect={selectBacktestResult} onClear={clearBacktestResults} /></Panel>
-      <Panel title="Potential Reversal Points"><ReversalPointsPanel items={reversalPoints} loading={reversalLoading} error={reversalError} onDetect={detectReversals} onClear={clearReversalPoints} disabled={loading} /></Panel>
+      <Panel title="Potential Reversal Points"><ReversalPointsPanel items={reversalPoints} loading={reversalLoading} error={reversalError} strategyLoading={reversalStrategyLoading} strategyError={reversalStrategyError} onDetect={detectReversals} onClear={clearReversalPoints} onCreateStrategy={createStrategyFromReversal} onSaveStrategy={saveStrategyFromReversal} disabled={loading} /></Panel>
       <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
       <Panel title="Quality Scores"><QualityScoresPanel items={qualityScores} loading={loading} /></Panel>
       <Panel title="Ranked Signals"><RankedSignalsPanel items={rankedSignals} loading={loading} /></Panel>
