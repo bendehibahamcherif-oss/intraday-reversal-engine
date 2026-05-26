@@ -50,6 +50,12 @@ function statusLabel(status) {
   return `${connected ? 'CONNECTED' : 'NOT CONNECTED'} (${source})`;
 }
 
+function feedCardTitle(status) {
+  const source = String(status?.source || 'unknown');
+  if (source.includes('fallback_demo') || source.includes('idle_demo')) return `DEMO (${source})`;
+  return source;
+}
+
 function FieldRows({ rows, emptyLabel = 'No data yet' }) {
   if (!rows || rows.length === 0) return <p>{emptyLabel}</p>;
   return (
@@ -98,18 +104,9 @@ export default function LiveDataWorkspace() {
     store.refreshAll();
   }, [store.symbol, store.timeframe]);
 
-  const feedSource = String(store.feedStatus?.source || store.feedStatus?.mode || 'unknown');
-  const demoSource = feedSource.includes('fallback_demo') || feedSource.includes('idle_demo');
-
-  const feedRows = [
-    { label: 'Source', value: demoSource ? `DEMO (${feedSource})` : formatText(feedSource) },
-    { label: 'Status', value: statusLabel(store.feedStatus) },
-    { label: 'Connected', value: formatText(Boolean(store.feedStatus?.connected)) },
-    { label: 'Symbols', value: formatArray(store.feedStatus?.symbols) },
-    { label: 'Last Message At', value: formatDate(store.feedStatus?.lastMessageAt) },
-    { label: 'Latency (ms)', value: formatNumber(store.feedStatus?.latencyMs) },
-    { label: 'Warnings', value: formatArray(store.feedStatus?.warnings) },
-  ];
+  const statuses = Array.isArray(store.feedStatus?.activeStatuses) && store.feedStatus.activeStatuses.length
+    ? store.feedStatus.activeStatuses
+    : (store.feedStatus ? [store.feedStatus] : []);
 
   const tickRows = store.latestTick
     ? [
@@ -184,8 +181,30 @@ export default function LiveDataWorkspace() {
       {tab === 'market' ? <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
         <section style={panelStyle}>
           <h3 style={{ marginTop: 0 }}>Feed Status</h3>
-          <FieldRows rows={feedRows} emptyLabel="No feed status yet" />
-          {demoSource ? <div style={{ color: '#fbbf24', marginTop: 8 }}>Demo feed active (never live).</div> : null}
+          {statuses.length === 0 ? <FieldRows rows={[]} emptyLabel="No feed status yet" /> : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {statuses.map((statusItem) => {
+                const source = String(statusItem?.source || 'unknown');
+                const demoSource = source.includes('fallback_demo') || source.includes('idle_demo');
+                const feedRows = [
+                  { label: 'Source', value: feedCardTitle(statusItem) },
+                  { label: 'Status', value: statusLabel(statusItem) },
+                  { label: 'Connected', value: formatText(Boolean(statusItem?.connected)) },
+                  { label: 'Symbols', value: formatArray(statusItem?.symbols) },
+                  { label: 'Last Message At', value: formatDate(statusItem?.lastMessageAt) },
+                  { label: 'Latency (ms)', value: formatNumber(statusItem?.latencyMs) },
+                  { label: 'Warnings', value: formatArray(statusItem?.warnings) },
+                ];
+                return (
+                  <div key={source} style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 8 }}>{feedCardTitle(statusItem)}</div>
+                    <FieldRows rows={feedRows} />
+                    {demoSource ? <div style={{ color: '#fbbf24', marginTop: 8 }}>Demo feed active (never live).</div> : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <section style={panelStyle}><h3 style={{ marginTop: 0 }}>Latest Tick</h3><FieldRows rows={tickRows} emptyLabel="No tick data yet" /></section>
