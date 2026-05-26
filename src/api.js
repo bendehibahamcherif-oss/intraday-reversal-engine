@@ -70,6 +70,62 @@ const strategyLabDebugState = {
   lastStrategyLabError: '',
 };
 
+const liveDataDebugState = {
+  lastFeedUrl: '',
+  lastFeedMethod: '',
+  lastFeedError: '',
+};
+
+function normalizeApiError(err, { url, method, status, body } = {}) {
+  const next = err instanceof Error ? err : new Error(String(err || 'Request failed'));
+  if (status && !next.status) next.status = status;
+  if (url && !next.url) next.url = url;
+  if (method && !next.method) next.method = method;
+  if (body !== undefined && next.responseBody === undefined) next.responseBody = body;
+
+  const parts = [];
+  if (next.status) parts.push(`HTTP ${next.status}`);
+  if (next.method) parts.push(next.method);
+  if (next.url) parts.push(next.url);
+  if (next.responseBody !== undefined && next.responseBody !== null && next.responseBody !== '') {
+    const bodyText = typeof next.responseBody === 'string' ? next.responseBody : JSON.stringify(next.responseBody);
+    parts.push(`Response: ${bodyText}`);
+  }
+  if (parts.length > 0) next.message = parts.join(' | ');
+  return next;
+}
+
+function setLiveDataDebug(url, method, err = null) {
+  liveDataDebugState.lastFeedUrl = url;
+  liveDataDebugState.lastFeedMethod = method;
+  liveDataDebugState.lastFeedError = err ? err.message || String(err) : '';
+}
+
+async function feedFetch(path, options = {}) {
+  const url = `${API_BASE}${path}`;
+  const method = options.method || 'GET';
+  setLiveDataDebug(url, method, null);
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      const body = await response.json().catch(async () => {
+        const text = await response.text().catch(() => '');
+        return text || null;
+      });
+      throw normalizeApiError(new Error('Request failed'), { url, method, status: response.status, body });
+    }
+    return response.json();
+  } catch (err) {
+    const normalized = normalizeApiError(err, { url, method });
+    setLiveDataDebug(url, method, normalized);
+    throw normalized;
+  }
+}
+
+export function getLiveDataDebug() {
+  return { ...liveDataDebugState };
+}
+
 function setStrategyLabDebug(url, err = null) {
   strategyLabDebugState.lastStrategyLabUrl = url;
   strategyLabDebugState.lastStrategyLabError = err ? (err.message || String(err)) : '';
@@ -362,70 +418,70 @@ export const api = {
 
 
 
-  getFeedStatus: async () => fetch(
-    `${API_BASE}/api/feeds/status`,
+  getFeedStatus: async () => feedFetch(
+    `/api/feeds/status`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  getFeedStatusBySource: async (source) => fetch(
-    `${API_BASE}/api/feeds/status/${encodeURIComponent(source)}`,
+  ),
+  getFeedStatusBySource: async (source) => feedFetch(
+    `/api/feeds/status/${encodeURIComponent(source)}`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  startFeed: async (source, symbols = []) => fetch(
-    `${API_BASE}/api/feeds/start`,
+  ),
+  startFeed: async (source, symbols = []) => feedFetch(
+    `/api/feeds/start`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ source, symbols }) }
-  ).then(handle),
-  stopFeed: async (source) => fetch(
-    `${API_BASE}/api/feeds/stop`,
+  ),
+  stopFeed: async (source) => feedFetch(
+    `/api/feeds/stop`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ source }) }
-  ).then(handle),
-  getLatestTick: async (symbol) => fetch(
-    `${API_BASE}/api/feeds/tick/${encodeURIComponent(symbol)}`,
+  ),
+  getLatestTick: async (symbol) => feedFetch(
+    `/api/feeds/tick/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
+  ),
   getLatestCandle: async (symbol, timeframe) => {
     const query = timeframe ? `?timeframe=${encodeURIComponent(timeframe)}` : '';
-    return fetch(`${API_BASE}/api/feeds/candle/${encodeURIComponent(symbol)}${query}`, { method: 'GET', headers: headers() }).then(handle);
+    return feedFetch(`/api/feeds/candle/${encodeURIComponent(symbol)}${query}`, { method: 'GET', headers: headers() });
   },
-  getLatestOrderBook: async (symbol) => fetch(
-    `${API_BASE}/api/feeds/orderbook/${encodeURIComponent(symbol)}`,
+  getLatestOrderBook: async (symbol) => feedFetch(
+    `/api/feeds/orderbook/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  generateDemoTick: async (symbol) => fetch(
-    `${API_BASE}/api/feeds/demo/tick/${encodeURIComponent(symbol)}`,
+  ),
+  generateDemoTick: async (symbol) => feedFetch(
+    `/api/feeds/demo/tick/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers() }
-  ).then(handle),
-  generateDemoCandle: async (symbol) => fetch(
-    `${API_BASE}/api/feeds/demo/candle/${encodeURIComponent(symbol)}`,
+  ),
+  generateDemoCandle: async (symbol) => feedFetch(
+    `/api/feeds/demo/candle/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers() }
-  ).then(handle),
-  generateDemoOrderBook: async (symbol) => fetch(
-    `${API_BASE}/api/feeds/demo/orderbook/${encodeURIComponent(symbol)}`,
+  ),
+  generateDemoOrderBook: async (symbol) => feedFetch(
+    `/api/feeds/demo/orderbook/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers() }
-  ).then(handle),
-  getFeedProviders: async () => fetch(
-    `${API_BASE}/api/feeds/providers`,
+  ),
+  getFeedProviders: async () => feedFetch(
+    `/api/feeds/providers`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  getFeedProvider: async (provider) => fetch(
-    `${API_BASE}/api/feeds/providers/${encodeURIComponent(provider)}`,
+  ),
+  getFeedProvider: async (provider) => feedFetch(
+    `/api/feeds/providers/${encodeURIComponent(provider)}`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  saveFeedProviderCredentials: async (provider, credentials = {}) => fetch(
-    `${API_BASE}/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
-    { method: 'PUT', headers: headers(), body: JSON.stringify({ credentials }) }
-  ).then(handle),
-  deleteFeedProviderCredentials: async (provider) => fetch(
-    `${API_BASE}/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
+  ),
+  saveFeedProviderCredentials: async (provider, credentials = {}) => feedFetch(
+    `/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ credentials }) }
+  ),
+  deleteFeedProviderCredentials: async (provider) => feedFetch(
+    `/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
     { method: 'DELETE', headers: headers() }
-  ).then(handle),
-  getActiveFeedProviders: async () => fetch(
-    `${API_BASE}/api/feeds/providers/active`,
+  ),
+  getActiveFeedProviders: async () => feedFetch(
+    `/api/feeds/providers/active`,
     { method: 'GET', headers: headers() }
-  ).then(handle),
-  setActiveFeedProviders: async (providers = [], symbols = []) => fetch(
-    `${API_BASE}/api/feeds/providers/active`,
-    { method: 'PUT', headers: headers(), body: JSON.stringify({ providers, symbols }) }
-  ).then(handle),
+  ),
+  setActiveFeedProviders: async (providers = [], symbols = []) => feedFetch(
+    `/api/feeds/providers/active`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ providers, symbols }) }
+  ),
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;

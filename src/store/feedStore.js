@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '../api.js';
+import { api, getLiveDataDebug } from '../api.js';
 
 const initialState = {
   symbol: 'SPY',
@@ -18,14 +18,27 @@ const initialState = {
   credentialsDraft: {},
   credentialsLoading: false,
   credentialsError: '',
+  lastFeedUrl: '',
+  lastFeedMethod: '',
+  lastFeedError: '',
+  apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:10000',
 };
 
 function normalizeError(error) {
-  return error?.message || 'Unable to load feed data.';
+  const status = error?.status ? `HTTP ${error.status}` : '';
+  const method = error?.method || '';
+  const url = error?.url || '';
+  const responseBody = error?.responseBody;
+  const responseText = responseBody === undefined || responseBody === null || responseBody === ''
+    ? ''
+    : (typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody));
+  const parts = [status, method, url, responseText ? `Response: ${responseText}` : ''].filter(Boolean);
+  return parts.length ? parts.join(' | ') : (error?.message || 'Unable to load feed data.');
 }
 
 export const useFeedStore = create((set, get) => ({
   ...initialState,
+  syncFeedDebug: () => set(getLiveDataDebug()),
 
   setSymbol: (symbol) => set({ symbol: String(symbol || '').toUpperCase() || 'SPY' }),
   setTimeframe: (timeframe) => set({ timeframe: timeframe || '1m' }),
@@ -46,6 +59,7 @@ export const useFeedStore = create((set, get) => ({
       set({ providers, providerCredentialsStatus, credentialsLoading: false });
       return providers;
     } catch (error) {
+      get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
       return [];
     }
@@ -66,6 +80,7 @@ export const useFeedStore = create((set, get) => ({
       set({ activeProviders, selectedProviders: activeProviders, credentialsLoading: false });
       return activeProviders;
     } catch (error) {
+      get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
       return [];
     }
@@ -79,6 +94,7 @@ export const useFeedStore = create((set, get) => ({
       set({ activeProviders: selectedProviders, credentialsLoading: false });
       return result;
     } catch (error) {
+      get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
       return null;
     }
@@ -109,6 +125,7 @@ export const useFeedStore = create((set, get) => ({
       }));
       return result;
     } catch (error) {
+      get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
       return null;
     }
@@ -127,6 +144,7 @@ export const useFeedStore = create((set, get) => ({
       }));
       return result;
     } catch (error) {
+      get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
       return null;
     }
@@ -139,6 +157,7 @@ export const useFeedStore = create((set, get) => ({
       set({ feedStatus, loading: false, lastUpdated: new Date().toISOString() });
       return feedStatus;
     } catch (error) {
+      get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
       return null;
     }
@@ -157,6 +176,7 @@ export const useFeedStore = create((set, get) => ({
       set({ latestTick, latestCandle, latestOrderBook, loading: false, lastUpdated: new Date().toISOString() });
       return { latestTick, latestCandle, latestOrderBook };
     } catch (error) {
+      get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
       return null;
     }
@@ -175,6 +195,7 @@ export const useFeedStore = create((set, get) => ({
       await get().refreshAll();
       return true;
     } catch (error) {
+      get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
       return false;
     }
@@ -184,8 +205,9 @@ export const useFeedStore = create((set, get) => ({
     set({ loading: true, error: '' });
     try {
       await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData(), get().loadProviders(), get().loadActiveProviders()]);
-      set({ loading: false, lastUpdated: new Date().toISOString() });
+      set({ ...getLiveDataDebug(), loading: false, lastUpdated: new Date().toISOString() });
     } catch (error) {
+      get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
     }
   },
