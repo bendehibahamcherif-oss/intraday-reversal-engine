@@ -13,6 +13,7 @@ export default function WorkspaceSwitcher() {
     'StrategyLab',
     'StrategyBuilder',
     'PaperTrading',
+    'LiveData',
   ];
 
   return (

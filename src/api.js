@@ -360,6 +360,49 @@ export const api = {
     { method: 'POST', headers: headers() }
   ).then(handle),
 
+
+
+  getFeedStatus: async () => fetch(
+    `${API_BASE}/api/feeds/status`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getFeedStatusBySource: async (source) => fetch(
+    `${API_BASE}/api/feeds/status/${encodeURIComponent(source)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  startFeed: async (source, symbols = []) => fetch(
+    `${API_BASE}/api/feeds/start`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ source, symbols }) }
+  ).then(handle),
+  stopFeed: async (source) => fetch(
+    `${API_BASE}/api/feeds/stop`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ source }) }
+  ).then(handle),
+  getLatestTick: async (symbol) => fetch(
+    `${API_BASE}/api/feeds/tick/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getLatestCandle: async (symbol, timeframe) => {
+    const query = timeframe ? `?timeframe=${encodeURIComponent(timeframe)}` : '';
+    return fetch(`${API_BASE}/api/feeds/candle/${encodeURIComponent(symbol)}${query}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getLatestOrderBook: async (symbol) => fetch(
+    `${API_BASE}/api/feeds/orderbook/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  generateDemoTick: async (symbol) => fetch(
+    `${API_BASE}/api/feeds/demo/tick/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  generateDemoCandle: async (symbol) => fetch(
+    `${API_BASE}/api/feeds/demo/candle/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  generateDemoOrderBook: async (symbol) => fetch(
+    `${API_BASE}/api/feeds/demo/orderbook/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });
