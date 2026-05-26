@@ -313,6 +313,53 @@ export const api = {
     { method: 'DELETE', headers: headers() }
   ).then(handle),
 
+
+
+  placePaperOrder: async (order) => fetch(
+    `${API_BASE}/api/paper/orders`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(order || {}) }
+  ).then(handle),
+  getPaperOrders: async (symbol) => {
+    const query = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
+    return fetch(`${API_BASE}/api/paper/orders${query}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  cancelPaperOrder: async (orderId) => fetch(
+    `${API_BASE}/api/paper/orders/${encodeURIComponent(orderId)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  getPaperFills: async (symbol) => {
+    const query = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
+    return fetch(`${API_BASE}/api/paper/fills${query}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getPaperPositions: async () => fetch(
+    `${API_BASE}/api/paper/positions`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getPaperPosition: async (symbol) => fetch(
+    `${API_BASE}/api/paper/positions/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  closePaperPosition: async (symbol) => fetch(
+    `${API_BASE}/api/paper/positions/${encodeURIComponent(symbol)}/close`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  enablePaperKillSwitch: async () => fetch(
+    `${API_BASE}/api/paper/risk/kill-switch`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  disablePaperKillSwitch: async () => fetch(
+    `${API_BASE}/api/paper/risk/kill-switch`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  getPaperRiskStatus: async () => fetch(
+    `${API_BASE}/api/paper/risk/status`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  resetPaperAccount: async () => fetch(
+    `${API_BASE}/api/paper/reset`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });

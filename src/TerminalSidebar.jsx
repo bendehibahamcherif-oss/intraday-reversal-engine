@@ -11,6 +11,7 @@ const WORKSPACE_MAP = {
   'Quant Lab': 'QuantLab',
   'Strategy Lab': 'StrategyLab',
   'Strategy Builder': 'StrategyBuilder',
+  'Paper Trading': 'PaperTrading',
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
@@ -31,6 +32,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'Quant Lab',
     'Strategy Lab',
     'Strategy Builder',
+    'Paper Trading',
     'Admin',
   ];
 

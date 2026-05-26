@@ -12,6 +12,7 @@ export default function WorkspaceSwitcher() {
     'QuantLab',
     'StrategyLab',
     'StrategyBuilder',
+    'PaperTrading',
   ];
 
   return (
