@@ -39,6 +39,9 @@ const normalizeList = (payload) => {
 };
 
 const normalizeOne = (payload) => payload?.ruleSet || payload?.data || payload;
+const normalizeTemplates = (payload) => payload?.templates || payload?.data || payload?.items || payload || [];
+const normalizeTemplate = (payload) => payload?.template || payload?.data || payload;
+const normalizeCreatedRuleSet = (payload) => payload?.ruleSet || payload?.createdRuleSet || payload?.data?.ruleSet || payload?.data || payload;
 const itemId = (item) => String(item?.id || item?._id || item?.ruleSetId || '');
 const nowIso = () => new Date().toISOString();
 const errMsg = (err, fallback) => err?.message || fallback;
@@ -52,6 +55,10 @@ export const useRuleBuilderStore = create((set, get) => ({
   convertedStrategy: null,
   loading: false,
   error: '',
+  templates: [],
+  selectedTemplate: null,
+  templateLoading: false,
+  templateError: '',
   lastUpdated: '',
 
   setSymbol: (symbol) => {
@@ -207,6 +214,54 @@ export const useRuleBuilderStore = create((set, get) => ({
       set({ loading: false, error: errMsg(err, 'Failed to clear rule sets.') });
     }
   },
+
+
+  loadTemplates: async () => {
+    set({ templateLoading: true, templateError: '' });
+    try {
+      const payload = await api.getStrategyTemplates();
+      const templates = normalizeTemplates(payload);
+      const selectedId = itemId(get().selectedTemplate);
+      const selectedTemplate = templates.find((item) => itemId(item) === selectedId) || templates[0] || null;
+      set({ templateLoading: false, templates, selectedTemplate, lastUpdated: nowIso() });
+    } catch (err) {
+      set({ templateLoading: false, templates: [], selectedTemplate: null, templateError: errMsg(err, 'Failed to load templates.') });
+    }
+  },
+
+  selectTemplate: async (id) => {
+    if (!id) return set({ selectedTemplate: null });
+    set({ templateLoading: true, templateError: '' });
+    try {
+      const payload = await api.getStrategyTemplate(id);
+      const template = normalizeTemplate(payload);
+      set({ selectedTemplate: template, templateLoading: false, lastUpdated: nowIso() });
+    } catch (err) {
+      set({ templateLoading: false, templateError: errMsg(err, 'Failed to load template.') });
+    }
+  },
+
+  createFromTemplate: async (id, overrides = {}) => {
+    const templateId = id || itemId(get().selectedTemplate);
+    if (!templateId) return set({ templateError: 'Select a template first.' });
+    set({ templateLoading: true, templateError: '', error: '' });
+    try {
+      const payload = await api.createRuleSetFromTemplate(templateId, get().symbol, overrides);
+      const created = normalizeCreatedRuleSet(payload);
+      await get().loadRuleSets();
+      const createdId = itemId(created);
+      if (createdId) {
+        await get().selectRuleSet(createdId);
+      } else {
+        set({ draftRuleSet: { ...createDraftRuleSet(get().symbol), ...created } });
+      }
+      set({ templateLoading: false, lastUpdated: nowIso() });
+    } catch (err) {
+      set({ templateLoading: false, templateError: errMsg(err, 'Failed to create rule set from template.') });
+    }
+  },
+
+  clearTemplateError: () => set({ templateError: '' }),
 
   clearError: () => set({ error: '' }),
 }));

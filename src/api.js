@@ -243,6 +243,20 @@ export const api = {
   ).then(handle),
 
 
+
+  getStrategyTemplates: async () => fetch(
+    `${API_BASE}/api/templates/strategies`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getStrategyTemplate: async (id) => fetch(
+    `${API_BASE}/api/templates/strategies/${encodeURIComponent(id)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  createRuleSetFromTemplate: async (id, symbol, overrides = {}) => fetch(
+    `${API_BASE}/api/templates/strategies/${encodeURIComponent(id)}/create-rule-set`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, overrides }) }
+  ).then(handle),
+
   runBacktest: async (symbol, strategyId, timeframe) => fetch(
     `${API_BASE}/api/backtest/run/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId, timeframe }) }
