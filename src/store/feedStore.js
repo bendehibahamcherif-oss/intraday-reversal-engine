@@ -42,9 +42,11 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
     const warnings = asArray(entry?.warnings);
     const symbols = asArray(entry?.symbols || entry?.activeSymbols);
     const connected = entry?.connected === true;
+    const explicitStatus = typeof entry?.status === 'string'
+      ? entry.status
+      : (typeof entry?.state === 'string' ? entry.state : undefined);
     const status = String(
-      entry?.status
-      || entry?.state
+      explicitStatus
       || (source === 'fallback_demo' ? 'idle_demo' : (connected ? 'connected' : 'disconnected'))
     );
 
