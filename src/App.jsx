@@ -15,6 +15,7 @@ import ExecutionWorkspace from './workspaces/ExecutionWorkspace.jsx';
 import ReplayWorkspace from './workspaces/ReplayWorkspace.jsx';
 import QuantLabWorkspace from './workspaces/QuantLabWorkspace.jsx';
 import StrategyLabWorkspace from './workspaces/StrategyLabWorkspace.jsx';
+import StrategyBuilderWorkspace from './workspaces/StrategyBuilderWorkspace.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useMarketStore } from './store/marketStore';
@@ -39,6 +40,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       return <QuantLabWorkspace />;
     case 'StrategyLab':
       return <StrategyLabWorkspace />;
+    case 'StrategyBuilder':
+      return <StrategyBuilderWorkspace />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;
