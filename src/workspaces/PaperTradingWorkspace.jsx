@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import PanelContainer from '../components/PanelContainer';
 import { usePaperTradingStore } from '../store/paperTradingStore';
+import { toArray, safeNumber, valueOrDash } from '../store/paperTradingStore';
 
 const cell = { padding: '8px 6px', borderBottom: '1px solid #1f2937', fontSize: 13 };
 
@@ -12,6 +13,12 @@ export default function PaperTradingWorkspace() {
   }, [store.symbol]);
 
   const killSwitchOn = Boolean(store.riskStatus?.killSwitchEnabled || store.riskStatus?.killSwitchActive);
+  const orders = toArray(store.orders).filter((order) => order && typeof order === 'object');
+  const fills = toArray(store.fills).filter((fill) => fill && typeof fill === 'object');
+  const positions = toArray(store.positions).filter((position) => position && typeof position === 'object');
+  const riskStatus = store.riskStatus && typeof store.riskStatus === 'object'
+    ? store.riskStatus
+    : { message: 'Risk status unavailable' };
 
   return (
     <div>
@@ -39,7 +46,7 @@ export default function PaperTradingWorkspace() {
       </PanelContainer>
 
       <PanelContainer title="Risk Status">
-        <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(store.riskStatus || { message: 'No risk status available' }, null, 2)}</pre>
+        <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(riskStatus, null, 2)}</pre>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={store.enableKillSwitch}>Enable Kill Switch</button>
           <button onClick={store.disableKillSwitch}>Disable Kill Switch</button>
@@ -47,23 +54,26 @@ export default function PaperTradingWorkspace() {
       </PanelContainer>
 
       <PanelContainer title="Positions">
-        {store.positions.length === 0 ? <div>No paper positions.</div> : (
+        {positions.length === 0 ? <div>No paper positions yet</div> : (
           <table style={{ width: '100%' }}><thead><tr><th style={cell}>Symbol</th><th style={cell}>Qty</th><th style={cell}>Action</th></tr></thead><tbody>
-            {store.positions.map((p) => <tr key={p.symbol}><td style={cell}>{p.symbol}</td><td style={cell}>{p.quantity ?? p.qty ?? '-'}</td><td style={cell}><button onClick={() => store.closePosition(p.symbol)}>Close</button></td></tr>)}
+            {positions.map((p, index) => <tr key={p.symbol || `position-${index}`}><td style={cell}>{valueOrDash(p.symbol)}</td><td style={cell}>{valueOrDash(safeNumber(p.quantity ?? p.qty, NaN) || p.quantity || p.qty)}</td><td style={cell}><button disabled={!p.symbol} onClick={() => p.symbol && store.closePosition(p.symbol)}>Close</button></td></tr>)}
           </tbody></table>
         )}
       </PanelContainer>
 
       <PanelContainer title="Orders">
-        {store.orders.length === 0 ? <div>No paper orders.</div> : (
+        {orders.length === 0 ? <div>No paper orders yet</div> : (
           <table style={{ width: '100%' }}><thead><tr><th style={cell}>ID</th><th style={cell}>Symbol</th><th style={cell}>Side</th><th style={cell}>Qty</th><th style={cell}>Status</th><th style={cell}>Action</th></tr></thead><tbody>
-            {store.orders.map((o) => <tr key={o.id || o.orderId}><td style={cell}>{o.id || o.orderId}</td><td style={cell}>{o.symbol}</td><td style={cell}>{o.side}</td><td style={cell}>{o.quantity}</td><td style={cell}>{o.status || '-'}</td><td style={cell}><button onClick={() => store.cancelOrder(o.id || o.orderId)}>Cancel</button></td></tr>)}
+            {orders.map((o, index) => {
+              const orderId = o.id || o.orderId;
+              return <tr key={orderId || `order-${index}`}><td style={cell}>{valueOrDash(orderId)}</td><td style={cell}>{valueOrDash(o.symbol)}</td><td style={cell}>{valueOrDash(o.side)}</td><td style={cell}>{valueOrDash(o.quantity)}</td><td style={cell}>{valueOrDash(o.status)}</td><td style={cell}><button disabled={!orderId} onClick={() => orderId && store.cancelOrder(orderId)}>Cancel</button></td></tr>;
+            })}
           </tbody></table>
         )}
       </PanelContainer>
 
       <PanelContainer title="Fills">
-        {store.fills.length === 0 ? <div>No paper fills.</div> : <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(store.fills, null, 2)}</pre>}
+        {fills.length === 0 ? <div>No paper fills yet</div> : <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(fills, null, 2)}</pre>}
       </PanelContainer>
 
       <PanelContainer title="Account Controls">
