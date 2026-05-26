@@ -18,6 +18,7 @@ import StrategyLabWorkspace from './workspaces/StrategyLabWorkspace.jsx';
 import StrategyBuilderWorkspace from './workspaces/StrategyBuilderWorkspace.jsx';
 import PaperTradingWorkspace from './workspaces/PaperTradingWorkspace.jsx';
 import LiveDataWorkspace from './workspaces/LiveDataWorkspace.jsx';
+import ChartOrderflowWorkspace from './workspaces/ChartOrderflowWorkspace.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useMarketStore } from './store/marketStore';
@@ -52,6 +53,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       );
     case 'LiveData':
       return <LiveDataWorkspace />;
+    case 'ChartOrderflow':
+      return <ChartOrderflowWorkspace />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;

@@ -483,6 +483,30 @@ export const api = {
     { method: 'POST', headers: headers(), body: JSON.stringify({ providers, symbols }) }
   ),
 
+  getChartCandles: async (symbol, timeframe = '1m', limit = 200) => fetch(
+    `${API_BASE}/api/chart/candles/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&limit=${encodeURIComponent(limit)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getChartIndicators: async (symbol, timeframe = '1m', indicators = ['vwap', 'ema9', 'ema20', 'rsi14']) => {
+    const indicatorQuery = Array.isArray(indicators) ? indicators.join(',') : indicators;
+    return fetch(
+      `${API_BASE}/api/chart/indicators/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&indicators=${encodeURIComponent(indicatorQuery)}`,
+      { method: 'GET', headers: headers() }
+    ).then(handle);
+  },
+  getChartOverlays: async (symbol, timeframe = '1m') => fetch(
+    `${API_BASE}/api/chart/overlays/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getChartOrderflow: async (symbol) => fetch(
+    `${API_BASE}/api/chart/orderflow/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getChartPayload: async (symbol, timeframe = '1m', limit = 200) => fetch(
+    `${API_BASE}/api/chart/payload/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&limit=${encodeURIComponent(limit)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });

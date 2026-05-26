@@ -13,6 +13,7 @@ const WORKSPACE_MAP = {
   'Strategy Builder': 'StrategyBuilder',
   'Paper Trading': 'PaperTrading',
   'Live Data': 'LiveData',
+  'Chart / Orderflow': 'ChartOrderflow',
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
@@ -35,6 +36,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'Strategy Builder',
     'Paper Trading',
     'Live Data',
+    'Chart / Orderflow',
     'Admin',
   ];
 
