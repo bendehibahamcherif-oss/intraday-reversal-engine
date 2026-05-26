@@ -190,7 +190,7 @@ export default function LiveDataWorkspace() {
                   { label: 'Source', value: feedCardTitle(statusItem) },
                   { label: 'Status', value: statusLabel(statusItem) },
                   { label: 'Connected', value: formatText(Boolean(statusItem?.connected)) },
-                  { label: 'Symbols', value: formatArray(statusItem?.symbols) },
+                  { label: 'Symbols', value: formatArray(statusItem?.symbols?.length ? statusItem.symbols : store.activeSymbols) },
                   { label: 'Last Message At', value: formatDate(statusItem?.lastMessageAt) },
                   { label: 'Latency (ms)', value: formatNumber(statusItem?.latencyMs) },
                   { label: 'Warnings', value: formatArray(statusItem?.warnings) },

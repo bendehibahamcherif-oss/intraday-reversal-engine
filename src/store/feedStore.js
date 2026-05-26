@@ -13,6 +13,7 @@ const initialState = {
   lastUpdated: null,
   providers: [],
   activeProviders: [],
+  activeSymbols: [],
   providerCredentialsStatus: {},
   selectedProviders: [],
   credentialsDraft: {},
@@ -179,8 +180,16 @@ export const useFeedStore = create((set, get) => ({
     try {
       const payload = await api.getActiveFeedProviders();
       const activeProviders = Array.isArray(payload?.providers) ? payload.providers : [];
-      set({ activeProviders, selectedProviders: activeProviders, credentialsLoading: false });
-      return activeProviders;
+      const activeSymbols = Array.isArray(payload?.symbols) ? payload.symbols : [];
+      const nextSymbol = String(activeSymbols[0] || '').trim().toUpperCase();
+      set({
+        activeProviders,
+        activeSymbols,
+        selectedProviders: activeProviders,
+        symbol: nextSymbol || get().symbol,
+        credentialsLoading: false,
+      });
+      return { activeProviders, activeSymbols };
     } catch (error) {
       get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
@@ -192,8 +201,16 @@ export const useFeedStore = create((set, get) => ({
     const { selectedProviders, symbol } = get();
     set({ credentialsLoading: true, credentialsError: '' });
     try {
-      const result = await api.setActiveFeedProviders(selectedProviders, [symbol]);
-      set({ activeProviders: selectedProviders, credentialsLoading: false });
+      const normalizedSymbol = String(symbol || '').trim().toUpperCase() || 'SPY';
+      const symbols = [normalizedSymbol];
+      const result = await api.setActiveFeedProviders(selectedProviders, symbols);
+      await Promise.all([get().loadActiveProviders(), get().loadFeedStatus()]);
+      set({
+        activeProviders: selectedProviders,
+        activeSymbols: symbols,
+        symbol: normalizedSymbol || get().symbol,
+        credentialsLoading: false,
+      });
       return result;
     } catch (error) {
       get().syncFeedDebug();
