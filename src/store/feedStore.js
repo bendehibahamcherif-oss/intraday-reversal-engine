@@ -68,6 +68,16 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
 
   const topLevel = payload?.status || payload?.feedStatus || payload;
   if (topLevel && typeof topLevel === 'object' && !Array.isArray(topLevel)) pushStatus(topLevel);
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const source = pickProviderName(payload);
+    if (source) {
+      pushStatus({
+        ...payload,
+        source,
+        status: typeof topLevel === 'string' ? topLevel : (payload?.state || payload?.status),
+      });
+    }
+  }
   asArray(payload?.statuses).forEach(pushStatus);
   providerMeta.forEach((provider) => {
     const providerName = pickProviderName(provider);
