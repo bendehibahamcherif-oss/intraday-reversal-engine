@@ -18,6 +18,7 @@ export const useChartStore = create((set, get) => ({
   loading: false,
   error: '',
   lastUpdated: null,
+  activeRequestId: 0,
 
   setSymbol: (symbol) => set({ symbol: symbol || DEFAULT_SYMBOL }),
   setTimeframe: (timeframe) => set({ timeframe: timeframe || DEFAULT_TIMEFRAME }),
@@ -25,11 +26,18 @@ export const useChartStore = create((set, get) => ({
   clearError: () => set({ error: '' }),
 
   loadChartPayload: async () => {
-    const { symbol, timeframe, limit } = get();
-    set({ loading: true, error: '' });
+    const { symbol, timeframe, limit, activeRequestId } = get();
+    const requestId = activeRequestId + 1;
+
+    set({ loading: true, error: '', activeRequestId: requestId });
 
     try {
       const payload = await api.getChartPayload(symbol, timeframe, limit);
+
+      if (get().activeRequestId !== requestId) {
+        return;
+      }
+
       set({
         candles: payload?.candles || [],
         indicators: payload?.indicators || {},
@@ -42,6 +50,10 @@ export const useChartStore = create((set, get) => ({
         lastUpdated: new Date().toISOString(),
       });
     } catch (err) {
+      if (get().activeRequestId !== requestId) {
+        return;
+      }
+
       set({
         loading: false,
         error: err?.message || 'Failed to load chart payload',
