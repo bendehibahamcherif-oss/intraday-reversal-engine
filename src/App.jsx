@@ -44,7 +44,11 @@ function WorkspaceRenderer({ workspace, marketData }) {
     case 'StrategyBuilder':
       return <StrategyBuilderWorkspace />;
     case 'PaperTrading':
-      return <PaperTradingWorkspace />;
+      return (
+        <ErrorBoundary>
+          <PaperTradingWorkspace />
+        </ErrorBoundary>
+      );
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;

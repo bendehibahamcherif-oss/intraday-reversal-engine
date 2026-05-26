@@ -9,13 +9,38 @@ const defaultTicket = {
   strategyId: '',
 };
 
-function extractItems(payload, fallbackKeys = []) {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== 'object') return [];
-  for (const key of fallbackKeys) {
-    if (Array.isArray(payload[key])) return payload[key];
-  }
-  return [];
+const DEFAULT_RISK_STATUS = {
+  killSwitchEnabled: false,
+  killSwitchActive: false,
+  message: 'Risk status unavailable',
+};
+
+export function toArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined) return [];
+  return [value];
+}
+
+export function safeNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+export function valueOrDash(value) {
+  return value === null || value === undefined || value === '' ? '-' : value;
+}
+
+export function normalizePaperResponse(payload) {
+  const response = payload && typeof payload === 'object' ? payload : {};
+  const orders = Array.isArray(response.orders) ? response.orders : toArray(response.orders ?? response.data ?? payload).filter((item) => item && typeof item === 'object');
+  const fills = Array.isArray(response.fills) ? response.fills : toArray(response.fills ?? response.data ?? payload).filter((item) => item && typeof item === 'object');
+  const positions = Array.isArray(response.positions) ? response.positions : toArray(response.positions ?? response.data ?? payload).filter((item) => item && typeof item === 'object');
+  const riskStatusInput = response.riskStatus ?? payload;
+  const riskStatus = riskStatusInput && typeof riskStatusInput === 'object'
+    ? { ...DEFAULT_RISK_STATUS, ...riskStatusInput }
+    : { ...DEFAULT_RISK_STATUS };
+
+  return { orders, fills, positions, riskStatus };
 }
 
 export const usePaperTradingStore = create((set, get) => ({
@@ -43,11 +68,11 @@ export const usePaperTradingStore = create((set, get) => ({
       symbol: cleanSymbol,
       side: orderTicket.side,
       type: orderTicket.type,
-      quantity: Number(orderTicket.quantity),
+      quantity: safeNumber(orderTicket.quantity, 1),
     };
 
     if (orderTicket.requestedPrice !== '' && orderTicket.requestedPrice !== null) {
-      order.requestedPrice = Number(orderTicket.requestedPrice);
+      order.requestedPrice = safeNumber(orderTicket.requestedPrice, 0);
     }
     if (orderTicket.strategyId?.trim()) order.strategyId = orderTicket.strategyId.trim();
 
@@ -71,7 +96,8 @@ export const usePaperTradingStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const payload = await api.getPaperOrders(get().symbol);
-      set({ orders: extractItems(payload, ['orders', 'data']), loading: false, lastUpdated: new Date().toISOString() });
+      const normalized = normalizePaperResponse(payload);
+      set({ orders: normalized.orders, loading: false, lastUpdated: new Date().toISOString() });
     } catch (err) {
       set({ loading: false, error: err.message || 'Failed to load orders', orders: [] });
     }
@@ -92,7 +118,8 @@ export const usePaperTradingStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const payload = await api.getPaperFills(get().symbol);
-      set({ fills: extractItems(payload, ['fills', 'data']), loading: false, lastUpdated: new Date().toISOString() });
+      const normalized = normalizePaperResponse(payload);
+      set({ fills: normalized.fills, loading: false, lastUpdated: new Date().toISOString() });
     } catch (err) {
       set({ loading: false, error: err.message || 'Failed to load fills', fills: [] });
     }
@@ -102,7 +129,8 @@ export const usePaperTradingStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const payload = await api.getPaperPositions();
-      const positions = extractItems(payload, ['positions', 'data']);
+      const normalized = normalizePaperResponse(payload);
+      const positions = normalized.positions;
       const selectedSymbol = get().selectedPosition?.symbol;
       set({
         positions,
@@ -130,9 +158,10 @@ export const usePaperTradingStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const riskStatus = await api.getPaperRiskStatus();
-      set({ riskStatus, loading: false, lastUpdated: new Date().toISOString() });
+      const normalized = normalizePaperResponse({ riskStatus });
+      set({ riskStatus: normalized.riskStatus, loading: false, lastUpdated: new Date().toISOString() });
     } catch (err) {
-      set({ loading: false, error: err.message || 'Failed to load risk status', riskStatus: null });
+      set({ loading: false, error: err.message || 'Failed to load risk status', riskStatus: { ...DEFAULT_RISK_STATUS } });
     }
   },
 
