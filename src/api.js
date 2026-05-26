@@ -209,6 +209,39 @@ export const api = {
     { method: 'POST', headers: headers(), body: JSON.stringify({ strategyIds: strategyIds || [] }) }
   ),
 
+  getRuleSets: async (symbol) => fetch(
+    `${API_BASE}/api/rules/sets/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getRuleSet: async (id) => fetch(
+    `${API_BASE}/api/rules/set/${encodeURIComponent(id)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  createRuleSet: async (symbol, ruleSet) => fetch(
+    `${API_BASE}/api/rules/set/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(ruleSet || {}) }
+  ).then(handle),
+  updateRuleSet: async (id, updates) => fetch(
+    `${API_BASE}/api/rules/set/${encodeURIComponent(id)}`,
+    { method: 'PUT', headers: headers(), body: JSON.stringify(updates || {}) }
+  ).then(handle),
+  deleteRuleSet: async (id) => fetch(
+    `${API_BASE}/api/rules/set/${encodeURIComponent(id)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  clearRuleSets: async (symbol) => fetch(
+    `${API_BASE}/api/rules/sets/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  evaluateRuleSet: async (symbol, id) => fetch(
+    `${API_BASE}/api/rules/evaluate/${encodeURIComponent(symbol)}/${encodeURIComponent(id)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  convertRuleSet: async (symbol, id) => fetch(
+    `${API_BASE}/api/rules/convert/${encodeURIComponent(symbol)}/${encodeURIComponent(id)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+
 
   runBacktest: async (symbol, strategyId, timeframe) => fetch(
     `${API_BASE}/api/backtest/run/${encodeURIComponent(symbol)}`,
