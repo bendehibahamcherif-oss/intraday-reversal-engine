@@ -84,6 +84,7 @@ function formatOrderSide(levels) {
 export default function LiveDataWorkspace() {
   const store = useFeedStore();
   const [tab, setTab] = useState('market');
+  const showDebug = import.meta.env.VITE_LIVE_DATA_DEBUG === 'true';
   const providerOrder = ['polygon', 'alphaVantage', 'ibkr', 'yahoo', 'fallback_demo'];
 
   const providerStatus = (provider) => {
@@ -163,6 +164,15 @@ export default function LiveDataWorkspace() {
         </div>
         {store.error ? <p style={{ color: '#fca5a5' }}>{store.error}</p> : null}
         {store.credentialsError ? <p style={{ color: '#fca5a5' }}>{store.credentialsError}</p> : null}
+        {showDebug ? (
+          <div style={{ marginTop: 8, fontSize: 12, color: '#93c5fd' }}>
+            <div>lastFeedUrl: {formatText(store.lastFeedUrl)}</div>
+            <div>lastFeedMethod: {formatText(store.lastFeedMethod)}</div>
+            <div>lastFeedError: {formatText(store.lastFeedError)}</div>
+            <div>activeProviders: {formatArray(store.activeProviders)}</div>
+            <div>VITE_API_BASE: {formatText(store.apiBase)}</div>
+          </div>
+        ) : null}
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
