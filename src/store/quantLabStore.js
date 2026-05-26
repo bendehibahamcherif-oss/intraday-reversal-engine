@@ -64,6 +64,9 @@ export const useQuantLabStore = create((set, get) => ({
   reversalPoints: [],
   reversalLoading: false,
   reversalError: '',
+  reversalStrategy: null,
+  reversalStrategyLoading: false,
+  reversalStrategyError: '',
   analysisHistory: [],
   analyticsTrend: [],
   latestAnalytics: null,
@@ -185,6 +188,9 @@ export const useQuantLabStore = create((set, get) => ({
         snapshotId: '',
         reversalPoints: [],
         reversalError: '',
+  reversalStrategy: null,
+  reversalStrategyLoading: false,
+  reversalStrategyError: '',
         loading: false,
       });
     } catch (err) {
@@ -377,11 +383,60 @@ export const useQuantLabStore = create((set, get) => ({
     set({ reversalLoading: true, reversalError: '' });
     try {
       await api.clearReversalPoints(symbol);
-      set({ reversalPoints: [], reversalLoading: false });
+      set({ reversalPoints: [], reversalLoading: false, reversalStrategy: null, reversalStrategyError: '' });
     } catch (err) {
       set({ reversalLoading: false, reversalError: normalizeError(err) });
     }
   },
+
+  createStrategyFromReversal: async (reversalPointId) => {
+    const { symbol, reversalPoints } = get();
+    if (!reversalPointId) {
+      set({ reversalStrategyError: 'No reversal point selected.' });
+      return;
+    }
+
+    set({ reversalStrategyLoading: true, reversalStrategyError: '' });
+    try {
+      const payload = await api.createStrategyFromReversal(symbol, reversalPointId);
+      const strategy = payload?.strategy || payload?.data || payload || null;
+      if (!strategy) {
+        set({ reversalStrategyLoading: false, reversalStrategyError: 'Strategy creation completed but no strategy was returned.' });
+        return;
+      }
+
+      const hydratedReversalPoints = reversalPoints.map((point) => {
+        const pointId = String(point?.id || point?._id || point?.reversalPointId || '');
+        return pointId === String(reversalPointId) ? { ...point, generatedStrategy: strategy } : point;
+      });
+
+      set({
+        reversalPoints: hydratedReversalPoints,
+        reversalStrategy: strategy,
+        reversalStrategyLoading: false,
+      });
+    } catch (err) {
+      set({ reversalStrategyLoading: false, reversalStrategyError: normalizeError(err) });
+    }
+  },
+
+  saveStrategyFromReversal: async (reversalPointId) => {
+    const { symbol } = get();
+    if (!reversalPointId) {
+      set({ reversalStrategyError: 'No reversal point selected.' });
+      return;
+    }
+
+    set({ reversalStrategyLoading: true, reversalStrategyError: '' });
+    try {
+      const payload = await api.saveStrategyFromReversal(symbol, reversalPointId);
+      const saved = payload?.strategy || payload?.savedStrategy || payload?.data || payload || null;
+      set({ reversalStrategy: saved, reversalStrategyLoading: false });
+    } catch (err) {
+      set({ reversalStrategyLoading: false, reversalStrategyError: normalizeError(err) });
+    }
+  },
+
 
   clearValidationResults: async () => {
     const symbol = get().symbol;
