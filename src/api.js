@@ -402,6 +402,30 @@ export const api = {
     `${API_BASE}/api/feeds/demo/orderbook/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers() }
   ).then(handle),
+  getFeedProviders: async () => fetch(
+    `${API_BASE}/api/feeds/providers`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getFeedProvider: async (provider) => fetch(
+    `${API_BASE}/api/feeds/providers/${encodeURIComponent(provider)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  saveFeedProviderCredentials: async (provider, credentials = {}) => fetch(
+    `${API_BASE}/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
+    { method: 'PUT', headers: headers(), body: JSON.stringify({ credentials }) }
+  ).then(handle),
+  deleteFeedProviderCredentials: async (provider) => fetch(
+    `${API_BASE}/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  getActiveFeedProviders: async () => fetch(
+    `${API_BASE}/api/feeds/providers/active`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  setActiveFeedProviders: async (providers = [], symbols = []) => fetch(
+    `${API_BASE}/api/feeds/providers/active`,
+    { method: 'PUT', headers: headers(), body: JSON.stringify({ providers, symbols }) }
+  ).then(handle),
 
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
