@@ -14,6 +14,7 @@ export default function WorkspaceSwitcher() {
     'StrategyBuilder',
     'PaperTrading',
     'LiveData',
+    'ChartOrderflow',
   ];
 
   return (
