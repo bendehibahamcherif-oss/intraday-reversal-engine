@@ -24,6 +24,108 @@ const initialState = {
   apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:10000',
 };
 
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function pickProviderName(record = {}) {
+  return String(record?.provider || record?.source || record?.id || record?.name || '').trim();
+}
+
+function normalizeFeedStatusPayload(payload, activeProviders = [], providers = []) {
+  const providerMeta = [...asArray(payload?.providers), ...asArray(providers)];
+  const statuses = [];
+
+  const pushStatus = (entry = {}) => {
+    const source = pickProviderName(entry);
+    if (!source) return;
+    const warnings = asArray(entry?.warnings);
+    const symbols = asArray(entry?.symbols || entry?.activeSymbols);
+    const connected = entry?.connected === true;
+    const status = String(
+      entry?.status
+      || entry?.state
+      || (source === 'fallback_demo' ? 'idle_demo' : (connected ? 'connected' : 'disconnected'))
+    );
+
+    const nextWarnings = [...warnings];
+    if (source === 'yahoo' && !nextWarnings.some((w) => String(w).toLowerCase().includes('delayed'))) {
+      nextWarnings.push('Yahoo feed is delayed/fallback, not institutional real-time.');
+    }
+
+    statuses.push({
+      source,
+      status,
+      connected,
+      symbols,
+      warnings: nextWarnings,
+      lastMessageAt: entry?.lastMessageAt || entry?.updatedAt || null,
+      latencyMs: entry?.latencyMs,
+      mode: entry?.mode,
+      live: entry?.live,
+    });
+  };
+
+  const topLevel = payload?.status || payload?.feedStatus || payload;
+  if (topLevel && typeof topLevel === 'object' && !Array.isArray(topLevel)) pushStatus(topLevel);
+  asArray(payload?.statuses).forEach(pushStatus);
+  providerMeta.forEach((provider) => {
+    const providerName = pickProviderName(provider);
+    if (!providerName) return;
+    pushStatus({
+      source: providerName,
+      status: provider?.status || provider?.connectionStatus,
+      connected: provider?.connected,
+      symbols: provider?.symbols || provider?.activeSymbols,
+      warnings: provider?.warnings,
+      lastMessageAt: provider?.lastMessageAt,
+      latencyMs: provider?.latencyMs,
+    });
+  });
+
+  const deduped = [];
+  const bySource = new Map();
+  statuses.forEach((item) => {
+    const previous = bySource.get(item.source);
+    if (!previous) {
+      bySource.set(item.source, item);
+      return;
+    }
+    bySource.set(item.source, {
+      ...previous,
+      ...item,
+      symbols: item.symbols?.length ? item.symbols : previous.symbols,
+      warnings: [...new Set([...(previous.warnings || []), ...(item.warnings || [])])],
+      connected: previous.connected || item.connected,
+    });
+  });
+  bySource.forEach((value) => deduped.push(value));
+
+  const active = asArray(payload?.activeProviders).length ? asArray(payload?.activeProviders) : asArray(activeProviders);
+  const activeSet = new Set(active.map((name) => String(name)));
+  deduped.forEach((item) => {
+    if (activeSet.size === 0) item.active = true;
+    else item.active = activeSet.has(item.source);
+  });
+
+  const activeStatuses = deduped.filter((item) => item.active);
+  const primary = activeStatuses[0] || deduped[0] || null;
+  return {
+    ...payload,
+    activeProviders: active,
+    providers: providerMeta,
+    statuses: deduped,
+    activeStatuses,
+    source: primary?.source || payload?.source || 'unknown',
+    status: primary?.status || payload?.status || 'unknown',
+    connected: primary?.connected === true,
+    symbols: primary?.symbols || [],
+    warnings: primary?.warnings || [],
+    lastMessageAt: primary?.lastMessageAt || null,
+    latencyMs: primary?.latencyMs,
+  };
+}
+
 function normalizeError(error) {
   const status = error?.status ? `HTTP ${error.status}` : '';
   const method = error?.method || '';
@@ -153,7 +255,8 @@ export const useFeedStore = create((set, get) => ({
   loadFeedStatus: async () => {
     set({ loading: true, error: '' });
     try {
-      const feedStatus = await api.getFeedStatus();
+      const payload = await api.getFeedStatus();
+      const feedStatus = normalizeFeedStatusPayload(payload, get().activeProviders, get().providers);
       set({ feedStatus, loading: false, lastUpdated: new Date().toISOString() });
       return feedStatus;
     } catch (error) {
