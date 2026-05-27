@@ -14,6 +14,7 @@ const WORKSPACE_MAP = {
   'Paper Trading': 'PaperTrading',
   'Live Data': 'LiveData',
   'Chart / Orderflow': 'ChartOrderflow',
+  'AI Lab': 'AILab',
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
@@ -37,6 +38,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'Paper Trading',
     'Live Data',
     'Chart / Orderflow',
+    'AI Lab',
     'Admin',
   ];
 

@@ -221,6 +221,39 @@ export const api = {
     `${API_BASE}/api/reversals/strategy/${encodeURIComponent(symbol)}/${encodeURIComponent(reversalPointId)}`,
     { method: 'POST', headers: headers() }
   ).then(handle),
+
+  saveFeatureRecord: async (symbol) => fetch(
+    `${API_BASE}/api/ai/features/save/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  getFeatureRecords: async (symbol, limit = 50) => fetch(
+    `${API_BASE}/api/ai/features/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getFeatureRecord: async (id) => fetch(
+    `${API_BASE}/api/ai/features/record/${encodeURIComponent(id)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  clearFeatureRecords: async (symbol) => fetch(
+    `${API_BASE}/api/ai/features/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  labelFeatureRecord: async (id, horizon = 10) => fetch(
+    `${API_BASE}/api/ai/labels/record/${encodeURIComponent(id)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ horizon }) }
+  ).then(handle),
+  labelSymbolHistory: async (symbol, horizon = 10, limit = 50) => fetch(
+    `${API_BASE}/api/ai/labels/symbol/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ horizon, limit }) }
+  ).then(handle),
+  getOutcomeLabels: async (symbol, limit = 50) => fetch(
+    `${API_BASE}/api/ai/labels/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  clearOutcomeLabels: async (symbol) => fetch(
+    `${API_BASE}/api/ai/labels/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
   saveStrategyFromReversal: async (symbol, reversalPointId) => fetch(
     `${API_BASE}/api/reversals/save-strategy/${encodeURIComponent(symbol)}/${encodeURIComponent(reversalPointId)}`,
     { method: 'POST', headers: headers() }
