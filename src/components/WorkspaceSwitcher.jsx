@@ -15,6 +15,7 @@ export default function WorkspaceSwitcher() {
     'PaperTrading',
     'LiveData',
     'ChartOrderflow',
+    'AILab',
   ];
 
   return (
