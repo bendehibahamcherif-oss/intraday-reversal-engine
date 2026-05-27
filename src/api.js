@@ -292,6 +292,32 @@ export const api = {
     }
   ).then(handle),
 
+
+  getCurrentRegime: async (symbol) => fetch(
+    `${API_BASE}/api/ai/regime/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  analyzeDatasetAnalytics: async (symbol) => fetch(
+    `${API_BASE}/api/ai/analytics/analyze/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  getDatasetAnalytics: async (symbol) => fetch(
+    `${API_BASE}/api/ai/analytics/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getFeatureAnalytics: async (symbol) => fetch(
+    `${API_BASE}/api/ai/analytics/features/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getRegimeAnalytics: async (symbol) => fetch(
+    `${API_BASE}/api/ai/analytics/regimes/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  clearDatasetAnalytics: async (symbol) => fetch(
+    `${API_BASE}/api/ai/analytics/${encodeURIComponent(symbol)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+
   getSavedStrategies: async (symbol) => strategyLabFetch(
     `/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
