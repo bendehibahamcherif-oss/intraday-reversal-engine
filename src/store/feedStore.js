@@ -388,7 +388,7 @@ export const useFeedStore = create((set, get) => ({
       const result = await api.setActiveFeedProviders(requestedProviders, [symbol]);
       await get().loadActiveProviders();
       await get().loadFeedStatus();
-      set({ credentialsLoading: false });
+      set({ credentialsLoading: false, providerSelectionSavedAt: new Date().toISOString() });
       return result;
     } catch (error) {
       get().syncFeedDebug();
