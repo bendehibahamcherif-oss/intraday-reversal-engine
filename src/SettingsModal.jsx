@@ -17,6 +17,11 @@ export default function SettingsModal({ settings, onSave, onClose, onSyncWatchli
   const [authTest, setAuthTest] = useState(null);
   const [testing, setTesting] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
+  const [providerStates, setProviderStates] = useState({});
+  const [providerLoading, setProviderLoading] = useState(false);
+  const [providerSaving, setProviderSaving] = useState({});
+  const [providerDeleting, setProviderDeleting] = useState({});
+  const [providerFeedback, setProviderFeedback] = useState({});
 
   const update = (k, v) => setDraft(d => ({ ...d, [k]: v }));
 
@@ -43,6 +48,11 @@ export default function SettingsModal({ settings, onSave, onClose, onSyncWatchli
   useEffect(() => {
     if (activeTab !== 'claude') return;
     api.claudeStatus().then(setClaudeStatus).catch(e => setClaudeStatus({ error: e.message }));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'providers') return;
+    loadProviderCredentials();
   }, [activeTab]);
 
   const testToken = async () => {
@@ -87,10 +97,100 @@ export default function SettingsModal({ settings, onSave, onClose, onSyncWatchli
     }
   };
 
+
+  const providerCatalog = [
+    { id: 'yahoo', name: 'Yahoo', requiresApiKey: false, supportsSecret: false },
+    { id: 'twelve_data', name: 'Twelve Data', requiresApiKey: true, supportsSecret: true },
+  ];
+
+  const maskKey = (key = '') => {
+    const raw = String(key || '').trim();
+    if (!raw) return '—';
+    const prefix = raw.slice(0, 3);
+    const suffix = raw.slice(-4);
+    return `${prefix}_****${suffix}`;
+  };
+
+  const normalizeCredentialsPayload = (payload) => {
+    const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.providers) ? payload.providers : []);
+    const next = {};
+    list.forEach((item) => {
+      const provider = item?.provider || item?.id || item?.name;
+      if (!provider) return;
+      next[provider] = {
+        provider,
+        enabled: item?.enabled !== false,
+        configured: Boolean(item?.configured ?? item?.hasCredentials ?? item?.apiKeyMasked ?? item?.apiKeyPreview),
+        apiKeyMasked: item?.apiKeyMasked || item?.apiKeyPreview || item?.maskedApiKey || '',
+        secretMasked: item?.secretMasked || item?.maskedSecret || '',
+      };
+    });
+    return next;
+  };
+
+  const loadProviderCredentials = async () => {
+    setProviderLoading(true);
+    try {
+      const payload = await api.listProviderCredentials();
+      setProviderStates(normalizeCredentialsPayload(payload));
+    } catch (e) {
+      setProviderFeedback({ type: 'error', message: e.message || 'Impossible de charger les providers.' });
+    } finally {
+      setProviderLoading(false);
+    }
+  };
+
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) { alert('Notifications non supportées'); return; }
     const r = await Notification.requestPermission();
     if (r === 'granted') new Notification('Reversal Engine', { body: 'Notifications activées ✓' });
+  };
+
+
+  const updateProviderDraft = (providerId, key, value) => {
+    setProviderStates((prev) => ({
+      ...prev,
+      [providerId]: { ...(prev[providerId] || { provider: providerId, configured: false, enabled: true }), [key]: value },
+    }));
+  };
+
+  const saveProvider = async (providerId) => {
+    const state = providerStates[providerId] || {};
+    if (providerId === 'twelve_data' && !String(state.apiKey || '').trim()) {
+      setProviderFeedback({ type: 'error', message: 'La clé API Twelve Data est requise.' });
+      return;
+    }
+    setProviderSaving((prev) => ({ ...prev, [providerId]: true }));
+    setProviderFeedback(null);
+    try {
+      await api.saveProviderCredentials({
+        provider: providerId,
+        apiKey: state.apiKey || '',
+        secret: state.secret || '',
+        enabled: state.enabled !== false,
+      });
+      setProviderFeedback({ type: 'success', message: `${providerId} sauvegardé.` });
+      await loadProviderCredentials();
+      setProviderStates((prev) => ({ ...prev, [providerId]: { ...(prev[providerId] || {}), apiKey: '', secret: '' } }));
+    } catch (e) {
+      setProviderFeedback({ type: 'error', message: e.message || 'Erreur de sauvegarde provider.' });
+    } finally {
+      setProviderSaving((prev) => ({ ...prev, [providerId]: false }));
+    }
+  };
+
+  const deleteProvider = async (providerId) => {
+    setProviderDeleting((prev) => ({ ...prev, [providerId]: true }));
+    setProviderFeedback(null);
+    try {
+      await api.deleteProviderCredentials(providerId);
+      setProviderFeedback({ type: 'success', message: `${providerId} supprimé.` });
+      await loadProviderCredentials();
+    } catch (e) {
+      setProviderFeedback({ type: 'error', message: e.message || 'Erreur de suppression provider.' });
+    } finally {
+      setProviderDeleting((prev) => ({ ...prev, [providerId]: false }));
+    }
   };
 
   const handleSave = async () => {
@@ -116,7 +216,7 @@ export default function SettingsModal({ settings, onSave, onClose, onSyncWatchli
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #1e293b', overflowX: 'auto' }}>
-          {[['connection', '🔐 Connexion'], ['claude', 'IA Claude'], ['alerts', 'Alertes'], ['watchlists', 'Watchlists']].map(([k, label]) => (
+          {[['connection', '🔐 Connexion'], ['claude', 'IA Claude'], ['providers', 'Providers'], ['alerts', 'Alertes'], ['watchlists', 'Watchlists']].map(([k, label]) => (
             <button key={k} onClick={() => setActiveTab(k)} style={{
               flex: '1 0 auto', background: 'transparent', border: 'none',
               padding: '14px 20px', fontFamily: fonts.mono, fontSize: '11px',
@@ -194,6 +294,42 @@ export default function SettingsModal({ settings, onSave, onClose, onSyncWatchli
                 <span style={{ fontFamily: fonts.sans, fontSize: '13px', color: '#cbd5e1' }}>Recherche web</span>
               </label>
             </div>
+          </div>
+        )}
+
+
+        {activeTab === 'providers' && (
+          <div style={{ padding: '24px' }}>
+            {providerFeedback && (
+              <div style={{ padding: '10px 14px', marginBottom: 12, background: providerFeedback.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(220, 38, 38, 0.1)', border: `1px solid ${providerFeedback.type === 'success' ? '#22c55e' : '#dc2626'}`, borderRadius: 4, fontFamily: fonts.mono, fontSize: 12, color: providerFeedback.type === 'success' ? '#4ade80' : '#f87171' }}>{providerFeedback.message}</div>
+            )}
+            {providerLoading ? <div style={{ fontFamily: fonts.mono, color: '#94a3b8', fontSize: 12 }}>Chargement des providers...</div> : providerCatalog.map((meta) => {
+              const state = providerStates[meta.id] || { provider: meta.id, enabled: true, configured: false };
+              const isConfigured = Boolean(state.configured);
+              return (
+                <div key={meta.id} style={{ marginBottom: 14, padding: 14, background: '#020617', border: '1px solid #1e293b', borderRadius: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ fontFamily: fonts.sans, fontSize: 15, color: '#e2e8f0', fontWeight: 600 }}>{meta.name}</div>
+                    <div style={{ fontFamily: fonts.mono, fontSize: 11, color: isConfigured ? '#4ade80' : '#fbbf24' }}>{isConfigured ? 'Configured' : 'Not configured'}</div>
+                  </div>
+                  <div style={{ marginTop: 8, fontFamily: fonts.mono, fontSize: 11, color: '#94a3b8' }}>Active provider: {state.enabled !== false ? 'Yes' : 'No'}</div>
+                  <div style={{ marginTop: 4, fontFamily: fonts.mono, fontSize: 11, color: '#94a3b8' }}>Masked key: {state.apiKeyMasked || maskKey(state.apiKey || '')}</div>
+
+                  <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                    <input type='password' value={state.apiKey || ''} onChange={(e) => updateProviderDraft(meta.id, 'apiKey', e.target.value)} placeholder={meta.requiresApiKey ? 'API key requise' : 'API key (optionnelle)'} style={inputStyle} />
+                    {meta.supportsSecret && <input type='password' value={state.secret || ''} onChange={(e) => updateProviderDraft(meta.id, 'secret', e.target.value)} placeholder='Secret (optionnel)' style={inputStyle} />}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: fonts.sans, fontSize: 12, color: '#cbd5e1' }}>
+                      <input type='checkbox' checked={state.enabled !== false} onChange={(e) => updateProviderDraft(meta.id, 'enabled', e.target.checked)} /> Enabled
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                    <button onClick={() => saveProvider(meta.id)} disabled={providerSaving[meta.id] || providerDeleting[meta.id]} style={btnSecondary}>{providerSaving[meta.id] ? 'Saving...' : (isConfigured ? 'Update' : 'Save')}</button>
+                    <button onClick={() => deleteProvider(meta.id)} disabled={providerDeleting[meta.id] || providerSaving[meta.id] || !isConfigured} style={btnDanger}>{providerDeleting[meta.id] ? 'Deleting...' : 'Delete'}</button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
