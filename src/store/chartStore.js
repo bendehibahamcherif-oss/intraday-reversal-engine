@@ -10,6 +10,10 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function normalizeSymbol(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
 function normalizeCandles(rawCandles = []) {
   return asArray(rawCandles)
     .map((candle) => {
@@ -45,7 +49,7 @@ export const useChartStore = create((set, get) => ({
   error: '',
   lastUpdated: null,
 
-  setSymbol: (symbol) => set({ symbol: symbol || DEFAULT_SYMBOL }),
+  setSymbol: (symbol) => set({ symbol: normalizeSymbol(symbol) || DEFAULT_SYMBOL }),
   setTimeframe: (timeframe) => set({ timeframe: timeframe || DEFAULT_TIMEFRAME }),
   setLimit: (limit) => set({ limit: Number(limit) > 0 ? Number(limit) : DEFAULT_LIMIT }),
   clearError: () => set({ error: '' }),
