@@ -25,6 +25,7 @@ const initialState = {
   lastFeedMethod: '',
   lastFeedError: '',
   apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:10000',
+  providerSelectionSavedAt: null,
 };
 
 function asArray(value) {
@@ -145,6 +146,18 @@ function normalizeError(error) {
   return parts.length ? parts.join(' | ') : (error?.message || 'Unable to load feed data.');
 }
 
+function mergeProviderList(incoming = [], fallback = []) {
+  const unique = [];
+  const seen = new Set();
+  [...asArray(incoming), ...asArray(fallback)].forEach((provider) => {
+    const key = pickProviderName(provider);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    unique.push(provider);
+  });
+  return unique;
+}
+
 export const useFeedStore = create((set, get) => ({
   ...initialState,
   syncFeedDebug: () => set(getLiveDataDebug()),
@@ -159,8 +172,9 @@ export const useFeedStore = create((set, get) => ({
     try {
       const payload = await api.getFeedProviders();
       const providers = Array.isArray(payload?.providers) ? payload.providers : (Array.isArray(payload) ? payload : []);
+      const mergedProviders = mergeProviderList(providers, get().providers);
       const providerCredentialsStatus = {};
-      providers.forEach((provider) => {
+      mergedProviders.forEach((provider) => {
         const key = provider?.provider || provider?.id || provider?.name;
         if (!key) return;
         providerCredentialsStatus[key] = provider?.credentialsStatus || provider?.status || 'unknown';
@@ -389,5 +403,10 @@ export const useFeedStore = create((set, get) => ({
       get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
     }
+  },
+
+  initializeFeedWorkspace: async () => {
+    await Promise.all([get().loadProviders(), get().loadActiveProviders()]);
+    await get().refreshAll();
   },
 }));

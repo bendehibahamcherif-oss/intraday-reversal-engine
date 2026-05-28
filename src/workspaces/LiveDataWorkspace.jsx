@@ -220,12 +220,22 @@ export default function LiveDataWorkspace() {
 
       {tab === 'providers' ? <section style={panelStyle}>
         <h3 style={{ marginTop: 0 }}>Feed Providers</h3>
+        <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: '#9ca3af' }}>Active providers</div>
+          <div style={{ fontWeight: 700 }}>{formatArray(store.activeProviders)}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Provider order: {formatArray(store.activeProviders.map((provider, idx) => `${idx + 1}. ${provider}`))}
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Persistence: {store.providerSelectionSavedAt ? `Saved ${formatDate(store.providerSelectionSavedAt)}` : 'Waiting for save'}
+          </div>
+        </div>
         <div style={{ display: 'grid', gap: 8 }}>
           {providerOrder.map((provider) => (
-            <label key={provider} style={{ display: 'grid', gridTemplateColumns: '24px 180px 1fr', alignItems: 'center', gap: 10 }}>
+            <label key={provider} style={{ display: 'grid', gridTemplateColumns: '24px minmax(100px, 180px) 1fr', alignItems: 'center', gap: 10 }}>
               <input type="checkbox" checked={store.selectedProviders.includes(provider)} onChange={() => store.toggleProvider(provider)} />
               <strong>{provider}</strong>
-              <span>Status: {providerStatus(provider)}</span>
+              <span>Status: {providerStatus(provider)}{store.activeProviders.includes(provider) ? ' • Active' : ' • Inactive'}</span>
             </label>
           ))}
         </div>
