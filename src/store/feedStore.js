@@ -182,12 +182,16 @@ export const useFeedStore = create((set, get) => ({
       });
       const providerNames = uniqueStrings(providers.map((p) => pickProviderName(p)));
       set((state) => {
-        const previousSelected = uniqueStrings(state.selectedProviders);
         const hasIncomingProviders = providerNames.length > 0;
         const nextProviders = hasIncomingProviders ? mergedProviders : state.providers;
-        const nextSelected = providerNames.length
-          ? previousSelected.filter((name) => providerNames.includes(name))
-          : previousSelected;
+        const nextSelected = state.selectedProviders;
+        if (!hasIncomingProviders) {
+          console.debug('[feedStore] stale provider overwrite prevented (catalog)', {
+            hydrationSource: state.hasHydratedProviders ? 'backend_hydrated' : 'pre_hydration',
+            backendPayload: payload,
+            preservedSelectedProviders: nextSelected,
+          });
+        }
         console.debug('[feedStore] loadProviders sync', {
           before: {
             providers: state.providers.map((p) => pickProviderName(p)),
@@ -240,6 +244,13 @@ export const useFeedStore = create((set, get) => ({
         const selectedProviders = activeProviders.length
           ? activeProviders
           : (state.hasHydratedProviders ? state.selectedProviders : uniqueStrings(state.selectedProviders));
+        if (shouldPreservePrevious) {
+          console.debug('[feedStore] stale provider overwrite prevented (activeProviders)', {
+            hydrationSource: state.hasHydratedProviders ? 'backend_hydrated' : 'pre_hydration',
+            backendPayload: payload,
+            preservedActiveProviders: fallbackActive,
+          });
+        }
 
         const before = {
           activeProviders: state.activeProviders,
@@ -436,7 +447,7 @@ export const useFeedStore = create((set, get) => ({
   },
 
   initializeFeedWorkspace: async () => {
-    console.debug('[feedStore] initializeFeedWorkspace start');
+    console.debug('[feedStore] initializeFeedWorkspace start', { hydrationSource: 'backend_first' });
     await get().refreshAll();
     console.debug('[feedStore] initializeFeedWorkspace done', {
       activeProviders: get().activeProviders,
