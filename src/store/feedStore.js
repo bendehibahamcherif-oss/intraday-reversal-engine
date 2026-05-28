@@ -150,6 +150,36 @@ function deriveActiveProvidersFromPayload(payload, fallback = []) {
   return merged.length ? merged : uniqueStrings(fallback);
 }
 
+
+function normalizeProviderName(value) {
+  const name = String(value || '').trim().toLowerCase();
+  if (!name) return '';
+  if (name === 'alphavantage') return 'alphaVantage';
+  if (name === 'fallback' || name === 'demo') return 'fallback_demo';
+  return name;
+}
+
+function normalizeProviderList(values = []) {
+  return uniqueStrings(values.map((value) => normalizeProviderName(value))).filter(Boolean);
+}
+
+function deriveTickFromCandle(candle, symbol) {
+  if (!candle) return null;
+  const close = Number(candle?.close);
+  if (!Number.isFinite(close)) return null;
+  const timestamp = candle?.timestamp ?? candle?.time ?? null;
+  return {
+    symbol: String(candle?.symbol || symbol || 'SPY').toUpperCase(),
+    price: close,
+    bid: Number.isFinite(Number(candle?.low)) ? Number(candle.low) : close,
+    ask: Number.isFinite(Number(candle?.high)) ? Number(candle.high) : close,
+    volume: Number.isFinite(Number(candle?.volume)) ? Number(candle.volume) : 0,
+    source: String(candle?.source || 'unknown'),
+    timestamp,
+    sequence: `replay-${timestamp || Date.now()}`,
+  };
+}
+
 function normalizeError(error) {
   const status = error?.status ? `HTTP ${error.status}` : '';
   const method = error?.method || '';
@@ -489,6 +519,92 @@ export const useFeedStore = create((set, get) => ({
     console.debug('[feedStore] initializeFeedWorkspace done', {
       activeProviders: get().activeProviders,
       selectedProviders: get().selectedProviders,
+    });
+  },
+
+  hydrateFromReplayCandles: ({ candles = [], source = '', symbol = '', timeframe = '' } = {}) => {
+    const normalizedSource = normalizeProviderName(source) || String(source || 'unknown');
+    const latest = Array.isArray(candles) && candles.length ? candles[candles.length - 1] : null;
+    if (!latest) return;
+
+    set((state) => {
+      const normalizedSymbol = String(symbol || latest?.symbol || state.symbol || 'SPY').toUpperCase();
+      const normalizedTimeframe = timeframe || state.timeframe || '1m';
+      const latestCandle = {
+        ...latest,
+        symbol: normalizedSymbol,
+        timeframe: latest?.timeframe || normalizedTimeframe,
+        source: normalizeProviderName(latest?.source || normalizedSource) || normalizedSource,
+        timestamp: latest?.timestamp ?? latest?.time ?? null,
+      };
+      const latestTick = state.latestTick || deriveTickFromCandle(latestCandle, normalizedSymbol);
+      const replayProviderOrder = normalizeProviderList([
+        normalizedSource,
+        ...state.activeProviders,
+        ...(state.feedStatus?.providerOrder || []),
+      ]);
+      const hasYahooReplay = normalizedSource === 'yahoo';
+      const activeProviders = hasYahooReplay
+        ? normalizeProviderList(['yahoo', ...state.activeProviders.filter((provider) => normalizeProviderName(provider) !== 'fallback_demo')])
+        : normalizeProviderList(state.activeProviders.length ? state.activeProviders : [normalizedSource]);
+      const providerOrder = hasYahooReplay
+        ? normalizeProviderList(['yahoo', ...replayProviderOrder.filter((provider) => provider !== 'fallback_demo')])
+        : replayProviderOrder;
+      const statuses = providerOrder.map((providerName) => ({
+        source: providerName,
+        status: providerName === normalizedSource ? 'connected' : 'standby',
+        connected: providerName === normalizedSource,
+        symbols: [normalizedSymbol],
+        warnings: providerName === 'yahoo' ? ['Yahoo feed is delayed/fallback, not institutional real-time.'] : [],
+        active: activeProviders.includes(providerName),
+        live: providerName === 'fallback_demo' ? 'demo' : 'live',
+      }));
+      const primary = statuses.find((entry) => entry.source === normalizedSource) || statuses[0] || null;
+      const nextFeedStatus = {
+        ...(state.feedStatus || {}),
+        source: normalizedSource,
+        status: primary?.status || 'connected',
+        connected: true,
+        symbols: [normalizedSymbol],
+        warnings: hasYahooReplay ? [] : (primary?.warnings || []),
+        activeProviders,
+        providerOrder,
+        statuses,
+        activeStatuses: statuses.filter((entry) => entry.active),
+        providers: providerOrder.map((provider) => ({ provider })),
+        lastMessageAt: latestCandle.timestamp || new Date().toISOString(),
+      };
+
+      console.debug('[feedStore] replay payload received', { source: normalizedSource, candles: candles.length, symbol: normalizedSymbol, timeframe: normalizedTimeframe });
+      console.debug('[feedStore] latest candle updated', latestCandle);
+      console.debug('[feedStore] latest tick updated', latestTick);
+      console.debug('[feedStore] provider runtime updated', { activeProviders, providerOrder, source: nextFeedStatus.source, connected: nextFeedStatus.connected });
+      if (hasYahooReplay) {
+        console.debug('[feedStore] fallback state cleared', {
+          previousSource: state.feedStatus?.source,
+          previousActiveProviders: state.activeProviders,
+        });
+      }
+      console.debug('[feedStore] live state hydrated', {
+        latestCandleTimestamp: latestCandle.timestamp,
+        source: nextFeedStatus.source,
+      });
+
+      return {
+        latestCandle,
+        latestTick,
+        feedStatus: nextFeedStatus,
+        activeProviders,
+        selectedProviders: activeProviders,
+        lastValidActiveProviders: activeProviders,
+        activeSymbols: [normalizedSymbol],
+        symbol: normalizedSymbol,
+        timeframe: normalizedTimeframe,
+        hasHydratedProviders: true,
+        providerLastSyncAt: new Date().toISOString(),
+        providerLastSyncSource: 'replay_hydration',
+        lastUpdated: new Date().toISOString(),
+      };
     });
   },
 
