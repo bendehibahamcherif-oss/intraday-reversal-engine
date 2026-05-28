@@ -39,6 +39,10 @@ function formatArray(value) {
   return value.join(', ');
 }
 
+function uniqueStrings(values = []) {
+  return [...new Set((Array.isArray(values) ? values : []).map((v) => String(v || '').trim()).filter(Boolean))];
+}
+
 function statusLabel(status) {
   const source = String(status?.source || status?.mode || status?.state || 'unknown');
   const connected = Boolean(status?.connected === true);
@@ -113,6 +117,16 @@ export default function LiveDataWorkspace() {
   const statuses = Array.isArray(store.feedStatus?.activeStatuses) && store.feedStatus.activeStatuses.length
     ? store.feedStatus.activeStatuses
     : (store.feedStatus ? [store.feedStatus] : []);
+  const backendProviders = uniqueStrings([
+    ...(Array.isArray(store.feedStatus?.providerOrder) ? store.feedStatus.providerOrder : []),
+    ...(Array.isArray(store.feedStatus?.providers) ? store.feedStatus.providers.map((p) => p?.provider || p?.source || p?.name || p?.id) : []),
+    ...Object.keys(store.feedStatus?.enabledByProvider || {}),
+  ]);
+  const parsedProviders = uniqueStrings([
+    ...store.activeProviders,
+    ...store.selectedProviders,
+    ...(Array.isArray(store.feedStatus?.activeProviders) ? store.feedStatus.activeProviders : []),
+  ]);
 
   const tickRows = store.latestTick
     ? [
@@ -223,9 +237,15 @@ export default function LiveDataWorkspace() {
         <h3 style={{ marginTop: 0 }}>Feed Providers</h3>
         <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ fontSize: 12, color: '#9ca3af' }}>Active providers</div>
-          <div style={{ fontWeight: 700 }}>{formatArray(store.activeProviders)}</div>
+          <div style={{ fontWeight: 700 }}>{formatArray(parsedProviders)}</div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
             Backend activeProviders: {formatArray(store.feedStatus?.activeProviders)}
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Backend providers: {formatArray(backendProviders)}
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Parsed providers: {formatArray(parsedProviders)}
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
             UI selectedProviders: {formatArray(store.selectedProviders)}

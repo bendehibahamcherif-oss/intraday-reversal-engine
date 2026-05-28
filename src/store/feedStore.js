@@ -138,6 +138,18 @@ function uniqueStrings(values = []) {
   return [...new Set(asArray(values).map((v) => String(v || '').trim()).filter(Boolean))];
 }
 
+function deriveActiveProvidersFromPayload(payload, fallback = []) {
+  const fromProviders = uniqueStrings(payload?.providers);
+  const fromProviderOrder = uniqueStrings(payload?.providerOrder);
+  const fromEnabledMap = uniqueStrings(
+    Object.entries(payload?.enabledByProvider || {})
+      .filter(([, enabled]) => enabled === true)
+      .map(([name]) => name)
+  );
+  const merged = uniqueStrings([...fromProviders, ...fromProviderOrder, ...fromEnabledMap]);
+  return merged.length ? merged : uniqueStrings(fallback);
+}
+
 function normalizeError(error) {
   const status = error?.status ? `HTTP ${error.status}` : '';
   const method = error?.method || '';
@@ -236,9 +248,10 @@ export const useFeedStore = create((set, get) => ({
     set({ credentialsLoading: true, credentialsError: '', activeProvidersRequestSeq: requestSeq });
     try {
       const payload = await api.getActiveFeedProviders();
-      const activeProvidersFromApi = uniqueStrings(payload?.providers);
+      const activeProvidersFromApi = deriveActiveProvidersFromPayload(payload);
       const activeSymbols = Array.isArray(payload?.symbols) ? payload.symbols : [];
       const nextSymbol = String(activeSymbols[0] || '').trim().toUpperCase();
+      console.debug('[feedStore] activeProviders backend payload', payload);
       set((state) => {
         if (requestSeq !== state.activeProvidersRequestSeq) {
           console.debug('[feedStore] loadActiveProviders stale response ignored', {
@@ -249,7 +262,7 @@ export const useFeedStore = create((set, get) => ({
           return { credentialsLoading: false };
         }
         const fallbackActive = uniqueStrings(state.lastValidActiveProviders.length ? state.lastValidActiveProviders : state.activeProviders);
-        const malformedActiveProviders = !Array.isArray(payload?.providers);
+        const malformedActiveProviders = !Array.isArray(payload?.providers) && !Array.isArray(payload?.providerOrder);
         const shouldPreservePrevious = (state.hasHydratedProviders && activeProvidersFromApi.length === 0 && fallbackActive.length > 0)
           || (state.hasHydratedProviders && malformedActiveProviders && fallbackActive.length > 0);
         const activeProviders = shouldPreservePrevious ? fallbackActive : activeProvidersFromApi;
@@ -270,7 +283,7 @@ export const useFeedStore = create((set, get) => ({
           selectedProviders: state.selectedProviders,
           hasHydratedProviders: state.hasHydratedProviders,
         };
-        const backendPayload = { providers: activeProvidersFromApi, symbols: activeSymbols };
+        const backendPayload = { providers: activeProvidersFromApi, symbols: activeSymbols, raw: payload };
         const after = { activeProviders, selectedProviders };
         console.debug('[feedStore] loadActiveProviders sync', {
           before,
@@ -504,7 +517,7 @@ export const useFeedStore = create((set, get) => ({
 
       const fallbackProviders = providerNames.length ? providerNames : state.activeProviders;
       const feedStatus = normalizeFeedStatusPayload(payload, fallbackProviders, state.providers);
-      const nextActiveProviders = uniqueStrings(payload?.activeProviders?.length ? payload.activeProviders : state.activeProviders);
+      const nextActiveProviders = deriveActiveProvidersFromPayload(payload, payload?.activeProviders?.length ? payload.activeProviders : state.activeProviders);
       const nextSelectedProviders = nextActiveProviders.length ? nextActiveProviders : state.selectedProviders;
       const after = {
         providers: state.providers.map((p) => pickProviderName(p)),

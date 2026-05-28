@@ -131,6 +131,7 @@ export default function ChartOrderflowWorkspace() {
 
       <div className="terminal-card" style={{ padding: 14 }}>
         <strong>Source / Warnings</strong>
+        <div style={{ marginTop: 8, fontSize: 12, color: '#9ca3af' }}>Candle count: <strong style={{ color: '#e5e7eb' }}>{Array.isArray(candles) ? candles.length : 0}</strong></div>
         <div style={{ marginTop: 8 }}>Source: <strong>{source || 'unknown'}</strong>{source === 'fallback_demo' ? <span style={{ color: '#f59e0b' }}> (Demo fallback, not live)</span> : null}</div>
         {!warnings?.length ? <div style={{ color: '#9ca3af', marginTop: 8 }}>No warnings.</div> : <ul>{warnings.map((w, i) => <li key={`${w}-${i}`} style={{ color: '#f59e0b' }}>{w}</li>)}</ul>}
         <div style={{ color: '#9ca3af', fontSize: 12 }}>Last updated: {lastUpdated || '—'}</div>
