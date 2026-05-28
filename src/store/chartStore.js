@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
+import { useFeedStore } from './feedStore.js';
 
 const DEFAULT_SYMBOL = 'SPY';
 const DEFAULT_TIMEFRAME = '1m';
@@ -77,6 +78,7 @@ export const useChartStore = create((set, get) => ({
         error: '',
         lastUpdated: new Date().toISOString(),
       });
+      useFeedStore.getState().hydrateFromReplayCandles({ candles: normalizedCandles, source: marketSource, symbol, timeframe });
       console.debug('[chartStore] chart hydration result', {
         candles: normalizedCandles.length,
         latestTimestamp: normalizedCandles.length ? normalizedCandles[normalizedCandles.length - 1]?.timestamp : null,
