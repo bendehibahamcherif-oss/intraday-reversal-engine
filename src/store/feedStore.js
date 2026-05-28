@@ -30,6 +30,15 @@ const initialState = {
   providerHydrationInFlight: false,
   providerLastSyncAt: null,
   providerLastSyncSource: '',
+  runtime: {
+    source: 'unknown',
+    activeProviders: [],
+    providerOrder: [],
+    connected: false,
+    healthy: false,
+    lastUpdate: null,
+    warnings: [],
+  },
 };
 
 function asArray(value) {
@@ -204,6 +213,33 @@ function mergeProviderList(incoming = [], fallback = []) {
   return unique;
 }
 
+
+function buildRuntimeFromFeedStatus(feedStatus = {}, fallbackRuntime = {}) {
+  const activeProviders = normalizeProviderList(feedStatus?.activeProviders || fallbackRuntime?.activeProviders || []);
+  const providerOrder = normalizeProviderList(feedStatus?.providerOrder || feedStatus?.statuses?.map((s) => s?.source) || activeProviders);
+  const source = normalizeProviderName(feedStatus?.source || fallbackRuntime?.source || providerOrder[0] || 'unknown') || 'unknown';
+  const warnings = asArray(feedStatus?.warnings || fallbackRuntime?.warnings || []);
+  const connected = feedStatus?.connected === true;
+  const healthy = connected && source !== 'fallback_demo';
+  return {
+    source,
+    activeProviders,
+    providerOrder,
+    connected,
+    healthy,
+    lastUpdate: new Date().toISOString(),
+    warnings,
+  };
+}
+
+function mirrorRuntimeFields(runtime = {}) {
+  return {
+    activeProviders: runtime.activeProviders || [],
+    selectedProviders: runtime.activeProviders || [],
+    lastValidActiveProviders: runtime.activeProviders || [],
+  };
+}
+
 function isValidProviderStatePayload(payload) {
   const providersValid = Array.isArray(payload?.providers) && payload.providers.length > 0;
   const providerOrderValid = Array.isArray(payload?.providerOrder) && payload.providerOrder.length > 0;
@@ -215,7 +251,11 @@ export const useFeedStore = create((set, get) => ({
   ...initialState,
   syncFeedDebug: () => set(getLiveDataDebug()),
 
-  setSymbol: (symbol) => set({ symbol: String(symbol || '').toUpperCase() || 'SPY' }),
+  setSymbol: (symbol) => {
+    const nextSymbol = String(symbol || '').toUpperCase() || 'SPY';
+    console.debug('[feedStore] symbol switch', { previous: get().symbol, next: nextSymbol });
+    set({ symbol: nextSymbol });
+  },
   setTimeframe: (timeframe) => set({ timeframe: timeframe || '1m' }),
 
   clearError: () => set({ error: '' }),
@@ -323,18 +363,8 @@ export const useFeedStore = create((set, get) => ({
           after,
         });
 
-        return {
-          activeProviders,
-          activeSymbols,
-          selectedProviders,
-          lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders,
-          symbol: nextSymbol || state.symbol,
-          hasHydratedProviders: true,
-          providerHydrationInFlight: false,
-          providerLastSyncAt: new Date().toISOString(),
-          providerLastSyncSource: 'loadActiveProviders',
-          credentialsLoading: false,
-        };
+        const runtime = { ...(state.runtime || {}), activeProviders, providerOrder: activeProviders.length ? activeProviders : (state.runtime?.providerOrder || []), lastUpdate: new Date().toISOString() };
+        return { activeProviders, activeSymbols, selectedProviders, lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders, symbol: nextSymbol || state.symbol, runtime, hasHydratedProviders: true, providerHydrationInFlight: false, providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'loadActiveProviders', credentialsLoading: false };
       });
       return { activeProviders: activeProvidersFromApi, activeSymbols };
     } catch (error) {
@@ -434,7 +464,9 @@ export const useFeedStore = create((set, get) => ({
           status: feedStatus?.status,
         },
       });
-      set({ feedStatus, loading: false, lastUpdated: new Date().toISOString() });
+      const runtime = buildRuntimeFromFeedStatus(feedStatus, currentState.runtime);
+      set({ feedStatus, runtime, ...mirrorRuntimeFields(runtime), loading: false, lastUpdated: new Date().toISOString() });
+      console.debug('[feedStore] runtime source updated', runtime);
       return feedStatus;
     } catch (error) {
       get().syncFeedDebug();
@@ -482,25 +514,26 @@ export const useFeedStore = create((set, get) => ({
     }
   },
 
+  refreshProviderRuntime: async () => {
+    if (!get().providerHydrationInFlight) set({ providerHydrationInFlight: true });
+    await get().loadActiveProviders();
+    await get().loadProviders();
+    await get().loadFeedStatus();
+  },
+
+  refreshChartData: async () => {
+    await get().loadLatestMarketData();
+  },
+
+  refreshMarketData: async () => {
+    await get().loadLatestMarketData();
+  },
+
   refreshAll: async () => {
     set({ loading: true, error: '' });
     try {
-      const before = get();
-      console.debug('[feedStore] refreshAll start', {
-        activeProviders: before.activeProviders,
-        selectedProviders: before.selectedProviders,
-      });
-      if (!get().providerHydrationInFlight) {
-        set({ providerHydrationInFlight: true });
-        await get().loadActiveProviders();
-      }
-      await get().loadProviders();
-      await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData()]);
-      const after = get();
-      console.debug('[feedStore] refreshAll done', {
-        activeProviders: after.activeProviders,
-        selectedProviders: after.selectedProviders,
-      });
+      await get().refreshProviderRuntime();
+      await get().refreshMarketData();
       set({ ...getLiveDataDebug(), loading: false, lastUpdated: new Date().toISOString() });
     } catch (error) {
       get().syncFeedDebug();
@@ -509,17 +542,13 @@ export const useFeedStore = create((set, get) => ({
   },
 
   initializeFeedWorkspace: async () => {
-    console.debug('[feedStore] initializeFeedWorkspace start', { hydrationSource: 'backend_first' });
-    if (!get().providerHydrationInFlight) {
-      set({ providerHydrationInFlight: true });
-      await get().loadActiveProviders();
-      await get().loadProviders();
-    }
-    await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData()]);
-    console.debug('[feedStore] initializeFeedWorkspace done', {
-      activeProviders: get().activeProviders,
-      selectedProviders: get().selectedProviders,
-    });
+    console.debug('[feedStore] provider runtime hydration start', { hydrationOrder: [1,2,3,4] });
+    set({ providerHydrationInFlight: true });
+    await get().loadActiveProviders(); // 1 runtime
+    await get().loadFeedStatus(); // 2 status
+    await get().loadLatestMarketData(); // 3/4 market
+    await get().loadProviders();
+    console.debug('[feedStore] provider runtime hydration done', { runtime: get().runtime });
   },
 
   hydrateFromReplayCandles: ({ candles = [], source = '', symbol = '', timeframe = '' } = {}) => {
@@ -530,83 +559,17 @@ export const useFeedStore = create((set, get) => ({
     set((state) => {
       const normalizedSymbol = String(symbol || latest?.symbol || state.symbol || 'SPY').toUpperCase();
       const normalizedTimeframe = timeframe || state.timeframe || '1m';
-      const latestCandle = {
-        ...latest,
-        symbol: normalizedSymbol,
-        timeframe: latest?.timeframe || normalizedTimeframe,
-        source: normalizeProviderName(latest?.source || normalizedSource) || normalizedSource,
-        timestamp: latest?.timestamp ?? latest?.time ?? null,
-      };
+      const latestCandle = { ...latest, symbol: normalizedSymbol, timeframe: latest?.timeframe || normalizedTimeframe, source: normalizeProviderName(latest?.source || normalizedSource) || normalizedSource, timestamp: latest?.timestamp ?? latest?.time ?? null };
       const latestTick = state.latestTick || deriveTickFromCandle(latestCandle, normalizedSymbol);
-      const replayProviderOrder = normalizeProviderList([
-        normalizedSource,
-        ...state.activeProviders,
-        ...(state.feedStatus?.providerOrder || []),
-      ]);
-      const hasYahooReplay = normalizedSource === 'yahoo';
-      const activeProviders = hasYahooReplay
-        ? normalizeProviderList(['yahoo', ...state.activeProviders.filter((provider) => normalizeProviderName(provider) !== 'fallback_demo')])
-        : normalizeProviderList(state.activeProviders.length ? state.activeProviders : [normalizedSource]);
-      const providerOrder = hasYahooReplay
-        ? normalizeProviderList(['yahoo', ...replayProviderOrder.filter((provider) => provider !== 'fallback_demo')])
-        : replayProviderOrder;
-      const statuses = providerOrder.map((providerName) => ({
-        source: providerName,
-        status: providerName === normalizedSource ? 'connected' : 'standby',
-        connected: providerName === normalizedSource,
-        symbols: [normalizedSymbol],
-        warnings: providerName === 'yahoo' ? ['Yahoo feed is delayed/fallback, not institutional real-time.'] : [],
-        active: activeProviders.includes(providerName),
-        live: providerName === 'fallback_demo' ? 'demo' : 'live',
-      }));
-      const primary = statuses.find((entry) => entry.source === normalizedSource) || statuses[0] || null;
-      const nextFeedStatus = {
-        ...(state.feedStatus || {}),
-        source: normalizedSource,
-        status: primary?.status || 'connected',
-        connected: true,
-        symbols: [normalizedSymbol],
-        warnings: hasYahooReplay ? [] : (primary?.warnings || []),
-        activeProviders,
-        providerOrder,
-        statuses,
-        activeStatuses: statuses.filter((entry) => entry.active),
-        providers: providerOrder.map((provider) => ({ provider })),
-        lastMessageAt: latestCandle.timestamp || new Date().toISOString(),
-      };
-
-      console.debug('[feedStore] replay payload received', { source: normalizedSource, candles: candles.length, symbol: normalizedSymbol, timeframe: normalizedTimeframe });
-      console.debug('[feedStore] latest candle updated', latestCandle);
-      console.debug('[feedStore] latest tick updated', latestTick);
-      console.debug('[feedStore] provider runtime updated', { activeProviders, providerOrder, source: nextFeedStatus.source, connected: nextFeedStatus.connected });
-      if (hasYahooReplay) {
-        console.debug('[feedStore] fallback state cleared', {
-          previousSource: state.feedStatus?.source,
-          previousActiveProviders: state.activeProviders,
-        });
+      const nextFeedStatus = { ...(state.feedStatus || {}), symbols: [normalizedSymbol], lastMessageAt: latestCandle.timestamp || new Date().toISOString() };
+      if (normalizedSource === 'yahoo' && state.runtime?.source === 'fallback_demo') {
+        console.debug('[feedStore] stale fallback removal', { previousRuntimeSource: state.runtime?.source, nextRuntimeSource: 'yahoo' });
       }
-      console.debug('[feedStore] live state hydrated', {
-        latestCandleTimestamp: latestCandle.timestamp,
-        source: nextFeedStatus.source,
-      });
-
-      return {
-        latestCandle,
-        latestTick,
-        feedStatus: nextFeedStatus,
-        activeProviders,
-        selectedProviders: activeProviders,
-        lastValidActiveProviders: activeProviders,
-        activeSymbols: [normalizedSymbol],
-        symbol: normalizedSymbol,
-        timeframe: normalizedTimeframe,
-        hasHydratedProviders: true,
-        providerLastSyncAt: new Date().toISOString(),
-        providerLastSyncSource: 'replay_hydration',
-        lastUpdated: new Date().toISOString(),
-      };
+      console.debug('[feedStore] runtime overwrite attempt blocked from replay hydration', { incomingSource: normalizedSource, runtimeSource: state.runtime?.source });
+      return { latestCandle, latestTick, feedStatus: nextFeedStatus, activeSymbols: [normalizedSymbol], symbol: normalizedSymbol, timeframe: normalizedTimeframe, hasHydratedProviders: true, lastUpdated: new Date().toISOString() };
     });
   },
+
 
   syncProvidersFromBackendStatus: async () => {
     const payload = await api.getFeedStatus();
@@ -641,14 +604,8 @@ export const useFeedStore = create((set, get) => ({
         selectedProviders: nextSelectedProviders,
       };
       console.debug('[feedStore] syncProvidersFromBackendStatus', { before, backendPayload: payload, after });
-      return {
-        feedStatus,
-        activeProviders: nextActiveProviders,
-        selectedProviders: nextSelectedProviders,
-        lastValidActiveProviders: nextActiveProviders.length ? nextActiveProviders : state.lastValidActiveProviders,
-        providerLastSyncAt: new Date().toISOString(),
-        providerLastSyncSource: 'providers/status',
-      };
+      const runtime = buildRuntimeFromFeedStatus(feedStatus, state.runtime);
+      return { feedStatus, runtime, ...mirrorRuntimeFields(runtime), providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'providers/status' };
     });
   },
 }));
