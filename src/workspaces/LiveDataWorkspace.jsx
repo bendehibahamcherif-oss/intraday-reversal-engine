@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useFeedStore } from '../store/feedStore.js';
+import MarketStreamStatus from '../components/MarketStreamStatus.jsx';
+import ProviderDiagnosticsPanel from '../components/ProviderDiagnosticsPanel.jsx';
 
 const panelStyle = { background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 };
 
@@ -192,10 +194,12 @@ export default function LiveDataWorkspace() {
         ) : null}
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={() => setTab('market')} disabled={tab === 'market'}>Market Data</button>
         <button onClick={() => setTab('providers')} disabled={tab === 'providers'}>Providers</button>
         <button onClick={() => setTab('credentials')} disabled={tab === 'credentials'}>Credentials</button>
+        <button onClick={() => setTab('stream')} disabled={tab === 'stream'}>Stream Status</button>
+        <button onClick={() => setTab('diagnostics')} disabled={tab === 'diagnostics'}>Provider Diagnostics</button>
       </div>
 
       {tab === 'market' ? <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
@@ -278,6 +282,10 @@ export default function LiveDataWorkspace() {
         {store.selectedProviders.includes('ibkr') && String(providerStatus('ibkr')).includes('requires_gateway') ? <p style={{ color: '#fbbf24' }}>IBKR requires TWS/IB Gateway setup and active session.</p> : null}
         <button onClick={store.saveActiveProviders} disabled={store.credentialsLoading}>Save provider selection</button>
       </section> : null}
+
+      {tab === 'stream' ? <section style={panelStyle}><h3 style={{ marginTop: 0 }}>Realtime Market Stream</h3><MarketStreamStatus /></section> : null}
+
+      {tab === 'diagnostics' ? <section style={panelStyle}><ProviderDiagnosticsPanel /></section> : null}
 
       {tab === 'credentials' ? <section style={panelStyle}>
         <h3 style={{ marginTop: 0 }}>Provider Credentials</h3>

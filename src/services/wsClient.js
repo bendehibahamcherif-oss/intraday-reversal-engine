@@ -5,8 +5,11 @@ class ResilientWebSocket {
     this.listeners = [];
     this.connected = false;
     this.reconnectAttempts = 0;
+    this.reconnectCount = 0;
     this.heartbeatInterval = null;
     this.subscriptions = new Set();
+    this._connectCallbacks = [];
+    this._disconnectCallbacks = [];
 
     this.connect();
   }
@@ -17,28 +20,27 @@ class ResilientWebSocket {
     this.ws.onopen = () => {
       this.connected = true;
       this.reconnectAttempts = 0;
-
       this.startHeartbeat();
       this.resubscribe();
-
-      console.log('WS connected');
+      console.log('[wsClient] connected', { reconnectCount: this.reconnectCount });
+      this._connectCallbacks.forEach((cb) => { try { cb(this.reconnectCount); } catch (e) { /* ignore */ } });
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         this.listeners.forEach((cb) => cb(data));
       } catch (err) {
-        console.error(err);
+        console.error('[wsClient] parse error', err);
       }
     };
 
     this.ws.onclose = () => {
       this.connected = false;
-
+      this.reconnectCount += 1;
       this.stopHeartbeat();
-
+      console.log('[wsClient] disconnected, scheduling reconnect', { reconnectCount: this.reconnectCount, attempt: this.reconnectAttempts });
+      this._disconnectCallbacks.forEach((cb) => { try { cb(this.reconnectCount); } catch (e) { /* ignore */ } });
       setTimeout(() => {
         this.reconnectAttempts += 1;
         this.connect();
@@ -97,6 +99,14 @@ class ResilientWebSocket {
 
   onMessage(cb) {
     this.listeners.push(cb);
+  }
+
+  onConnect(cb) {
+    this._connectCallbacks.push(cb);
+  }
+
+  onDisconnect(cb) {
+    this._disconnectCallbacks.push(cb);
   }
 }
 

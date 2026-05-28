@@ -2,6 +2,8 @@ import { create } from 'zustand';
 
 import wsClient from '../services/wsClient';
 import { useReplayStore } from './replayStore';
+import { useFeedStore } from './feedStore';
+import { useChartStore } from './chartStore';
 
 let _initialized = false;
 
@@ -41,7 +43,11 @@ export const useMarketStore = create((set, get) => ({
     console.debug('[marketStore] ws listener registered');
     wsClient.onMessage((message) => {
       if (message.type === 'tick') {
-        get().processTick(message.payload || message);
+        const tick = message.payload || message;
+        get().processTick(tick);
+        // Fan out to feedStore (latestTick) and chartStore (incremental candle update)
+        try { useFeedStore.getState().ingestRealtimeTick(tick); } catch (e) { console.debug('[marketStore] feedStore fan-out error', e?.message); }
+        try { useChartStore.getState().applyRealtimeTick(tick); } catch (e) { console.debug('[marketStore] chartStore fan-out error', e?.message); }
       }
 
       if (message.type === 'candle') {

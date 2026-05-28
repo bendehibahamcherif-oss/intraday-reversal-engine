@@ -584,6 +584,13 @@ export const api = {
     { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ).then(handle),
 
+  // Market Stream Engine — new endpoints (may return 404 on older backends; callers must try/catch)
+  getMarketRuntime: async () => feedFetch('/api/market/runtime', { method: 'GET', headers: headers() }),
+  getProvidersHealth: async () => feedFetch('/api/providers/health', { method: 'GET', headers: headers() }),
+  getMarketSubscriptions: async () => feedFetch('/api/market/subscriptions', { method: 'GET', headers: headers() }),
+  subscribeMarketSymbol: async (symbol) => feedFetch('/api/market/subscribe', { method: 'POST', headers: headers(), body: JSON.stringify({ symbol }) }),
+  unsubscribeMarketSymbol: async (symbol) => feedFetch(`/api/market/subscribe/${encodeURIComponent(symbol)}`, { method: 'DELETE', headers: headers() }),
+
   runtimeHealth: async () => {
     const url = `${API_BASE}/api/runtime/health`;
     const response = await fetch(url, { method: 'GET' });
