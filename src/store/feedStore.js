@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api, getLiveDataDebug } from '../api.js';
+import { useActiveSymbolStore } from './activeSymbolStore.js';
 
 const initialState = {
   symbol: 'SPY',
@@ -247,14 +248,18 @@ function isValidProviderStatePayload(payload) {
   return providersValid || providerOrderValid || enabledByProviderValid;
 }
 
+// Module-level AbortController for loadLatestMarketData — one active request at a time.
+let _marketAbort = null;
+
 export const useFeedStore = create((set, get) => ({
   ...initialState,
   syncFeedDebug: () => set(getLiveDataDebug()),
 
   setSymbol: (symbol) => {
     const nextSymbol = String(symbol || '').toUpperCase() || 'SPY';
-    console.debug('[feedStore] symbol switch', { previous: get().symbol, next: nextSymbol });
-    set({ symbol: nextSymbol });
+    console.debug('[feedStore] symbol switch delegated to activeSymbolStore', { previous: get().symbol, next: nextSymbol });
+    useActiveSymbolStore.getState().setSymbol(nextSymbol);
+    // Mirror updated synchronously via the subscription at module bottom.
   },
   setTimeframe: (timeframe) => set({ timeframe: timeframe || '1m' }),
 
@@ -375,16 +380,15 @@ export const useFeedStore = create((set, get) => ({
   },
 
   saveActiveProviders: async () => {
-    const { selectedProviders, symbol } = get();
+    const { selectedProviders } = get();
+    const symbol = useActiveSymbolStore.getState().symbol;
     set({ credentialsLoading: true, credentialsError: '' });
     try {
-      const normalizedSymbol = String(symbol || '').trim().toUpperCase() || 'SPY';
-      const symbols = [normalizedSymbol];
       const requestedProviders = uniqueStrings(selectedProviders);
-      const result = await api.setActiveFeedProviders(requestedProviders, symbols);
+      const result = await api.setActiveFeedProviders(requestedProviders, [symbol]);
       await get().loadActiveProviders();
       await get().loadFeedStatus();
-      set({ credentialsLoading: false, symbol: normalizedSymbol || get().symbol });
+      set({ credentialsLoading: false });
       return result;
     } catch (error) {
       get().syncFeedDebug();
@@ -476,18 +480,37 @@ export const useFeedStore = create((set, get) => ({
   },
 
   loadLatestMarketData: async () => {
-    const { symbol, timeframe } = get();
+    // Cancel any in-flight market data request.
+    if (_marketAbort) {
+      _marketAbort.abort();
+    }
+    _marketAbort = new AbortController();
+    const signal = _marketAbort.signal;
+
+    const symbol = get().symbol; // mirror, always synced from activeSymbolStore
+    const { timeframe } = get();
     set({ loading: true, error: '' });
+    console.debug('[feedStore] loading market data', { symbol, timeframe });
     try {
       const [latestTick, latestCandle, latestOrderBook] = await Promise.all([
-        api.getLatestTick(symbol),
-        api.getLatestCandle(symbol, timeframe),
-        api.getLatestOrderBook(symbol),
+        api.getLatestTick(symbol, signal),
+        api.getLatestCandle(symbol, timeframe, signal),
+        api.getLatestOrderBook(symbol, signal),
       ]);
+
+      // Post-fetch guard: discard if symbol changed while requests were in flight.
+      if (get().symbol !== symbol) {
+        console.warn('[feedStore] stale market data ignored', { requested: symbol, current: get().symbol });
+        return null;
+      }
 
       set({ latestTick, latestCandle, latestOrderBook, loading: false, lastUpdated: new Date().toISOString() });
       return { latestTick, latestCandle, latestOrderBook };
     } catch (error) {
+      if (error?.name === 'AbortError') {
+        console.debug('[feedStore] market data request aborted cleanly');
+        return null;
+      }
       get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
       return null;
@@ -565,8 +588,8 @@ export const useFeedStore = create((set, get) => ({
       if (normalizedSource === 'yahoo' && state.runtime?.source === 'fallback_demo') {
         console.debug('[feedStore] stale fallback removal', { previousRuntimeSource: state.runtime?.source, nextRuntimeSource: 'yahoo' });
       }
-      console.debug('[feedStore] runtime overwrite attempt blocked from replay hydration', { incomingSource: normalizedSource, runtimeSource: state.runtime?.source });
-      return { latestCandle, latestTick, feedStatus: nextFeedStatus, activeSymbols: [normalizedSymbol], timeframe: normalizedTimeframe, hasHydratedProviders: true, lastUpdated: new Date().toISOString() };
+      console.debug('[feedStore] replay candle hydration (market data only, no runtime/symbol/timeframe mutation)', { incomingSource: normalizedSource, symbol: normalizedSymbol });
+      return { latestCandle, latestTick, feedStatus: nextFeedStatus, activeSymbols: [normalizedSymbol], hasHydratedProviders: true, lastUpdated: new Date().toISOString() };
     });
   },
 
@@ -609,3 +632,12 @@ export const useFeedStore = create((set, get) => ({
     });
   },
 }));
+
+// Keep feedStore.symbol mirror in sync with the single source of truth (activeSymbolStore).
+// This allows workspace components that already read feedStore.symbol to work without changes.
+useActiveSymbolStore.subscribe((state) => {
+  if (useFeedStore.getState().symbol !== state.symbol) {
+    console.debug('[feedStore] symbol mirror synced', { symbol: state.symbol });
+    useFeedStore.setState({ symbol: state.symbol });
+  }
+});

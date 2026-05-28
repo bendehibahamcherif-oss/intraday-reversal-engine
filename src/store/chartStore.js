@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
 import { useFeedStore } from './feedStore.js';
+import { useActiveSymbolStore } from './activeSymbolStore.js';
 
-const DEFAULT_SYMBOL = 'SPY';
 const DEFAULT_TIMEFRAME = '1m';
 const DEFAULT_LIMIT = 200;
 
@@ -35,8 +35,12 @@ function normalizeCandles(rawCandles = []) {
     .filter((c) => c.timestamp !== null && Number.isFinite(c.open) && Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close));
 }
 
+// Module-level AbortController — one active fetch at a time.
+let _chartAbort = null;
+
 export const useChartStore = create((set, get) => ({
-  symbol: DEFAULT_SYMBOL,
+  // Mirror of activeSymbolStore.symbol — kept for workspace UI backward compat.
+  symbol: useActiveSymbolStore.getState().symbol,
   timeframe: DEFAULT_TIMEFRAME,
   limit: DEFAULT_LIMIT,
   candles: [],
@@ -49,32 +53,55 @@ export const useChartStore = create((set, get) => ({
   error: '',
   lastUpdated: null,
 
-  setSymbol: (symbol) => set({ symbol: normalizeSymbol(symbol) || DEFAULT_SYMBOL }),
+  // setSymbol delegates to activeSymbolStore (single owner) and clears stale candles.
+  setSymbol: (raw) => {
+    const next = normalizeSymbol(raw) || useActiveSymbolStore.getState().symbol;
+    if (next === get().symbol) return;
+    useActiveSymbolStore.getState().setSymbol(next);
+    set({ symbol: next, candles: [], loading: false });
+  },
   setTimeframe: (timeframe) => set({ timeframe: timeframe || DEFAULT_TIMEFRAME }),
   setLimit: (limit) => set({ limit: Number(limit) > 0 ? Number(limit) : DEFAULT_LIMIT }),
   clearError: () => set({ error: '' }),
 
   loadChartPayload: async () => {
-    const { symbol, timeframe, limit } = get();
-    set({ loading: true, error: '' });
+    // Cancel any in-flight request before starting a new one.
+    if (_chartAbort) {
+      _chartAbort.abort();
+      console.debug('[chartStore] previous request aborted (symbol/refresh)');
+    }
+    _chartAbort = new AbortController();
+
+    // Always read symbol from the single source of truth.
+    const symbol = useActiveSymbolStore.getState().symbol;
+    const { timeframe, limit } = get();
+
+    // Sync mirror and clear stale candles immediately so UI never shows wrong symbol's data.
+    set({ symbol, candles: [], loading: true, error: '' });
+    console.debug('[chartStore] loading chart', { symbol, timeframe, limit });
 
     try {
-      const payload = await api.getChartPayload(symbol, timeframe, limit);
+      const payload = await api.getChartPayload(symbol, timeframe, limit, _chartAbort.signal);
+
+      // Post-fetch guard: discard if symbol changed while fetch was in flight.
+      const currentSymbol = useActiveSymbolStore.getState().symbol;
+      if (currentSymbol !== symbol) {
+        console.warn('[chartStore] stale payload ignored', { requested: symbol, current: currentSymbol });
+        return;
+      }
+
       const rawReplayPayload = payload?.payload || payload?.data || payload;
       const rawCandles = rawReplayPayload?.candles ?? payload?.candles;
       const normalizedCandles = normalizeCandles(rawCandles);
       const marketSource = String(rawReplayPayload?.source || payload?.source || payload?.provider || 'unknown');
-      console.debug('[chartStore] raw replay payload', payload);
-      console.debug('[chartStore] normalized replay candles', normalizedCandles.slice(0, 3));
-      console.debug('[chartStore] parsed candle count', {
-        rawCount: asArray(rawCandles).length,
-        parsedCount: normalizedCandles.length,
+
+      console.debug('[chartStore] chart hydrated', {
+        symbol,
+        candles: normalizedCandles.length,
         source: marketSource,
+        latestTimestamp: normalizedCandles.length ? normalizedCandles[normalizedCandles.length - 1]?.timestamp : null,
       });
-      if (get().symbol !== symbol) {
-        console.warn('[chartStore] stale payload ignored', { requested: symbol, current: get().symbol });
-        return;
-      }
+
       set({
         candles: normalizedCandles,
         indicators: payload?.indicators || {},
@@ -86,17 +113,15 @@ export const useChartStore = create((set, get) => ({
         error: '',
         lastUpdated: new Date().toISOString(),
       });
+
+      // Hydrate feedStore with latest candle/tick data only — no symbol or runtime mutations.
       useFeedStore.getState().hydrateFromReplayCandles({ candles: normalizedCandles, source: marketSource, symbol, timeframe });
-      console.debug('[chartStore] chart hydration result', {
-        candles: normalizedCandles.length,
-        latestTimestamp: normalizedCandles.length ? normalizedCandles[normalizedCandles.length - 1]?.timestamp : null,
-        source: marketSource,
-      });
     } catch (err) {
-      set({
-        loading: false,
-        error: err?.message || 'Failed to load chart payload',
-      });
+      if (err?.name === 'AbortError') {
+        console.debug('[chartStore] request aborted cleanly');
+        return;
+      }
+      set({ loading: false, error: err?.message || 'Failed to load chart payload' });
     }
   },
 
@@ -104,3 +129,10 @@ export const useChartStore = create((set, get) => ({
     await get().loadChartPayload();
   },
 }));
+
+// Keep chartStore.symbol mirror in sync whenever activeSymbolStore changes.
+useActiveSymbolStore.subscribe((state) => {
+  if (useChartStore.getState().symbol !== state.symbol) {
+    useChartStore.setState({ symbol: state.symbol });
+  }
+});

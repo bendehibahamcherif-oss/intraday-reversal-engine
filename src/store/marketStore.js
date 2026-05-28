@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import wsClient from '../services/wsClient';
 import { useReplayStore } from './replayStore';
 
+let _initialized = false;
+
 function buildCandle(existing, tick) {
   if (!existing) {
     return {
@@ -34,6 +36,9 @@ export const useMarketStore = create((set, get) => ({
   lastSequence: 0,
 
   initialize: () => {
+    if (_initialized) return;
+    _initialized = true;
+    console.debug('[marketStore] ws listener registered');
     wsClient.onMessage((message) => {
       if (message.type === 'tick') {
         get().processTick(message.payload || message);

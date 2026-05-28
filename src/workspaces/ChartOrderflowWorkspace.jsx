@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useChartStore } from '../store/chartStore';
 
 function formatNumber(value, digits = 2) {
@@ -64,9 +64,27 @@ export default function ChartOrderflowWorkspace() {
     setSymbol, setTimeframe, setLimit, refreshChart, clearError,
   } = useChartStore();
 
+  // Local draft for the symbol input — avoids firing setSymbol (and a fetch) on every keystroke.
+  const [symbolDraft, setSymbolDraft] = useState(symbol);
+
+  // Keep draft in sync when symbol changes externally (e.g. watchlist click).
   useEffect(() => {
+    setSymbolDraft(symbol);
+  }, [symbol]);
+
+  // Commit the typed symbol to the store after a 500ms pause.
+  useEffect(() => {
+    const normalized = symbolDraft.trim().toUpperCase();
+    if (!normalized || normalized === symbol) return;
+    const id = setTimeout(() => setSymbol(normalized), 500);
+    return () => clearTimeout(id);
+  }, [symbolDraft, symbol, setSymbol]);
+
+  // Auto-fetch when symbol, timeframe, or limit finalizes.
+  useEffect(() => {
+    if (!symbol) return;
     refreshChart();
-  }, []);
+  }, [symbol, timeframe, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     console.debug('[ChartOrderflowWorkspace] chart data length', candles?.length || 0);
@@ -82,7 +100,7 @@ export default function ChartOrderflowWorkspace() {
       <div className="terminal-card" style={{ padding: 14, border: '1px solid #1f2937', borderRadius: 12, background: '#0a0a0a' }}>
         <strong>Chart Controls</strong>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-          <input value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} placeholder="Symbol" style={{ background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: '8px 10px' }} />
+          <input value={symbolDraft} onChange={(e) => setSymbolDraft(e.target.value.toUpperCase())} placeholder="Symbol" style={{ background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: '8px 10px' }} />
           <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)} style={{ background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: '8px 10px' }}>
             {['1m', '5m', '15m', '1h'].map((tf) => <option key={tf} value={tf}>{tf}</option>)}
           </select>
