@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useWorkspaceStore } from './store/workspaceStore';
+import { normalizeSymbol, useWatchlistStore } from './store/watchlistStore';
 
 const WORKSPACE_MAP = {
   Dashboard: 'Risk',
@@ -17,8 +19,11 @@ const WORKSPACE_MAP = {
   'AI Lab': 'AILab',
 };
 
-export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown' }) {
+export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {
   const workspace = useWorkspaceStore((state) => state.workspace);
+  const addSymbol = useWatchlistStore((state) => state.addSymbol);
+  const removeSymbol = useWatchlistStore((state) => state.removeSymbol);
+  const [symbolInput, setSymbolInput] = useState('');
 
   const setWorkspace = useWorkspaceStore(
     (state) => state.setWorkspace
@@ -41,6 +46,11 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'AI Lab',
     'Admin',
   ];
+
+  function handleAddSymbol() {
+    const added = addSymbol(symbolInput);
+    if (added) setSymbolInput('');
+  }
 
   return (
     <aside
@@ -114,6 +124,20 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
 
       <div>
         <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 8 }}>WATCHLIST</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          <input
+            value={symbolInput}
+            onChange={(e) => setSymbolInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddSymbol();
+            }}
+            placeholder="Add ticker (SPY, BTC-USD, EURUSD=X)"
+            style={{ flex: '1 1 140px', minWidth: 0, background: '#050505', border: '1px solid #202020', borderRadius: 8, color: 'white', padding: '8px 10px' }}
+          />
+          <button onClick={handleAddSymbol} style={{ background: '#2563eb', color: 'white', border: '1px solid #3b82f6', borderRadius: 8, padding: '8px 10px', fontWeight: 700 }}>
+            Add
+          </button>
+        </div>
         <div style={{ display: 'grid', gap: 8 }}>
           {watchlist.map((symbol) => (
             <div
@@ -122,11 +146,28 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
                 background: '#050505',
                 border: '1px solid #202020',
                 borderRadius: 10,
-                padding: '10px 12px',
+                padding: 8,
                 fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
               }}
             >
-              {symbol}
+              <button
+                onClick={() => onSelectSymbol?.(normalizeSymbol(symbol))}
+                style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, textAlign: 'left', cursor: 'pointer', flex: 1 }}
+                title={`Open ${symbol}`}
+              >
+                {symbol}
+              </button>
+              <button
+                onClick={() => removeSymbol(symbol)}
+                style={{ background: '#111827', color: '#fca5a5', border: '1px solid #374151', borderRadius: 6, width: 28, height: 28, cursor: 'pointer' }}
+                title={`Remove ${symbol}`}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
