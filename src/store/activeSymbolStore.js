@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import wsClient from '../services/wsClient.js';
+import { useMarketRuntimeStore } from './marketRuntimeStore.js';
 
 const DEFAULT_SYMBOL = 'SPY';
 
@@ -17,6 +18,19 @@ export const useActiveSymbolStore = create((set, get) => ({
     if (next === prev) return;
     console.debug('[activeSymbol] symbol changed', { from: prev, to: next });
     set({ symbol: next });
+    // Backend subscription lifecycle: subscribe new, unsubscribe old (best-effort, 404-tolerant).
+    try {
+      const rts = useMarketRuntimeStore.getState();
+      rts.subscribeSymbol(next);
+      // Only unsubscribe prev if it's not still in the WS subscription set
+      // (other watchlist items remain subscribed via App.jsx watchlist effect)
+      if (prev && prev !== next) {
+        rts.unsubscribeSymbol(prev);
+        console.debug('[activeSymbol] backend unsubscribe scheduled', { prev });
+      }
+    } catch (e) {
+      console.debug('[activeSymbol] backend subscription lifecycle error', e?.message);
+    }
   },
 
   subscribeWs: (sym) => {

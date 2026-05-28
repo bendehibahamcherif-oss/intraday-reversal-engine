@@ -128,6 +128,34 @@ export const useChartStore = create((set, get) => ({
   refreshChart: async () => {
     await get().loadChartPayload();
   },
+
+  // Apply a single realtime tick to the last candle in-place.
+  // No fetch, no AbortController interaction — pure local mutation.
+  applyRealtimeTick: (tick) => {
+    const activeSymbol = useActiveSymbolStore.getState().symbol;
+    const tickSym = String(tick?.symbol || '').toUpperCase();
+    if (!tickSym || tickSym !== activeSymbol) {
+      console.debug('[chartStore] realtime tick skipped (symbol mismatch)', { tickSym, activeSymbol });
+      return;
+    }
+    const price = Number(tick?.price);
+    if (!Number.isFinite(price)) return;
+
+    set((state) => {
+      const candles = state.candles;
+      if (!candles.length) return {};
+      const last = candles[candles.length - 1];
+      const updated = {
+        ...last,
+        high: Math.max(Number(last.high) || price, price),
+        low: Math.min(Number(last.low) || price, price),
+        close: price,
+        volume: (Number(last.volume) || 0) + (Number(tick.volume) || 0),
+      };
+      console.debug('[chartStore] realtime tick applied', { symbol: tickSym, price, ts: last.timestamp || last.time });
+      return { candles: [...candles.slice(0, -1), updated] };
+    });
+  },
 }));
 
 // Keep chartStore.symbol mirror in sync whenever activeSymbolStore changes.

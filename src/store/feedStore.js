@@ -594,6 +594,37 @@ export const useFeedStore = create((set, get) => ({
   },
 
 
+  // Ingest a realtime tick from the WS stream without triggering a full reload.
+  // Only updates latestTick (and latestCandle close) for the active symbol.
+  // Never overwrites provider runtime, activeProviders, or source.
+  ingestRealtimeTick: (tick) => {
+    if (!tick || !tick.symbol) return;
+    const sym = String(tick.symbol || '').toUpperCase();
+    const currentSym = get().symbol;
+    if (sym !== currentSym) {
+      console.debug('[feedStore] realtime tick ignored (symbol mismatch)', { tickSym: sym, storeSym: currentSym });
+      return;
+    }
+    const price = Number(tick.price);
+    if (!Number.isFinite(price)) return;
+
+    console.debug('[feedStore] realtime tick ingested', { symbol: sym, price, source: tick.source, ts: tick.timestamp });
+    set((state) => {
+      const nextTick = { ...tick, symbol: sym };
+      // Update latestCandle.close without replacing full candle structure
+      const prevCandle = state.latestCandle;
+      const nextCandle = prevCandle
+        ? {
+            ...prevCandle,
+            close: price,
+            high: Math.max(Number(prevCandle.high) || price, price),
+            low: Math.min(Number(prevCandle.low) || price, price),
+          }
+        : prevCandle;
+      return { latestTick: nextTick, latestCandle: nextCandle, lastUpdated: new Date().toISOString() };
+    });
+  },
+
   syncProvidersFromBackendStatus: async () => {
     const payload = await api.getFeedStatus();
     set((state) => {

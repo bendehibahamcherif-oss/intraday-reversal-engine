@@ -26,6 +26,8 @@ import { useMarketStore } from './store/marketStore';
 import { useChartStore } from './store/chartStore';
 import { useWatchlistStore } from './store/watchlistStore';
 import { useActiveSymbolStore } from './store/activeSymbolStore';
+import { useSocketStore } from './store/socketStore';
+import { useMarketRuntimeStore } from './store/marketRuntimeStore';
 
 import { api, getToken, getUser } from './api.js';
 
@@ -93,7 +95,21 @@ export default function App() {
 
   useEffect(() => {
     useMarketStore.getState().initialize();
+    // Initialize WS transport health tracking (fixes the dead socketStore.connected field).
+    useSocketStore.getState().initialize();
+    console.debug('[App] market + socket stores initialized');
   }, []);
+
+  // Start canonical runtime polling once the user is authenticated.
+  useEffect(() => {
+    if (!user) return;
+    useMarketRuntimeStore.getState().startPolling(7000);
+    console.debug('[App] marketRuntimeStore polling started');
+    return () => {
+      useMarketRuntimeStore.getState().stopPolling();
+      console.debug('[App] marketRuntimeStore polling stopped');
+    };
+  }, [user]);
 
   // Manage WS subscriptions as the watchlist changes.
   // Subscribe newly-added symbols; unsubscribe removed symbols.
