@@ -23,6 +23,7 @@ const initialState = {
   lastFeedMethod: '',
   lastFeedError: '',
   apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:10000',
+  providerSelectionSavedAt: null,
 };
 
 function asArray(value) {
@@ -139,6 +140,18 @@ function normalizeError(error) {
   return parts.length ? parts.join(' | ') : (error?.message || 'Unable to load feed data.');
 }
 
+function mergeProviderList(incoming = [], fallback = []) {
+  const unique = [];
+  const seen = new Set();
+  [...asArray(incoming), ...asArray(fallback)].forEach((provider) => {
+    const key = pickProviderName(provider);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    unique.push(provider);
+  });
+  return unique;
+}
+
 export const useFeedStore = create((set, get) => ({
   ...initialState,
   syncFeedDebug: () => set(getLiveDataDebug()),
@@ -153,14 +166,19 @@ export const useFeedStore = create((set, get) => ({
     try {
       const payload = await api.getFeedProviders();
       const providers = Array.isArray(payload?.providers) ? payload.providers : (Array.isArray(payload) ? payload : []);
+      const mergedProviders = mergeProviderList(providers, get().providers);
       const providerCredentialsStatus = {};
-      providers.forEach((provider) => {
+      mergedProviders.forEach((provider) => {
         const key = provider?.provider || provider?.id || provider?.name;
         if (!key) return;
         providerCredentialsStatus[key] = provider?.credentialsStatus || provider?.status || 'unknown';
       });
-      set({ providers, providerCredentialsStatus, credentialsLoading: false });
-      return providers;
+      set((state) => ({
+        providers: mergedProviders,
+        providerCredentialsStatus: { ...state.providerCredentialsStatus, ...providerCredentialsStatus },
+        credentialsLoading: false,
+      }));
+      return mergedProviders;
     } catch (error) {
       get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
@@ -179,13 +197,16 @@ export const useFeedStore = create((set, get) => ({
     set({ credentialsLoading: true, credentialsError: '' });
     try {
       const payload = await api.getActiveFeedProviders();
-      const activeProviders = Array.isArray(payload?.providers) ? payload.providers : [];
+      const currentActive = asArray(get().activeProviders);
+      const currentSelected = asArray(get().selectedProviders);
+      const incomingActive = Array.isArray(payload?.providers) ? payload.providers : [];
+      const activeProviders = incomingActive.length ? incomingActive : currentActive;
       const activeSymbols = Array.isArray(payload?.symbols) ? payload.symbols : [];
       const nextSymbol = String(activeSymbols[0] || '').trim().toUpperCase();
       set({
         activeProviders,
         activeSymbols,
-        selectedProviders: activeProviders,
+        selectedProviders: activeProviders.length ? activeProviders : currentSelected,
         symbol: nextSymbol || get().symbol,
         credentialsLoading: false,
       });
@@ -210,6 +231,7 @@ export const useFeedStore = create((set, get) => ({
         activeSymbols: symbols,
         symbol: normalizedSymbol || get().symbol,
         credentialsLoading: false,
+        providerSelectionSavedAt: new Date().toISOString(),
       });
       return result;
     } catch (error) {
@@ -324,11 +346,16 @@ export const useFeedStore = create((set, get) => ({
   refreshAll: async () => {
     set({ loading: true, error: '' });
     try {
-      await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData(), get().loadProviders(), get().loadActiveProviders()]);
+      await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData(), get().loadProviders()]);
       set({ ...getLiveDataDebug(), loading: false, lastUpdated: new Date().toISOString() });
     } catch (error) {
       get().syncFeedDebug();
       set({ loading: false, error: normalizeError(error) });
     }
+  },
+
+  initializeFeedWorkspace: async () => {
+    await Promise.all([get().loadProviders(), get().loadActiveProviders()]);
+    await get().refreshAll();
   },
 }));
