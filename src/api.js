@@ -529,6 +529,24 @@ export const api = {
     `/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ credentials }) }
   ),
+
+  listProviderCredentials: async () => fetch(
+    `${API_BASE}/api/providers/credentials`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  saveProviderCredentials: async ({ provider, apiKey, secret, enabled }) => fetch(
+    `${API_BASE}/api/providers/credentials`,
+    {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ provider, apiKey, secret, enabled }),
+    }
+  ).then(handle),
+  deleteProviderCredentials: async (provider) => fetch(
+    `${API_BASE}/api/providers/credentials/${encodeURIComponent(provider)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+
   deleteFeedProviderCredentials: async (provider) => feedFetch(
     `/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
     { method: 'DELETE', headers: headers() }
