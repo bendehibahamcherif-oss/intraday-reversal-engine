@@ -11,16 +11,23 @@ function asArray(value) {
 
 function normalizeCandles(rawCandles = []) {
   return asArray(rawCandles)
-    .map((candle) => ({
-      ...candle,
-      timestamp: candle?.timestamp || candle?.time || candle?.t || null,
-      open: Number(candle?.open ?? candle?.o),
-      high: Number(candle?.high ?? candle?.h),
-      low: Number(candle?.low ?? candle?.l),
-      close: Number(candle?.close ?? candle?.c),
-      volume: Number(candle?.volume ?? candle?.v ?? 0),
-    }))
-    .filter((c) => Number.isFinite(c.open) && Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close));
+    .map((candle) => {
+      const rawTimestamp = candle?.timestamp ?? candle?.time ?? candle?.t ?? null;
+      const timestamp = rawTimestamp === null || rawTimestamp === undefined || rawTimestamp === ''
+        ? null
+        : rawTimestamp;
+      return {
+        ...candle,
+        time: timestamp,
+        timestamp,
+        open: Number(candle?.open ?? candle?.o),
+        high: Number(candle?.high ?? candle?.h),
+        low: Number(candle?.low ?? candle?.l),
+        close: Number(candle?.close ?? candle?.c),
+        volume: Number(candle?.volume ?? candle?.v ?? 0),
+      };
+    })
+    .filter((c) => c.timestamp !== null && Number.isFinite(c.open) && Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close));
 }
 
 export const useChartStore = create((set, get) => ({
@@ -48,10 +55,12 @@ export const useChartStore = create((set, get) => ({
 
     try {
       const payload = await api.getChartPayload(symbol, timeframe, limit);
-      const rawCandles = payload?.candles;
+      const rawReplayPayload = payload?.payload || payload?.data || payload;
+      const rawCandles = rawReplayPayload?.candles ?? payload?.candles;
       const normalizedCandles = normalizeCandles(rawCandles);
-      const marketSource = String(payload?.source || payload?.provider || 'unknown');
-      console.debug('[chartStore] raw candle payload', payload);
+      const marketSource = String(rawReplayPayload?.source || payload?.source || payload?.provider || 'unknown');
+      console.debug('[chartStore] raw replay payload', payload);
+      console.debug('[chartStore] normalized replay candles', normalizedCandles.slice(0, 3));
       console.debug('[chartStore] parsed candle count', {
         rawCount: asArray(rawCandles).length,
         parsedCount: normalizedCandles.length,
@@ -70,6 +79,7 @@ export const useChartStore = create((set, get) => ({
       });
       console.debug('[chartStore] chart hydration result', {
         candles: normalizedCandles.length,
+        latestTimestamp: normalizedCandles.length ? normalizedCandles[normalizedCandles.length - 1]?.timestamp : null,
         source: marketSource,
       });
     } catch (err) {
