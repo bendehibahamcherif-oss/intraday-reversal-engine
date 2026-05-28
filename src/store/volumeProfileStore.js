@@ -74,7 +74,10 @@ export const useVolumeProfileStore = create((set, get) => ({
     // triggered shortly after (e.g. chart subscription fires right after mount effect).
     _vpLastRefresh = Date.now();
 
-    console.debug('[volumeProfile] loading', { symbol, timeframe, mode: get().mode, bins: get().bins });
+    const currentMode = get().mode;
+    const currentBins = get().bins;
+    console.log('[VP] loadVolumeProfile', { symbol, timeframe, mode: currentMode, bins: currentBins });
+    console.debug('[volumeProfile] loading', { symbol, timeframe, mode: currentMode, bins: currentBins });
     set({ loading: true, error: null });
 
     const t0 = performance.now();

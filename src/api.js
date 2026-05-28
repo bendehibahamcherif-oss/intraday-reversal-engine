@@ -589,10 +589,9 @@ export const api = {
     if (mode) params.set('mode', mode);
     if (bins) params.set('bins', String(bins));
     const qs = params.toString();
-    return fetch(
-      `${API_BASE}/api/volume-profile/${encodeURIComponent(symbol)}${qs ? `?${qs}` : ''}`,
-      { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
-    ).then(handle);
+    const url = `${API_BASE}/api/volume-profile/${encodeURIComponent(symbol)}${qs ? `?${qs}` : ''}`;
+    console.log('[VP] request URL', url);
+    return fetch(url, { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }).then(handle);
   },
 
   // Market Stream Engine — new endpoints (may return 404 on older backends; callers must try/catch)

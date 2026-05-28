@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useVolumeProfileStore } from '../store/volumeProfileStore.js';
 
 const MAX_BAR_WIDTH = 130; // px — profile bars extend leftward from right edge of chart
@@ -137,6 +138,27 @@ export function VolumeProfileSettings() {
   const { visible, mode, bins, loading, error, loadVolumeProfile, setVisible, setMode, setBins } =
     useVolumeProfileStore();
 
+  // Local draft for bins — avoids firing loadVolumeProfile() on every keystroke.
+  // Committed on blur or Enter; clamped to [5, 200] on commit.
+  const [binsDraft, setBinsDraft] = useState(String(bins));
+
+  // Keep draft in sync when bins changes externally (e.g. persisted reload).
+  useEffect(() => {
+    setBinsDraft(String(bins));
+  }, [bins]);
+
+  const commitBins = () => {
+    const n = Math.max(5, Math.min(200, parseInt(binsDraft, 10) || bins));
+    console.log('[VP] bins committed', n);
+    setBinsDraft(String(n));
+    if (n !== bins) setBins(n);
+  };
+
+  const handleModeChange = (e) => {
+    console.log('[VP] mode selected', e.target.value);
+    setMode(e.target.value);
+  };
+
   return (
     <div style={panelStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -156,7 +178,7 @@ export function VolumeProfileSettings() {
           <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>Mode</div>
           <select
             value={mode}
-            onChange={(e) => setMode(e.target.value)}
+            onChange={handleModeChange}
             style={{ background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 6, padding: '6px 8px', fontSize: 12 }}
           >
             <option value="visible_range">Visible Range</option>
@@ -167,19 +189,36 @@ export function VolumeProfileSettings() {
         </div>
 
         <div>
-          <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>Bins (10–200)</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>Bins (5–200)</div>
+          {/*
+            inputMode="numeric" opens the numeric keyboard on Android/iOS.
+            pattern="[0-9]*"   further hints mobile browsers to use a number pad.
+            draft state prevents firing API on every keystroke; commit on blur/Enter.
+          */}
           <input
             type="number"
-            min="10"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min="5"
             max="200"
-            value={bins}
-            onChange={(e) => setBins(e.target.value)}
+            value={binsDraft}
+            onChange={(e) => {
+              console.log('[VP] bins input', e.target.value);
+              setBinsDraft(e.target.value);
+            }}
+            onBlur={commitBins}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.target.blur(); commitBins(); }
+            }}
             style={{ width: 72, background: '#111', color: '#fff', border: '1px solid #333', borderRadius: 6, padding: '6px 8px', fontSize: 12 }}
           />
         </div>
 
         <button
-          onClick={() => loadVolumeProfile()}
+          onClick={() => {
+            commitBins();
+            loadVolumeProfile();
+          }}
           disabled={loading}
           style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 14px', fontSize: 12, cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
         >
