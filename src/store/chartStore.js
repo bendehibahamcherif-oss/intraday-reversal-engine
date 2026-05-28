@@ -71,6 +71,10 @@ export const useChartStore = create((set, get) => ({
         parsedCount: normalizedCandles.length,
         source: marketSource,
       });
+      if (get().symbol !== symbol) {
+        console.warn('[chartStore] stale payload ignored', { requested: symbol, current: get().symbol });
+        return;
+      }
       set({
         candles: normalizedCandles,
         indicators: payload?.indicators || {},

@@ -364,7 +364,7 @@ export const useFeedStore = create((set, get) => ({
         });
 
         const runtime = { ...(state.runtime || {}), activeProviders, providerOrder: activeProviders.length ? activeProviders : (state.runtime?.providerOrder || []), lastUpdate: new Date().toISOString() };
-        return { activeProviders, activeSymbols, selectedProviders, lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders, symbol: nextSymbol || state.symbol, runtime, hasHydratedProviders: true, providerHydrationInFlight: false, providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'loadActiveProviders', credentialsLoading: false };
+        return { activeProviders, activeSymbols, selectedProviders, lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders, runtime, hasHydratedProviders: true, providerHydrationInFlight: false, providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'loadActiveProviders', credentialsLoading: false };
       });
       return { activeProviders: activeProvidersFromApi, activeSymbols };
     } catch (error) {
@@ -566,7 +566,7 @@ export const useFeedStore = create((set, get) => ({
         console.debug('[feedStore] stale fallback removal', { previousRuntimeSource: state.runtime?.source, nextRuntimeSource: 'yahoo' });
       }
       console.debug('[feedStore] runtime overwrite attempt blocked from replay hydration', { incomingSource: normalizedSource, runtimeSource: state.runtime?.source });
-      return { latestCandle, latestTick, feedStatus: nextFeedStatus, activeSymbols: [normalizedSymbol], symbol: normalizedSymbol, timeframe: normalizedTimeframe, hasHydratedProviders: true, lastUpdated: new Date().toISOString() };
+      return { latestCandle, latestTick, feedStatus: nextFeedStatus, activeSymbols: [normalizedSymbol], timeframe: normalizedTimeframe, hasHydratedProviders: true, lastUpdated: new Date().toISOString() };
     });
   },
 
