@@ -27,6 +27,9 @@ const initialState = {
   apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:10000',
   providerSelectionSavedAt: null,
   activeProvidersRequestSeq: 0,
+  providerHydrationInFlight: false,
+  providerLastSyncAt: null,
+  providerLastSyncSource: '',
 };
 
 function asArray(value) {
@@ -159,6 +162,13 @@ function mergeProviderList(incoming = [], fallback = []) {
   return unique;
 }
 
+function isValidProviderStatePayload(payload) {
+  const providersValid = Array.isArray(payload?.providers) && payload.providers.length > 0;
+  const providerOrderValid = Array.isArray(payload?.providerOrder) && payload.providerOrder.length > 0;
+  const enabledByProviderValid = payload?.enabledByProvider && typeof payload.enabledByProvider === 'object' && !Array.isArray(payload.enabledByProvider);
+  return providersValid || providerOrderValid || enabledByProviderValid;
+}
+
 export const useFeedStore = create((set, get) => ({
   ...initialState,
   syncFeedDebug: () => set(getLiveDataDebug()),
@@ -239,7 +249,9 @@ export const useFeedStore = create((set, get) => ({
           return { credentialsLoading: false };
         }
         const fallbackActive = uniqueStrings(state.lastValidActiveProviders.length ? state.lastValidActiveProviders : state.activeProviders);
-        const shouldPreservePrevious = state.hasHydratedProviders && activeProvidersFromApi.length === 0 && fallbackActive.length > 0;
+        const malformedActiveProviders = !Array.isArray(payload?.providers);
+        const shouldPreservePrevious = (state.hasHydratedProviders && activeProvidersFromApi.length === 0 && fallbackActive.length > 0)
+          || (state.hasHydratedProviders && malformedActiveProviders && fallbackActive.length > 0);
         const activeProviders = shouldPreservePrevious ? fallbackActive : activeProvidersFromApi;
         const selectedProviders = activeProviders.length
           ? activeProviders
@@ -249,6 +261,7 @@ export const useFeedStore = create((set, get) => ({
             hydrationSource: state.hasHydratedProviders ? 'backend_hydrated' : 'pre_hydration',
             backendPayload: payload,
             preservedActiveProviders: fallbackActive,
+            malformedActiveProviders,
           });
         }
 
@@ -274,13 +287,16 @@ export const useFeedStore = create((set, get) => ({
           lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders,
           symbol: nextSymbol || state.symbol,
           hasHydratedProviders: true,
+          providerHydrationInFlight: false,
+          providerLastSyncAt: new Date().toISOString(),
+          providerLastSyncSource: 'loadActiveProviders',
           credentialsLoading: false,
         };
       });
       return { activeProviders: activeProvidersFromApi, activeSymbols };
     } catch (error) {
       get().syncFeedDebug();
-      set({ credentialsLoading: false, credentialsError: normalizeError(error) });
+      set({ credentialsLoading: false, credentialsError: normalizeError(error), providerHydrationInFlight: false });
       return [];
     }
   },
@@ -431,7 +447,10 @@ export const useFeedStore = create((set, get) => ({
         activeProviders: before.activeProviders,
         selectedProviders: before.selectedProviders,
       });
-      await get().loadActiveProviders();
+      if (!get().providerHydrationInFlight) {
+        set({ providerHydrationInFlight: true });
+        await get().loadActiveProviders();
+      }
       await get().loadProviders();
       await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData()]);
       const after = get();
@@ -448,10 +467,59 @@ export const useFeedStore = create((set, get) => ({
 
   initializeFeedWorkspace: async () => {
     console.debug('[feedStore] initializeFeedWorkspace start', { hydrationSource: 'backend_first' });
-    await get().refreshAll();
+    if (!get().providerHydrationInFlight) {
+      set({ providerHydrationInFlight: true });
+      await get().loadActiveProviders();
+      await get().loadProviders();
+    }
+    await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData()]);
     console.debug('[feedStore] initializeFeedWorkspace done', {
       activeProviders: get().activeProviders,
       selectedProviders: get().selectedProviders,
+    });
+  },
+
+  syncProvidersFromBackendStatus: async () => {
+    const payload = await api.getFeedStatus();
+    set((state) => {
+      const before = {
+        providers: state.providers.map((p) => pickProviderName(p)),
+        activeProviders: state.activeProviders,
+        selectedProviders: state.selectedProviders,
+      };
+
+      if (!isValidProviderStatePayload(payload)) {
+        console.warn('[feedStore] stale provider overwrite prevented (status payload invalid)', {
+          before,
+          backendPayload: payload,
+        });
+        return {};
+      }
+
+      const providerNames = uniqueStrings([
+        ...asArray(payload?.providerOrder),
+        ...Object.keys(payload?.enabledByProvider || {}),
+        ...asArray(payload?.providers).map((p) => pickProviderName(p)),
+      ]);
+
+      const fallbackProviders = providerNames.length ? providerNames : state.activeProviders;
+      const feedStatus = normalizeFeedStatusPayload(payload, fallbackProviders, state.providers);
+      const nextActiveProviders = uniqueStrings(payload?.activeProviders?.length ? payload.activeProviders : state.activeProviders);
+      const nextSelectedProviders = nextActiveProviders.length ? nextActiveProviders : state.selectedProviders;
+      const after = {
+        providers: state.providers.map((p) => pickProviderName(p)),
+        activeProviders: nextActiveProviders,
+        selectedProviders: nextSelectedProviders,
+      };
+      console.debug('[feedStore] syncProvidersFromBackendStatus', { before, backendPayload: payload, after });
+      return {
+        feedStatus,
+        activeProviders: nextActiveProviders,
+        selectedProviders: nextSelectedProviders,
+        lastValidActiveProviders: nextActiveProviders.length ? nextActiveProviders : state.lastValidActiveProviders,
+        providerLastSyncAt: new Date().toISOString(),
+        providerLastSyncSource: 'providers/status',
+      };
     });
   },
 }));

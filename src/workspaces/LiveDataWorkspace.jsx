@@ -101,13 +101,14 @@ export default function LiveDataWorkspace() {
   };
 
   useEffect(() => {
-    store.refreshAll();
+    store.initializeFeedWorkspace();
   }, []);
 
   useEffect(() => {
+    if (!store.hasHydratedProviders) return;
     store.loadLatestMarketData();
     store.loadFeedStatus();
-  }, [store.symbol, store.timeframe]);
+  }, [store.symbol, store.timeframe, store.hasHydratedProviders]);
 
   const statuses = Array.isArray(store.feedStatus?.activeStatuses) && store.feedStatus.activeStatuses.length
     ? store.feedStatus.activeStatuses
@@ -223,6 +224,18 @@ export default function LiveDataWorkspace() {
         <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, marginBottom: 10 }}>
           <div style={{ fontSize: 12, color: '#9ca3af' }}>Active providers</div>
           <div style={{ fontWeight: 700 }}>{formatArray(store.activeProviders)}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Backend activeProviders: {formatArray(store.feedStatus?.activeProviders)}
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            UI selectedProviders: {formatArray(store.selectedProviders)}
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Hydration status: {store.hasHydratedProviders ? 'hydrated' : (store.providerHydrationInFlight ? 'hydrating' : 'idle')}
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+            Last sync timestamp: {formatDate(store.providerLastSyncAt)} ({formatText(store.providerLastSyncSource)})
+          </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
             Provider order: {formatArray(store.activeProviders.map((provider, idx) => `${idx + 1}. ${provider}`))}
           </div>
