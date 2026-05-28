@@ -16,6 +16,8 @@ const initialState = {
   activeSymbols: [],
   providerCredentialsStatus: {},
   selectedProviders: [],
+  hasHydratedProviders: false,
+  lastValidActiveProviders: [],
   credentialsDraft: {},
   credentialsLoading: false,
   credentialsError: '',
@@ -127,6 +129,10 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
   };
 }
 
+function uniqueStrings(values = []) {
+  return [...new Set(asArray(values).map((v) => String(v || '').trim()).filter(Boolean))];
+}
+
 function normalizeError(error) {
   const status = error?.status ? `HTTP ${error.status}` : '';
   const method = error?.method || '';
@@ -159,7 +165,14 @@ export const useFeedStore = create((set, get) => ({
         if (!key) return;
         providerCredentialsStatus[key] = provider?.credentialsStatus || provider?.status || 'unknown';
       });
-      set({ providers, providerCredentialsStatus, credentialsLoading: false });
+      const providerNames = uniqueStrings(providers.map((p) => pickProviderName(p)));
+      set((state) => {
+        const previousSelected = uniqueStrings(state.selectedProviders);
+        const nextSelected = providerNames.length
+          ? previousSelected.filter((name) => providerNames.includes(name))
+          : previousSelected;
+        return { providers, providerCredentialsStatus, selectedProviders: nextSelected, credentialsLoading: false };
+      });
       return providers;
     } catch (error) {
       get().syncFeedDebug();
@@ -179,17 +192,37 @@ export const useFeedStore = create((set, get) => ({
     set({ credentialsLoading: true, credentialsError: '' });
     try {
       const payload = await api.getActiveFeedProviders();
-      const activeProviders = Array.isArray(payload?.providers) ? payload.providers : [];
+      const activeProvidersFromApi = uniqueStrings(payload?.providers);
       const activeSymbols = Array.isArray(payload?.symbols) ? payload.symbols : [];
       const nextSymbol = String(activeSymbols[0] || '').trim().toUpperCase();
-      set({
-        activeProviders,
-        activeSymbols,
-        selectedProviders: activeProviders,
-        symbol: nextSymbol || get().symbol,
-        credentialsLoading: false,
+      set((state) => {
+        const fallbackActive = uniqueStrings(state.lastValidActiveProviders.length ? state.lastValidActiveProviders : state.activeProviders);
+        const shouldPreservePrevious = state.hasHydratedProviders && activeProvidersFromApi.length === 0 && fallbackActive.length > 0;
+        const activeProviders = shouldPreservePrevious ? fallbackActive : activeProvidersFromApi;
+        const selectedProviders = activeProviders.length
+          ? activeProviders
+          : (state.hasHydratedProviders ? state.selectedProviders : uniqueStrings(state.selectedProviders));
+
+        const before = {
+          activeProviders: state.activeProviders,
+          selectedProviders: state.selectedProviders,
+          hasHydratedProviders: state.hasHydratedProviders,
+        };
+        const backendPayload = { providers: activeProvidersFromApi, symbols: activeSymbols };
+        const after = { activeProviders, selectedProviders };
+        console.debug('[feedStore] loadActiveProviders sync', { before, backendPayload, shouldPreservePrevious, after });
+
+        return {
+          activeProviders,
+          activeSymbols,
+          selectedProviders,
+          lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders,
+          symbol: nextSymbol || state.symbol,
+          hasHydratedProviders: true,
+          credentialsLoading: false,
+        };
       });
-      return { activeProviders, activeSymbols };
+      return { activeProviders: activeProvidersFromApi, activeSymbols };
     } catch (error) {
       get().syncFeedDebug();
       set({ credentialsLoading: false, credentialsError: normalizeError(error) });
@@ -203,14 +236,11 @@ export const useFeedStore = create((set, get) => ({
     try {
       const normalizedSymbol = String(symbol || '').trim().toUpperCase() || 'SPY';
       const symbols = [normalizedSymbol];
-      const result = await api.setActiveFeedProviders(selectedProviders, symbols);
-      await Promise.all([get().loadActiveProviders(), get().loadFeedStatus()]);
-      set({
-        activeProviders: selectedProviders,
-        activeSymbols: symbols,
-        symbol: normalizedSymbol || get().symbol,
-        credentialsLoading: false,
-      });
+      const requestedProviders = uniqueStrings(selectedProviders);
+      const result = await api.setActiveFeedProviders(requestedProviders, symbols);
+      await get().loadActiveProviders();
+      await get().loadFeedStatus();
+      set({ credentialsLoading: false, symbol: normalizedSymbol || get().symbol });
       return result;
     } catch (error) {
       get().syncFeedDebug();
@@ -272,8 +302,24 @@ export const useFeedStore = create((set, get) => ({
   loadFeedStatus: async () => {
     set({ loading: true, error: '' });
     try {
+      const currentState = get();
       const payload = await api.getFeedStatus();
-      const feedStatus = normalizeFeedStatusPayload(payload, get().activeProviders, get().providers);
+      const fallbackProviders = currentState.lastValidActiveProviders.length
+        ? currentState.lastValidActiveProviders
+        : currentState.activeProviders;
+      const feedStatus = normalizeFeedStatusPayload(payload, fallbackProviders, currentState.providers);
+      console.debug('[feedStore] loadFeedStatus sync', {
+        before: {
+          activeProviders: currentState.activeProviders,
+          selectedProviders: currentState.selectedProviders,
+        },
+        backendPayload: payload,
+        after: {
+          feedActiveProviders: feedStatus?.activeProviders,
+          source: feedStatus?.source,
+          status: feedStatus?.status,
+        },
+      });
       set({ feedStatus, loading: false, lastUpdated: new Date().toISOString() });
       return feedStatus;
     } catch (error) {
@@ -312,7 +358,8 @@ export const useFeedStore = create((set, get) => ({
         api.generateDemoOrderBook(symbol),
       ]);
 
-      await get().refreshAll();
+      await Promise.all([get().loadLatestMarketData(), get().loadFeedStatus()]);
+      set({ loading: false, lastUpdated: new Date().toISOString() });
       return true;
     } catch (error) {
       get().syncFeedDebug();
@@ -324,7 +371,19 @@ export const useFeedStore = create((set, get) => ({
   refreshAll: async () => {
     set({ loading: true, error: '' });
     try {
-      await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData(), get().loadProviders(), get().loadActiveProviders()]);
+      const before = get();
+      console.debug('[feedStore] refreshAll start', {
+        activeProviders: before.activeProviders,
+        selectedProviders: before.selectedProviders,
+      });
+      await get().loadProviders();
+      await get().loadActiveProviders();
+      await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData()]);
+      const after = get();
+      console.debug('[feedStore] refreshAll done', {
+        activeProviders: after.activeProviders,
+        selectedProviders: after.selectedProviders,
+      });
       set({ ...getLiveDataDebug(), loading: false, lastUpdated: new Date().toISOString() });
     } catch (error) {
       get().syncFeedDebug();
