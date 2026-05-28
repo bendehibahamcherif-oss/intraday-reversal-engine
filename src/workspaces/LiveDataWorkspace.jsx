@@ -101,8 +101,13 @@ export default function LiveDataWorkspace() {
   };
 
   useEffect(() => {
-    store.initializeFeedWorkspace();
+    store.refreshAll();
   }, []);
+
+  useEffect(() => {
+    store.loadLatestMarketData();
+    store.loadFeedStatus();
+  }, [store.symbol, store.timeframe]);
 
   const statuses = Array.isArray(store.feedStatus?.activeStatuses) && store.feedStatus.activeStatuses.length
     ? store.feedStatus.activeStatuses
