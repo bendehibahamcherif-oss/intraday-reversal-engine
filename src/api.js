@@ -584,6 +584,17 @@ export const api = {
     { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ).then(handle),
 
+  getVolumeProfile: async (symbol, signal, { mode, bins } = {}) => {
+    const params = new URLSearchParams();
+    if (mode) params.set('mode', mode);
+    if (bins) params.set('bins', String(bins));
+    const qs = params.toString();
+    return fetch(
+      `${API_BASE}/api/volume-profile/${encodeURIComponent(symbol)}${qs ? `?${qs}` : ''}`,
+      { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
+    ).then(handle);
+  },
+
   // Market Stream Engine — new endpoints (may return 404 on older backends; callers must try/catch)
   getMarketRuntime: async () => feedFetch('/api/market/runtime', { method: 'GET', headers: headers() }),
   getProvidersHealth: async () => feedFetch('/api/providers/health', { method: 'GET', headers: headers() }),

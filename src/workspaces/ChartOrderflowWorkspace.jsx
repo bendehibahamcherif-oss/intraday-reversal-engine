@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useChartStore } from '../store/chartStore';
+import { useVolumeProfileStore } from '../store/volumeProfileStore';
+import { VolumeProfileOverlay, VolumeProfileSettings } from '../components/VolumeProfilePanel';
 
 function formatNumber(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
   return Number(value).toFixed(digits);
 }
+
+// Chart constants shared with VolumeProfileOverlay so both use the same coordinate system
+const CHART_W = 900;
+const CHART_H = 320;
+const VOL_H = 80;
+const CANDLE_H = CHART_H - VOL_H - 20; // = 220
 
 function CandlestickChart({ candles = [] }) {
   console.debug('[ChartOrderflowWorkspace] chart render trigger', { candleCount: candles.length });
@@ -17,21 +25,17 @@ function CandlestickChart({ candles = [] }) {
   const maxHigh = Math.max(...highs);
   const minLow = Math.min(...lows);
   const maxVol = Math.max(...volumes, 1);
-  const width = 900;
-  const height = 320;
-  const volHeight = 80;
-  const candleHeight = height - volHeight - 20;
-  const step = width / data.length;
+  const step = CHART_W / data.length;
   const bodyWidth = Math.max(3, step * 0.55);
 
   const y = (price) => {
     const pct = (price - minLow) / Math.max(maxHigh - minLow, 0.000001);
-    return candleHeight - pct * (candleHeight - 12) + 6;
+    return CANDLE_H - pct * (CANDLE_H - 12) + 6;
   };
 
   return (
     <div style={{ width: '100%', overflowX: 'auto' }}>
-      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', minWidth: 500, background: '#050505', borderRadius: 10 }}>
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} style={{ width: '100%', minWidth: 500, background: '#050505', borderRadius: 10 }}>
         {data.map((candle, i) => {
           const open = Number(candle.open);
           const close = Number(candle.close);
@@ -43,16 +47,24 @@ function CandlestickChart({ candles = [] }) {
           const color = up ? '#22c55e' : '#ef4444';
           const top = y(Math.max(open, close));
           const bottom = y(Math.min(open, close));
-          const volTop = height - (vol / maxVol) * (volHeight - 8);
+          const volTop = CHART_H - (vol / maxVol) * (VOL_H - 8);
 
           return (
             <g key={`${candle.timestamp || i}-${i}`}>
               <line x1={cx} x2={cx} y1={y(high)} y2={y(low)} stroke={color} strokeWidth="1.4" />
               <rect x={cx - bodyWidth / 2} y={Math.min(top, bottom)} width={bodyWidth} height={Math.max(1.2, Math.abs(bottom - top))} fill={color} opacity="0.95" />
-              <rect x={cx - bodyWidth / 2} y={volTop} width={bodyWidth} height={height - volTop - 2} fill={color} opacity="0.4" />
+              <rect x={cx - bodyWidth / 2} y={volTop} width={bodyWidth} height={CHART_H - volTop - 2} fill={color} opacity="0.4" />
             </g>
           );
         })}
+
+        {/* Volume Profile overlay — rendered on top of candles, inside the same SVG coordinate space */}
+        <VolumeProfileOverlay
+          minPrice={minLow}
+          maxPrice={maxHigh}
+          chartWidth={CHART_W}
+          candleHeight={CANDLE_H}
+        />
       </svg>
     </div>
   );
@@ -80,11 +92,17 @@ export default function ChartOrderflowWorkspace() {
     return () => clearTimeout(id);
   }, [symbolDraft, symbol, setSymbol]);
 
-  // Auto-fetch when symbol, timeframe, or limit finalizes.
+  // Auto-fetch chart when symbol, timeframe, or limit finalizes.
   useEffect(() => {
     if (!symbol) return;
     refreshChart();
   }, [symbol, timeframe, limit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initial volume profile load on mount (the store's chartStore subscription handles
+  // subsequent refreshes on symbol/timeframe changes and chart reloads).
+  useEffect(() => {
+    useVolumeProfileStore.getState().loadVolumeProfile();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     console.debug('[ChartOrderflowWorkspace] chart data length', candles?.length || 0);
@@ -109,6 +127,9 @@ export default function ChartOrderflowWorkspace() {
         </div>
         {error ? <div style={{ marginTop: 10, color: '#fca5a5' }}>Error: {error} <button onClick={clearError} style={{ marginLeft: 8 }}>Dismiss</button></div> : null}
       </div>
+
+      {/* Volume Profile settings — show/hide, mode, bins, refresh */}
+      <VolumeProfileSettings />
 
       <div className="terminal-card" style={{ padding: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><strong>Candlestick Chart</strong><span style={{ color: '#9ca3af' }}>Latest close: {formatNumber(latestClose, 4)}</span></div>
