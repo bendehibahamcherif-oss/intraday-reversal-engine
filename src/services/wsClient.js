@@ -77,6 +77,15 @@ class ResilientWebSocket {
     });
   }
 
+  unsubscribe(channel) {
+    this.subscriptions.delete(channel);
+
+    this.send({
+      type: 'unsubscribe',
+      channel,
+    });
+  }
+
   resubscribe() {
     this.subscriptions.forEach((channel) => {
       this.send({

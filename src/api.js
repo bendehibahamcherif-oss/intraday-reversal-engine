@@ -493,17 +493,17 @@ export const api = {
     `/api/feeds/stop`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ source }) }
   ),
-  getLatestTick: async (symbol) => feedFetch(
+  getLatestTick: async (symbol, signal) => feedFetch(
     `/api/feeds/tick/${encodeURIComponent(symbol)}`,
-    { method: 'GET', headers: headers() }
+    { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ),
-  getLatestCandle: async (symbol, timeframe) => {
+  getLatestCandle: async (symbol, timeframe, signal) => {
     const query = timeframe ? `?timeframe=${encodeURIComponent(timeframe)}` : '';
-    return feedFetch(`/api/feeds/candle/${encodeURIComponent(symbol)}${query}`, { method: 'GET', headers: headers() });
+    return feedFetch(`/api/feeds/candle/${encodeURIComponent(symbol)}${query}`, { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) });
   },
-  getLatestOrderBook: async (symbol) => feedFetch(
+  getLatestOrderBook: async (symbol, signal) => feedFetch(
     `/api/feeds/orderbook/${encodeURIComponent(symbol)}`,
-    { method: 'GET', headers: headers() }
+    { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ),
   generateDemoTick: async (symbol) => feedFetch(
     `/api/feeds/demo/tick/${encodeURIComponent(symbol)}`,
@@ -579,9 +579,9 @@ export const api = {
     `${API_BASE}/api/chart/orderflow/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
-  getChartPayload: async (symbol, timeframe = '1m', limit = 200) => fetch(
+  getChartPayload: async (symbol, timeframe = '1m', limit = 200, signal) => fetch(
     `${API_BASE}/api/chart/payload/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&limit=${encodeURIComponent(limit)}`,
-    { method: 'GET', headers: headers() }
+    { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ).then(handle),
 
   runtimeHealth: async () => {

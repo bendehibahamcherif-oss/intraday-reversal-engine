@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { api } from '../api';
+import { useActiveSymbolStore } from './activeSymbolStore.js';
 
 const fallbackReplayData = () => {
   const now = Date.now();
@@ -22,7 +23,7 @@ export const useReplayStore = create((set, get) => ({
   playbackSpeed: 1,
   playing: false,
   sessionId: null,
-  symbol: 'SPX',
+  symbol: useActiveSymbolStore.getState().symbol,
   timeframe: '1m',
   timeframeStatus: '',
   backendAvailable: true,
@@ -106,6 +107,15 @@ export const useReplayStore = create((set, get) => ({
   setFromReplayEvent: (payload) => {
     if (!payload) return;
 
+    // Guard: ignore WS replay events for a different symbol.
+    if (payload.symbol && payload.symbol !== get().symbol) {
+      console.debug('[replayStore] replay event ignored (symbol mismatch)', {
+        eventSymbol: payload.symbol,
+        current: get().symbol,
+      });
+      return;
+    }
+
     if (Array.isArray(payload.candles) && payload.candles.length) {
       set({ replayData: payload.candles, replayIndex: payload.index || 0 });
       return;
@@ -181,3 +191,27 @@ export const useReplayStore = create((set, get) => ({
     return state.replayData[state.replayIndex] || null;
   },
 }));
+
+// When the global active symbol changes, reset replay state and stop any active session.
+useActiveSymbolStore.subscribe((activeState) => {
+  const { symbol: currentSymbol, sessionId } = useReplayStore.getState();
+  if (activeState.symbol === currentSymbol) return;
+
+  console.debug('[replayStore] symbol changed — resetting replay', {
+    from: currentSymbol,
+    to: activeState.symbol,
+  });
+
+  if (sessionId) {
+    api.replayStop(sessionId).catch(() => {});
+  }
+
+  useReplayStore.setState({
+    symbol: activeState.symbol,
+    replayData: fallbackReplayData(),
+    replayIndex: 0,
+    sessionId: null,
+    playing: false,
+    timeframeStatus: '',
+  });
+});

@@ -25,6 +25,7 @@ import { useWorkspaceStore } from './store/workspaceStore';
 import { useMarketStore } from './store/marketStore';
 import { useChartStore } from './store/chartStore';
 import { useWatchlistStore } from './store/watchlistStore';
+import { useActiveSymbolStore } from './store/activeSymbolStore';
 
 import { api, getToken, getUser } from './api.js';
 
@@ -68,12 +69,16 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState(getUser());
   const watchlist = useWatchlistStore((state) => state.watchlist);
-  const setChartSymbol = useChartStore((state) => state.setSymbol);
   const refreshChart = useChartStore((state) => state.refreshChart);
-  const subscribedRef = useRef(new Set());
+  const setActiveSymbol = useActiveSymbolStore((state) => state.setSymbol);
+  const subscribeWs = useActiveSymbolStore((state) => state.subscribeWs);
+  const unsubscribeWs = useActiveSymbolStore((state) => state.unsubscribeWs);
 
   const workspace = useWorkspaceStore((state) => state.workspace);
   const marketData = useMarketStore((state) => state.prices);
+
+  // Track the previous watchlist for subscribe/unsubscribe diffing.
+  const prevWatchlistRef = useRef([]);
 
   useEffect(() => {
     const token = getToken();
@@ -90,16 +95,33 @@ export default function App() {
     useMarketStore.getState().initialize();
   }, []);
 
+  // Manage WS subscriptions as the watchlist changes.
+  // Subscribe newly-added symbols; unsubscribe removed symbols.
   useEffect(() => {
-    watchlist.forEach((symbol) => {
-      if (subscribedRef.current.has(symbol)) return;
-      useMarketStore.getState().subscribeSymbol(symbol);
-      subscribedRef.current.add(symbol);
+    const prev = new Set(prevWatchlistRef.current);
+    const curr = new Set(watchlist);
+
+    watchlist.forEach((sym) => {
+      if (!prev.has(sym)) {
+        subscribeWs(sym);
+      }
     });
-  }, [watchlist]);
+
+    prevWatchlistRef.current.forEach((sym) => {
+      if (!curr.has(sym)) {
+        unsubscribeWs(sym);
+      }
+    });
+
+    prevWatchlistRef.current = watchlist;
+  }, [watchlist, subscribeWs, unsubscribeWs]);
 
   const handleWatchlistSelect = async (symbol) => {
-    setChartSymbol(symbol);
+    // Update the single source of truth — subscriptions sync chartStore + feedStore.
+    setActiveSymbol(symbol);
+    // Ensure this symbol is subscribed on the WS.
+    subscribeWs(symbol);
+    // Kick the chart fetch immediately.
     await refreshChart();
   };
 
