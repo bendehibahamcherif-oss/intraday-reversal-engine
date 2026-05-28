@@ -32,14 +32,11 @@ async function start() {
   const wss = new WebSocketServer({ server, path: '/ws' });
 
   app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const allowed =
-        origin === 'http://localhost:5173' ||
-        origin === 'http://127.0.0.1:5173' ||
-        /^https:\/\/[a-zA-Z0-9-]+\.onrender\.com$/.test(origin);
-      callback(allowed ? null : new Error('CORS blocked'), allowed);
-    },
+    origin: [
+      'https://intraday-reversal-engine.onrender.com',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ],
   }));
   app.use(express.json({ limit: '1mb' }));
 
