@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useFeedStore } from '../store/feedStore.js';
 import MarketStreamStatus from '../components/MarketStreamStatus.jsx';
 import ProviderDiagnosticsPanel from '../components/ProviderDiagnosticsPanel.jsx';
+import VolumeProfilePanel from '../components/VolumeProfilePanel.jsx';
 
 const panelStyle = { background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 };
 
@@ -200,6 +201,7 @@ export default function LiveDataWorkspace() {
         <button onClick={() => setTab('credentials')} disabled={tab === 'credentials'}>Credentials</button>
         <button onClick={() => setTab('stream')} disabled={tab === 'stream'}>Stream Status</button>
         <button onClick={() => setTab('diagnostics')} disabled={tab === 'diagnostics'}>Provider Diagnostics</button>
+        <button onClick={() => setTab('volumeprofile')} disabled={tab === 'volumeprofile'}>Volume Profile</button>
       </div>
 
       {tab === 'market' ? <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
@@ -286,6 +288,8 @@ export default function LiveDataWorkspace() {
       {tab === 'stream' ? <section style={panelStyle}><h3 style={{ marginTop: 0 }}>Realtime Market Stream</h3><MarketStreamStatus /></section> : null}
 
       {tab === 'diagnostics' ? <section style={panelStyle}><ProviderDiagnosticsPanel /></section> : null}
+
+      {tab === 'volumeprofile' ? <section style={panelStyle}><h3 style={{ marginTop: 0 }}>Volume Profile</h3><VolumeProfilePanel /></section> : null}
 
       {tab === 'credentials' ? <section style={panelStyle}>
         <h3 style={{ marginTop: 0 }}>Provider Credentials</h3>
