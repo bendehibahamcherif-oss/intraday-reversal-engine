@@ -26,6 +26,7 @@ const initialState = {
   lastFeedError: '',
   apiBase: import.meta.env.VITE_API_BASE || 'http://localhost:10000',
   providerSelectionSavedAt: null,
+  activeProvidersRequestSeq: 0,
 };
 
 function asArray(value) {
@@ -182,10 +183,24 @@ export const useFeedStore = create((set, get) => ({
       const providerNames = uniqueStrings(providers.map((p) => pickProviderName(p)));
       set((state) => {
         const previousSelected = uniqueStrings(state.selectedProviders);
+        const hasIncomingProviders = providerNames.length > 0;
+        const nextProviders = hasIncomingProviders ? mergedProviders : state.providers;
         const nextSelected = providerNames.length
           ? previousSelected.filter((name) => providerNames.includes(name))
           : previousSelected;
-        return { providers, providerCredentialsStatus, selectedProviders: nextSelected, credentialsLoading: false };
+        console.debug('[feedStore] loadProviders sync', {
+          before: {
+            providers: state.providers.map((p) => pickProviderName(p)),
+            selectedProviders: state.selectedProviders,
+          },
+          backendPayload: payload,
+          overwriteDetected: !hasIncomingProviders,
+          after: {
+            providers: nextProviders.map((p) => pickProviderName(p)),
+            selectedProviders: nextSelected,
+          },
+        });
+        return { providers: nextProviders, providerCredentialsStatus, selectedProviders: nextSelected, credentialsLoading: false };
       });
       return providers;
     } catch (error) {
@@ -203,13 +218,22 @@ export const useFeedStore = create((set, get) => ({
   }),
 
   loadActiveProviders: async () => {
-    set({ credentialsLoading: true, credentialsError: '' });
+    const requestSeq = get().activeProvidersRequestSeq + 1;
+    set({ credentialsLoading: true, credentialsError: '', activeProvidersRequestSeq: requestSeq });
     try {
       const payload = await api.getActiveFeedProviders();
       const activeProvidersFromApi = uniqueStrings(payload?.providers);
       const activeSymbols = Array.isArray(payload?.symbols) ? payload.symbols : [];
       const nextSymbol = String(activeSymbols[0] || '').trim().toUpperCase();
       set((state) => {
+        if (requestSeq !== state.activeProvidersRequestSeq) {
+          console.debug('[feedStore] loadActiveProviders stale response ignored', {
+            requestSeq,
+            expectedSeq: state.activeProvidersRequestSeq,
+            backendPayload: payload,
+          });
+          return { credentialsLoading: false };
+        }
         const fallbackActive = uniqueStrings(state.lastValidActiveProviders.length ? state.lastValidActiveProviders : state.activeProviders);
         const shouldPreservePrevious = state.hasHydratedProviders && activeProvidersFromApi.length === 0 && fallbackActive.length > 0;
         const activeProviders = shouldPreservePrevious ? fallbackActive : activeProvidersFromApi;
@@ -224,7 +248,13 @@ export const useFeedStore = create((set, get) => ({
         };
         const backendPayload = { providers: activeProvidersFromApi, symbols: activeSymbols };
         const after = { activeProviders, selectedProviders };
-        console.debug('[feedStore] loadActiveProviders sync', { before, backendPayload, shouldPreservePrevious, after });
+        console.debug('[feedStore] loadActiveProviders sync', {
+          before,
+          backendPayload,
+          shouldPreservePrevious,
+          overwriteDetected: shouldPreservePrevious,
+          after,
+        });
 
         return {
           activeProviders,
@@ -390,8 +420,8 @@ export const useFeedStore = create((set, get) => ({
         activeProviders: before.activeProviders,
         selectedProviders: before.selectedProviders,
       });
-      await get().loadProviders();
       await get().loadActiveProviders();
+      await get().loadProviders();
       await Promise.all([get().loadFeedStatus(), get().loadLatestMarketData()]);
       const after = get();
       console.debug('[feedStore] refreshAll done', {
@@ -406,7 +436,11 @@ export const useFeedStore = create((set, get) => ({
   },
 
   initializeFeedWorkspace: async () => {
-    await Promise.all([get().loadProviders(), get().loadActiveProviders()]);
+    console.debug('[feedStore] initializeFeedWorkspace start');
     await get().refreshAll();
+    console.debug('[feedStore] initializeFeedWorkspace done', {
+      activeProviders: get().activeProviders,
+      selectedProviders: get().selectedProviders,
+    });
   },
 }));
