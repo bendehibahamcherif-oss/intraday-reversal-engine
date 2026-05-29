@@ -1,222 +1,385 @@
 import { useEffect } from 'react';
 import { useRuleBuilderStore } from '../store/ruleBuilderStore.js';
+import ConditionGroupBuilder from '../components/ConditionGroupBuilder.jsx';
+import RuleActionEditor from '../components/RuleActionEditor.jsx';
+import StrategyPreviewChart from '../components/StrategyPreviewChart.jsx';
 
-const panel = { background: '#0a0a0a', border: '1px solid #202020', borderRadius: 12, padding: 12 };
-const inputStyle = { background: '#050505', border: '1px solid #1f2937', color: 'white', borderRadius: 8, padding: '6px 8px' };
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const BG      = '#0a0a0a';
+const SURFACE = '#0d0d1a';
+const BORDER  = '#202020';
+const TEXT    = '#e0e0f0';
+const MUTED   = '#6b7280';
+const AMBER   = '#FFB800';
+const GREEN   = '#22c55e';
+const RED     = '#ef4444';
+const BLUE    = '#2563eb';
 
-const valueOrDash = (value) => (value === undefined || value === null || value === '' ? '—' : String(value));
-const toArray = (value) => (Array.isArray(value) ? value : []);
+const panel = { background: BG, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 14 };
+const iStyle = { background: '#050505', border: `1px solid #1f2937`, color: TEXT, borderRadius: 8, padding: '6px 8px', fontSize: 12 };
+const btn = (bg = BLUE) => ({ background: bg, color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 12, cursor: 'pointer', fontWeight: 600 });
+const ghostBtn = { background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 7, color: MUTED, fontSize: 12, cursor: 'pointer', padding: '6px 12px' };
 
-const pickFirstArray = (obj, keys) => keys.map((key) => obj?.[key]).find(Array.isArray) || [];
+const valueOrDash = (v) => (v === undefined || v === null || v === '' ? '—' : String(v));
+const toArray = (v) => (Array.isArray(v) ? v : []);
+const pickFirstArray = (obj, keys) => keys.map((k) => obj?.[k]).find(Array.isArray) || [];
 const itemId = (item) => String(item?.id || item?._id || item?.ruleSetId || item?.templateId || '');
 
-const renderInfoCard = (label, value) => (
-  <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#050505' }}>
-    <div style={{ color: '#9ca3af', fontSize: 12 }}>{label}</div>
-    <div style={{ color: 'white', marginTop: 4, wordBreak: 'break-word' }}>{valueOrDash(value)}</div>
-  </div>
-);
+function InfoCard({ label, value }) {
+  return (
+    <div style={{ border: `1px solid #1f2937`, borderRadius: 8, padding: '8px 10px', background: '#050505' }}>
+      <div style={{ color: MUTED, fontSize: 11 }}>{label}</div>
+      <div style={{ color: TEXT, marginTop: 3, wordBreak: 'break-word', fontSize: 13 }}>{valueOrDash(value)}</div>
+    </div>
+  );
+}
 
-export default function StrategyBuilderWorkspace() {
-  const {
-    symbol, ruleSets, selectedRuleSet, draftRuleSet, evaluationResult, convertedStrategy, loading, error,
-    templates, selectedTemplate, templateLoading, templateError, lastUpdated,
-    setSymbol, loadRuleSets, createRuleSet, selectRuleSet, updateDraftField,
-    addCondition, updateCondition, removeCondition,
-    addAction, updateAction, removeAction,
-    saveDraft, evaluateSelected, convertSelected,
-    deleteSelected, clearRuleSets, clearError,
-    loadTemplates, selectTemplate, createFromTemplate, clearTemplateError,
-  } = useRuleBuilderStore();
+function SectionHeader({ title, children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      <h3 style={{ margin: 0, color: TEXT, fontSize: 14 }}>{title}</h3>
+      {children}
+    </div>
+  );
+}
 
-  useEffect(() => { loadRuleSets(); loadTemplates(); }, [symbol, loadRuleSets, loadTemplates]);
+// ── Templates panel ───────────────────────────────────────────────────────────
+function TemplatesPanel() {
+  const { templates, selectedTemplate, templateLoading, templateError, selectTemplate, createFromTemplate, clearTemplateError } = useRuleBuilderStore();
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <div style={{ ...panel, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ color: '#9ca3af' }}>Symbol</span>
-        <input value={symbol} onChange={(e) => setSymbol(e.target.value)} style={inputStyle} />
-        <button onClick={loadRuleSets} disabled={loading}>Refresh</button>
-        <button onClick={createRuleSet} disabled={loading}>Create Rule Set</button>
-        <button onClick={saveDraft} disabled={loading}>Save Draft</button>
-        <button onClick={deleteSelected} disabled={loading || !selectedRuleSet}>Delete Selected</button>
-        <button onClick={clearRuleSets} disabled={loading}>Clear All</button>
+    <div style={panel}>
+      <SectionHeader title="Strategy Templates">
+        {templateLoading && <span style={{ fontSize: 11, color: MUTED }}>Loading…</span>}
+      </SectionHeader>
+
+      <div style={{ color: '#fca5a5', fontSize: 11, marginBottom: 10, padding: '6px 8px', background: '#1a0000', borderRadius: 6 }}>
+        Templates create draft/research rule sets only. They are not validated and do not imply profitability.
       </div>
 
-      {error ? <div style={{ ...panel, background: '#2a0f10', borderColor: '#7f1d1d', color: '#fecaca' }}><div>{error}</div><button onClick={clearError}>Dismiss</button></div> : null}
-      {templateError ? <div style={{ ...panel, background: '#2a0f10', borderColor: '#7f1d1d', color: '#fecaca' }}><div>{templateError}</div><button onClick={clearTemplateError}>Dismiss</button></div> : null}
+      {templateError && (
+        <div style={{ color: RED, fontSize: 12, marginBottom: 8 }}>{templateError} <button onClick={clearTemplateError} style={{ ...ghostBtn, fontSize: 11 }}>Dismiss</button></div>
+      )}
 
-
-      <div style={panel}>
-        <h3 style={{ marginTop: 0 }}>Strategy Templates</h3>
-        <div style={{ color: '#fca5a5', fontSize: 12, marginBottom: 10 }}>
-          Templates create draft/research rule sets. They are not validated and do not imply profitability.
-        </div>
-        {!templates.length ? <div style={{ color: '#9ca3af' }}>No templates available</div> : (
-          <div style={{ display: 'grid', gap: 8 }}>
-            {templates.map((item, idx) => {
-              const id = String(item?.id || item?._id || item?.templateId || `t-${idx}`);
-              const active = String(selectedTemplate?.id || selectedTemplate?._id || selectedTemplate?.templateId || '') === id;
-              return (
-                <button key={id} onClick={() => selectTemplate(id)} style={{ textAlign: 'left', borderRadius: 8, padding: 10, border: active ? '1px solid #3b82f6' : '1px solid #1f2937', background: active ? '#0f172a' : '#050505', color: 'white' }}>
-                  <div style={{ fontWeight: 600 }}>{item?.name || `Template ${idx + 1}`}</div>
-                  <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>{valueOrDash(item?.category)} · {valueOrDash(item?.defaultTimeframe)}</div>
-                  <div style={{ marginTop: 6, color: '#d1d5db' }}>{valueOrDash(item?.description)}</div>
-                  <div style={{ marginTop: 6, color: '#fbbf24', fontSize: 12 }}>
-                    Warnings: {toArray(item?.warnings).length ? toArray(item?.warnings).join(' | ') : 'None'}
+      {!templates.length ? (
+        <div style={{ color: MUTED, fontSize: 12 }}>No templates available.</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {templates.map((item, idx) => {
+            const id = String(item?.id || item?._id || item?.templateId || `t-${idx}`);
+            const active = itemId(selectedTemplate) === id;
+            return (
+              <button
+                key={id}
+                onClick={() => selectTemplate(id)}
+                style={{ textAlign: 'left', borderRadius: 8, padding: 10, border: active ? `1px solid ${BLUE}` : `1px solid #1f2937`, background: active ? '#0f172a' : '#050505', color: TEXT, cursor: 'pointer' }}
+              >
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{item?.name || `Template ${idx + 1}`}</div>
+                <div style={{ color: MUTED, fontSize: 11, marginTop: 3 }}>{valueOrDash(item?.category)} · {valueOrDash(item?.defaultTimeframe)}</div>
+                <div style={{ color: '#d1d5db', fontSize: 12, marginTop: 4 }}>{valueOrDash(item?.description)}</div>
+                {toArray(item?.warnings).length > 0 && (
+                  <div style={{ color: AMBER, fontSize: 11, marginTop: 4 }}>
+                    ⚠ {toArray(item.warnings).join(' · ')}
                   </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div style={{ marginTop: 10 }}>
-          <button onClick={() => createFromTemplate(itemId(selectedTemplate))} disabled={templateLoading || !selectedTemplate}>
-            Create Rule Set from Template
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ marginTop: 10 }}>
+        <button onClick={() => createFromTemplate(itemId(selectedTemplate))} disabled={templateLoading || !selectedTemplate} style={btn()}>
+          Create Rule Set from Template
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Rule sets list ────────────────────────────────────────────────────────────
+function RuleSetList() {
+  const { ruleSets, selectedRuleSet, selectRuleSet, loading } = useRuleBuilderStore();
+
+  if (!ruleSets.length) {
+    return <div style={{ color: MUTED, fontSize: 12 }}>No rule sets yet. Create one or use a template.</div>;
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      {ruleSets.map((item, idx) => {
+        const id = itemId(item) || `r-${idx}`;
+        const active = itemId(selectedRuleSet) === id;
+        const conditions = toArray(item?.conditions);
+        const actions = toArray(item?.actions);
+        return (
+          <button
+            key={id}
+            onClick={() => selectRuleSet(id)}
+            disabled={loading}
+            style={{ textAlign: 'left', borderRadius: 8, padding: '8px 10px', border: active ? `1px solid ${BLUE}` : `1px solid #1f2937`, background: active ? '#0f172a' : '#050505', color: TEXT, cursor: 'pointer' }}
+          >
+            <span style={{ fontWeight: active ? 700 : 400, fontSize: 13 }}>{item?.name || `Rule set ${idx + 1}`}</span>
+            <span style={{ color: MUTED, fontSize: 11, marginLeft: 8 }}>
+              {conditions.length}c · {actions.length}a · {item?.timeframe || '?'} · {item?.status || 'draft'}
+            </span>
           </button>
-        </div>
-      </div>
+        );
+      })}
+    </div>
+  );
+}
 
-      <div style={panel}>
-        <h3 style={{ marginTop: 0 }}>Rule Set list</h3>
-        {!ruleSets.length ? <div style={{ color: '#9ca3af' }}>No rule sets yet</div> : (
-          <div style={{ display: 'grid', gap: 6 }}>
-            {ruleSets.map((item, idx) => {
-              const id = String(item?.id || item?._id || item?.ruleSetId || `r-${idx}`);
-              const active = String(selectedRuleSet?.id || selectedRuleSet?._id || selectedRuleSet?.ruleSetId || '') === id;
-              return (
-                <button key={id} onClick={() => selectRuleSet(id)} style={{ textAlign: 'left', borderRadius: 8, padding: 8, border: active ? '1px solid #3b82f6' : '1px solid #1f2937', background: active ? '#0f172a' : '#050505', color: 'white' }}>
-                  {item?.name || `Rule set ${idx + 1}`} · {(item?.conditions || []).length} conditions · {(item?.actions || []).length} actions
-                </button>
-              );
-            })}
+// ── Evaluate results ──────────────────────────────────────────────────────────
+function EvaluatePanel() {
+  const { evaluationResult, evaluateSelected, loading, selectedRuleSet } = useRuleBuilderStore();
+
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <button onClick={evaluateSelected} disabled={loading || !selectedRuleSet} style={btn()}>
+        Evaluate Selected Rule Set
+      </button>
+
+      {evaluationResult ? (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+            <InfoCard label="Passed" value={evaluationResult?.passed ? '✓ Yes' : '✗ No'} />
+            <InfoCard label="Matched" value={evaluationResult?.matchedConditions?.length ?? evaluationResult?.matchedConditionsCount ?? '—'} />
+            <InfoCard label="Failed" value={pickFirstArray(evaluationResult, ['failedConditions', 'failures']).length} />
           </div>
-        )}
-      </div>
 
-      <div style={panel}>
-        <h3 style={{ marginTop: 0 }}>Rule Set editor</h3>
-        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}>
-          <input placeholder="name" value={draftRuleSet?.name || ''} onChange={(e) => updateDraftField('name', e.target.value)} style={inputStyle} />
-          <input placeholder="description" value={draftRuleSet?.description || ''} onChange={(e) => updateDraftField('description', e.target.value)} style={inputStyle} />
-        </div>
-      </div>
-
-      <div style={panel}>
-        <h3 style={{ marginTop: 0 }}>Conditions builder</h3>
-        <button onClick={addCondition}>Add Condition</button>
-        <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
-          {(draftRuleSet?.conditions || []).map((condition, idx) => (
-            <div key={`c-${idx}`} style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 8, display: 'grid', gap: 8 }}>
-              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
-                {['source', 'field', 'operator', 'value', 'timeframe'].map((field) => (
-                  <input key={field} placeholder={field} value={condition?.[field] ?? ''} onChange={(e) => updateCondition(idx, { [field]: e.target.value })} style={inputStyle} />
+          {toArray(evaluationResult?.warnings).length > 0 && (
+            <div style={{ background: '#0a0800', border: `1px solid ${AMBER}44`, borderRadius: 6, padding: '8px 10px' }}>
+              <div style={{ color: AMBER, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>Evaluation warnings:</div>
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                {toArray(evaluationResult.warnings).map((w, i) => (
+                  <li key={i} style={{ color: MUTED, fontSize: 11 }}>{w}</li>
                 ))}
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input type="checkbox" checked={Boolean(condition?.enabled)} onChange={(e) => updateCondition(idx, { enabled: e.target.checked })} /> enabled
-                </label>
-              </div>
-              <button onClick={() => removeCondition(idx)} style={{ width: 'fit-content' }}>Remove Condition</button>
+              </ul>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
 
-      <div style={panel}>
-        <h3 style={{ marginTop: 0 }}>Actions builder</h3>
-        <button onClick={addAction}>Add Action</button>
-        <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
-          {(draftRuleSet?.actions || []).map((action, idx) => (
-            <div key={`a-${idx}`} style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 8, display: 'grid', gap: 8 }}>
-              <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
-                {['type', 'direction', 'entryLogic', 'exitLogic', 'stopLossLogic', 'takeProfitLogic', 'invalidationCondition', 'riskRules'].map((field) => (
-                  <input key={field} placeholder={field} value={action?.[field] ?? ''} onChange={(e) => updateAction(idx, { [field]: e.target.value })} style={inputStyle} />
+          {pickFirstArray(evaluationResult, ['failedConditions', 'failures']).length > 0 && (
+            <div>
+              <div style={{ color: MUTED, fontSize: 11, marginBottom: 6 }}>Failed conditions:</div>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {pickFirstArray(evaluationResult, ['failedConditions', 'failures']).map((item, i) => (
+                  <div key={i} style={{ border: `1px solid #374151`, borderRadius: 8, padding: '6px 10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 6 }}>
+                    <InfoCard label="Source" value={item?.source} />
+                    <InfoCard label="Field" value={item?.field} />
+                    <InfoCard label="Operator" value={item?.operator} />
+                    <InfoCard label="Expected" value={item?.expectedValue ?? item?.value} />
+                    <InfoCard label="Actual" value={item?.actualValue} />
+                  </div>
                 ))}
               </div>
-              <button onClick={() => removeAction(idx)} style={{ width: 'fit-content' }}>Remove Action</button>
             </div>
-          ))}
+          )}
+        </>
+      ) : (
+        <div style={{ color: MUTED, fontSize: 12 }}>No evaluation result yet.</div>
+      )}
+    </div>
+  );
+}
+
+// ── Convert result ────────────────────────────────────────────────────────────
+function ConvertPanel() {
+  const { convertedStrategy, convertSelected, loading, selectedRuleSet } = useRuleBuilderStore();
+
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <div style={{ color: MUTED, fontSize: 11 }}>
+        Convert creates a draft SavedStrategy from this rule set. It does not validate or prove profitability.
+      </div>
+      <button onClick={convertSelected} disabled={loading || !selectedRuleSet} style={btn()}>
+        Convert to Strategy
+      </button>
+
+      {convertedStrategy ? (
+        <div style={{ border: `1px solid #1f2937`, borderRadius: 8, padding: 10, background: '#050505', display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+            <InfoCard label="Name" value={convertedStrategy?.name} />
+            <InfoCard label="Type" value={convertedStrategy?.type} />
+            <InfoCard label="Status" value={convertedStrategy?.status} />
+            <InfoCard label="Direction" value={convertedStrategy?.direction} />
+            <InfoCard label="Timeframe" value={convertedStrategy?.timeframe} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
+            <InfoCard label="Entry Logic" value={convertedStrategy?.entryLogic} />
+            <InfoCard label="Exit Logic" value={convertedStrategy?.exitLogic} />
+            <InfoCard label="Stop Loss Logic" value={convertedStrategy?.stopLossLogic} />
+            <InfoCard label="Take Profit Logic" value={convertedStrategy?.takeProfitLogic} />
+            <InfoCard label="Invalidation" value={convertedStrategy?.invalidationCondition} />
+          </div>
+          {toArray(convertedStrategy?.warnings).length > 0 && (
+            <div style={{ color: AMBER, fontSize: 11 }}>
+              ⚠ {toArray(convertedStrategy.warnings).join(' · ')}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ color: MUTED, fontSize: 12 }}>No converted strategy yet.</div>
+      )}
+    </div>
+  );
+}
+
+// ── Validation summary bar ────────────────────────────────────────────────────
+function ValidationBar() {
+  const { draftValidationErrors } = useRuleBuilderStore();
+  const errCount = Object.keys(draftValidationErrors).length;
+
+  if (errCount === 0) {
+    return <div style={{ background: '#001a08', border: `1px solid ${GREEN}44`, borderRadius: 6, padding: '6px 10px', fontSize: 11, color: GREEN }}>✓ Draft has no validation errors</div>;
+  }
+  return (
+    <div style={{ background: '#1a0000', border: `1px solid ${RED}44`, borderRadius: 6, padding: '6px 10px', fontSize: 11, color: RED }}>
+      ✗ {errCount} validation error{errCount !== 1 ? 's' : ''} — fix before saving:{' '}
+      {Object.values(draftValidationErrors).slice(0, 3).join(' · ')}
+      {errCount > 3 ? `  +${errCount - 3} more` : ''}
+    </div>
+  );
+}
+
+// ── Main workspace ────────────────────────────────────────────────────────────
+export default function StrategyBuilderWorkspace() {
+  const {
+    symbol, draftRuleSet, selectedRuleSet, loading, error, lastUpdated,
+    setSymbol, loadRuleSets, loadTemplates, createRuleSet, saveDraft,
+    deleteSelected, clearRuleSets, clearError, updateDraftField,
+  } = useRuleBuilderStore();
+
+  useEffect(() => { loadRuleSets(); loadTemplates(); }, [symbol]);
+
+  const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D'];
+
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+
+      {/* ── Top toolbar ── */}
+      <div style={{ ...panel, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: MUTED, fontSize: 12 }}>Symbol</span>
+          <input
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+            style={{ ...iStyle, width: 80 }}
+            placeholder="SPY"
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: MUTED, fontSize: 12 }}>Timeframe</span>
+          <select
+            value={draftRuleSet?.timeframe || '5m'}
+            onChange={(e) => updateDraftField('timeframe', e.target.value)}
+            style={{ ...iStyle, width: 70 }}
+          >
+            {TIMEFRAMES.map((tf) => <option key={tf} value={tf}>{tf}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginLeft: 'auto' }}>
+          <button onClick={loadRuleSets} disabled={loading} style={ghostBtn}>↻ Refresh</button>
+          <button onClick={createRuleSet} disabled={loading} style={btn()}>+ New Rule Set</button>
+          <button onClick={saveDraft} disabled={loading} style={btn(GREEN + 'cc')}>Save Draft</button>
+          <button onClick={deleteSelected} disabled={loading || !selectedRuleSet} style={btn(RED + 'aa')}>Delete</button>
+          <button onClick={clearRuleSets} disabled={loading} style={{ ...ghostBtn, color: RED }}>Clear All</button>
         </div>
       </div>
 
+      {error && (
+        <div style={{ ...panel, background: '#1a0000', borderColor: '#7f1d1d', color: '#fecaca', fontSize: 12 }}>
+          {error} <button onClick={clearError} style={{ ...ghostBtn, marginLeft: 8 }}>Dismiss</button>
+        </div>
+      )}
+
+      {/* ── Validation bar ── */}
+      <ValidationBar />
+
+      {/* ── Templates + Rule sets list (side by side on wide screens) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(200px, 1fr)', gap: 14, alignItems: 'start' }}>
+        <TemplatesPanel />
+
+        <div style={panel}>
+          <SectionHeader title="Saved Rule Sets" />
+          <RuleSetList />
+        </div>
+      </div>
+
+      {/* ── Draft editor ── */}
       <div style={panel}>
-        <h3 style={{ marginTop: 0 }}>Risk rules editor</h3>
-        <textarea placeholder="riskRules" value={draftRuleSet?.riskRules || ''} onChange={(e) => updateDraftField('riskRules', e.target.value)} style={{ ...inputStyle, minHeight: 80, width: '100%' }} />
-      </div>
-
-      <div style={{ ...panel, display: 'grid', gap: 8 }}>
-        <h3 style={{ marginTop: 0 }}>Evaluate panel</h3>
-        <button onClick={evaluateSelected} disabled={loading || !selectedRuleSet}>Evaluate selected</button>
-        {evaluationResult ? (
-          <>
-            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
-              {renderInfoCard('Passed', evaluationResult?.passed ? 'Yes' : 'No')}
-              {renderInfoCard('Matched conditions count', evaluationResult?.matchedConditionsCount ?? evaluationResult?.matchedCount ?? toArray(evaluationResult?.matchedConditions).length)}
-              {renderInfoCard('Failed conditions count', evaluationResult?.failedConditionsCount ?? evaluationResult?.failedCount ?? pickFirstArray(evaluationResult, ['failedConditions', 'failures']).length)}
-            </div>
-
-            <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#050505' }}>
-              <div style={{ color: '#9ca3af', fontSize: 12 }}>Warnings</div>
-              {toArray(evaluationResult?.warnings).length ? (
-                <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
-                  {toArray(evaluationResult?.warnings).map((warning, idx) => <li key={`warning-${idx}`}>{valueOrDash(warning)}</li>)}
-                </ul>
-              ) : <div style={{ marginTop: 4 }}>None</div>}
-            </div>
-
-            <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#050505' }}>
-              <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 8 }}>Failed conditions</div>
-              {!pickFirstArray(evaluationResult, ['failedConditions', 'failures']).length ? <div>None</div> : (
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {pickFirstArray(evaluationResult, ['failedConditions', 'failures']).map((item, idx) => (
-                    <div key={`failed-condition-${idx}`} style={{ border: '1px solid #374151', borderRadius: 8, padding: 8, display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
-                      {renderInfoCard('Source', item?.source)}
-                      {renderInfoCard('Field', item?.field)}
-                      {renderInfoCard('Operator', item?.operator)}
-                      {renderInfoCard('Expected value', item?.expectedValue ?? item?.value)}
-                      {renderInfoCard('Actual value', item?.actualValue)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        ) : <div style={{ color: '#9ca3af' }}>No evaluation result yet</div>}
-      </div>
-
-      <div style={{ ...panel, display: 'grid', gap: 8 }}>
-        <h3 style={{ marginTop: 0 }}>Convert to Strategy panel</h3>
-        <button onClick={convertSelected} disabled={loading || !selectedRuleSet}>Convert selected</button>
-        <div style={{ color: '#9ca3af', fontSize: 12 }}>Convert creates a draft strategy from this rule set. It does not validate or prove profitability.</div>
-        {convertedStrategy ? (
-          <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#050505', display: 'grid', gap: 8 }}>
-            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
-              {renderInfoCard('Name', convertedStrategy?.name)}
-              {renderInfoCard('Type', convertedStrategy?.type)}
-              {renderInfoCard('Status', convertedStrategy?.status)}
-              {renderInfoCard('Direction', convertedStrategy?.direction)}
-              {renderInfoCard('Timeframe', convertedStrategy?.timeframe)}
-            </div>
-            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}>
-              {renderInfoCard('Entry logic', convertedStrategy?.entryLogic)}
-              {renderInfoCard('Exit logic', convertedStrategy?.exitLogic)}
-              {renderInfoCard('Stop loss logic', convertedStrategy?.stopLossLogic)}
-              {renderInfoCard('Take profit logic', convertedStrategy?.takeProfitLogic)}
-              {renderInfoCard('Invalidation condition', convertedStrategy?.invalidationCondition)}
-            </div>
-            <div style={{ border: '1px solid #1f2937', borderRadius: 8, padding: 10, background: '#030712' }}>
-              <div style={{ color: '#9ca3af', fontSize: 12 }}>Warnings</div>
-              {toArray(convertedStrategy?.warnings).length ? (
-                <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
-                  {toArray(convertedStrategy?.warnings).map((warning, idx) => <li key={`converted-warning-${idx}`}>{valueOrDash(warning)}</li>)}
-                </ul>
-              ) : <div style={{ marginTop: 4 }}>None</div>}
-            </div>
+        <SectionHeader title="Rule Set Properties" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <span style={{ fontSize: 11, color: MUTED, display: 'block', marginBottom: 2 }}>Name *</span>
+            <input
+              value={draftRuleSet?.name || ''}
+              onChange={(e) => updateDraftField('name', e.target.value)}
+              placeholder="Name (required)"
+              style={{ ...iStyle, width: '100%', boxSizing: 'border-box', borderColor: !draftRuleSet?.name?.trim() ? RED + '88' : '#1f2937' }}
+            />
           </div>
-        ) : <div style={{ color: '#9ca3af' }}>No converted strategy yet</div>}
+          <div>
+            <span style={{ fontSize: 11, color: MUTED, display: 'block', marginBottom: 2 }}>Description</span>
+            <input
+              value={draftRuleSet?.description || ''}
+              onChange={(e) => updateDraftField('description', e.target.value)}
+              placeholder="Optional description"
+              style={{ ...iStyle, width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
       </div>
 
-      <div style={{ color: '#6b7280', fontSize: 12 }}>Last updated: {lastUpdated || '—'}</div>
+      {/* ── Conditions (via ConditionGroupBuilder) ── */}
+      <div style={panel}>
+        <SectionHeader title="Conditions">
+          <span style={{ color: MUTED, fontSize: 11 }}>Drag ⠿ to reorder · AND/OR groups control evaluation order</span>
+        </SectionHeader>
+        <ConditionGroupBuilder />
+      </div>
+
+      {/* ── Actions (via RuleActionEditor) ── */}
+      <div style={panel}>
+        <SectionHeader title="Actions">
+          <span style={{ color: MUTED, fontSize: 11 }}>Drag ⠿ to reorder</span>
+        </SectionHeader>
+        <RuleActionEditor />
+      </div>
+
+      {/* ── Risk rules ── */}
+      <div style={panel}>
+        <SectionHeader title="Risk Rules" />
+        <textarea
+          placeholder='JSON or text, e.g. {"maxRiskPerTrade":"1%","noOvernightHold":true}'
+          value={draftRuleSet?.riskRules || ''}
+          onChange={(e) => updateDraftField('riskRules', e.target.value)}
+          rows={3}
+          style={{ ...iStyle, width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+        />
+      </div>
+
+      {/* ── Evaluate ── */}
+      <div style={panel}>
+        <SectionHeader title="Evaluate" />
+        <EvaluatePanel />
+      </div>
+
+      {/* ── Convert ── */}
+      <div style={panel}>
+        <SectionHeader title="Convert to Strategy" />
+        <ConvertPanel />
+      </div>
+
+      {/* ── Preview Backtest ── */}
+      <div style={panel}>
+        <SectionHeader title="Preview Backtest">
+          <span style={{ background: AMBER + '22', color: AMBER, fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>RESEARCH ONLY</span>
+        </SectionHeader>
+        <StrategyPreviewChart />
+      </div>
+
+      <div style={{ color: MUTED, fontSize: 11 }}>Last updated: {lastUpdated || '—'}</div>
     </div>
   );
 }
