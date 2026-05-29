@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRuleBuilderStore } from '../store/ruleBuilderStore.js';
 import ConditionGroupBuilder from '../components/ConditionGroupBuilder.jsx';
 import RuleActionEditor from '../components/RuleActionEditor.jsx';
@@ -250,7 +250,21 @@ export default function StrategyBuilderWorkspace() {
     deleteSelected, clearRuleSets, clearError, updateDraftField,
   } = useRuleBuilderStore();
 
-  useEffect(() => { loadRuleSets(); loadTemplates(); }, [symbol]);
+  // Local state so keystrokes don't hit the store mid-type.
+  // Committed to the store (and triggers loadRuleSets) only on blur or Enter.
+  const [symbolInput, setSymbolInput] = useState(symbol);
+
+  // Keep the local input in sync when the store symbol changes externally.
+  useEffect(() => { setSymbolInput(symbol); }, [symbol]);
+
+  // Reload rule sets when the committed symbol changes.
+  useEffect(() => { loadRuleSets(); loadTemplates(); }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commitSymbol = () => {
+    const val = symbolInput.trim().toUpperCase();
+    if (val && val !== symbol) setSymbol(val);
+    else if (!val) setSymbolInput(symbol); // revert to current if cleared
+  };
 
   const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D'];
 
@@ -262,8 +276,10 @@ export default function StrategyBuilderWorkspace() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: MUTED, fontSize: 12 }}>Symbol</span>
           <input
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+            value={symbolInput}
+            onChange={(e) => setSymbolInput(e.target.value.toUpperCase())}
+            onBlur={commitSymbol}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitSymbol(); } }}
             style={{ ...iStyle, width: 80 }}
             placeholder="SPY"
           />
