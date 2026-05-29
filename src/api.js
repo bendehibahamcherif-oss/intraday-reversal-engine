@@ -600,6 +600,10 @@ export const api = {
     `${API_BASE}/api/chart/payload/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&limit=${encodeURIComponent(limit)}`,
     { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ).then(handle),
+  getChartCVD: async (symbol) => fetch(
+    `${API_BASE}/api/chart/cvd/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
 
   getVolumeProfile: async (symbol, signal, { mode, bins } = {}) => {
     const params = new URLSearchParams();
