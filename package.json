@@ -9,20 +9,27 @@
     "preview": "vite preview",
     "server:start": "node server/index.cjs",
     "server:smoke": "node server/smoke.cjs",
-    "frontend:build": "vite build"
+    "frontend:build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "mongodb": "^6.17.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "socket.io-client": "^4.8.1",
-    "zustand": "^5.0.3",
-    "express": "^4.21.2",
     "ws": "^8.18.0",
-    "mongodb": "^6.17.0",
-    "cors": "^2.8.5"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.10"
+    "jsdom": "^29.1.1",
+    "vite": "^5.4.10",
+    "vitest": "^4.1.7"
   }
 }
