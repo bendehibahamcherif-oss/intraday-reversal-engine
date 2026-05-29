@@ -411,6 +411,23 @@ export const api = {
     `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
   ).then(handle),
+  runWalkForwardBacktest: async (symbol, body) => fetch(
+    `${API_BASE}/api/backtest/walk-forward/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(body) }
+  ).then(handle),
+  runMonteCarloBacktest: async (symbol, body) => fetch(
+    `${API_BASE}/api/backtest/monte-carlo/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(body) }
+  ).then(handle),
+  getBacktestReport: async (symbol, id) => {
+    const res = await fetch(
+      `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}/${encodeURIComponent(id)}/report`,
+      { method: 'GET', headers: headers() }
+    );
+    if (res.status === 401) { const e = new Error('Session invalide ou expirée'); e.status = 401; throw e; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.text();
+  },
   validateStrategy: async (symbol, strategyId) => fetch(
     `${API_BASE}/api/validation/strategy/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId }) }
