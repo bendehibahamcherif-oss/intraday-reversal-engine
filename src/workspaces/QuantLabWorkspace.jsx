@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuantLabStore } from '../store/quantLabStore.js';
+import BacktestReport from '../components/BacktestReport.jsx';
+import WalkForwardPanel from '../components/WalkForwardPanel.jsx';
 
 const TIMEFRAME_OPTIONS = ['1m', '5m', '15m', '1H'];
 
@@ -583,6 +585,16 @@ export default function QuantLabWorkspace() {
     loadBacktestResults,
     selectBacktestResult,
     clearBacktestResults,
+    walkForwardResult,
+    walkForwardLoading,
+    walkForwardError,
+    runWalkForward,
+    monteCarloResult,
+    monteCarloLoading,
+    monteCarloError,
+    runMonteCarlo,
+    downloadReport,
+    reportDownloading,
     validationResults,
     selectedValidationResult,
     validationLoading,
@@ -760,7 +772,31 @@ export default function QuantLabWorkspace() {
       <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>
       <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} onValidate={validateStrategy} validationLoading={validationLoading} /></Panel>
       <Panel title="Strategy Validation"><ValidationResultsPanel results={validationResults} selectedResult={selectedValidationResult} loading={validationLoading} error={validationError} onSelect={selectValidationResult} onClear={clearValidationResults} /></Panel>
-      <Panel title="Backtest Results"><BacktestResultsPanel results={backtestResults} selectedResult={selectedBacktestResult} loading={backtestLoading} error={backtestError} onSelect={selectBacktestResult} onClear={clearBacktestResults} /></Panel>
+      <Panel title="Backtest Results">
+        <BacktestReport
+          results={backtestResults}
+          result={selectedBacktestResult}
+          loading={backtestLoading}
+          error={backtestError}
+          onSelect={selectBacktestResult}
+          onClear={clearBacktestResults}
+          monteCarloResult={monteCarloResult}
+          mcLoading={monteCarloLoading}
+          mcError={monteCarloError}
+          onRunMonteCarlo={(iterations) => runMonteCarlo(selectedBacktestResult?.strategyId, { iterations })}
+          onDownloadReport={downloadReport}
+          reportDownloading={reportDownloading}
+        />
+      </Panel>
+      <Panel title="Walk-Forward Analysis">
+        <WalkForwardPanel
+          strategyCandidates={strategyCandidates}
+          result={walkForwardResult}
+          loading={walkForwardLoading}
+          error={walkForwardError}
+          onRun={runWalkForward}
+        />
+      </Panel>
       <Panel title="Potential Reversal Points"><ReversalPointsPanel items={reversalPoints} loading={reversalLoading} error={reversalError} strategyLoading={reversalStrategyLoading} strategyError={reversalStrategyError} onDetect={detectReversals} onClear={clearReversalPoints} onCreateStrategy={createStrategyFromReversal} onSaveStrategy={saveStrategyFromReversal} disabled={loading} /></Panel>
       <Panel title="Quant Features"><QuantFeaturesPanel items={quantFeatures} loading={loading} /></Panel>
       <Panel title="Quality Scores"><QualityScoresPanel items={qualityScores} loading={loading} /></Panel>
