@@ -16,6 +16,7 @@ export default function WorkspaceSwitcher() {
     'LiveData',
     'ChartOrderflow',
     'AILab',
+    'Alerts',
   ];
 
   return (
