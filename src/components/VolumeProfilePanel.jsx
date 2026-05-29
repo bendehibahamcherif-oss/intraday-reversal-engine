@@ -77,10 +77,10 @@ export function VolumeProfileOverlay({ minPrice, maxPrice, chartWidth, candleHei
         const isHvn = hvnSet.has(bin.price);
         const isLvn = lvnSet.has(bin.price);
         const fill = isHvn
-          ? 'rgba(96,165,250,0.8)'     // HVN — bright blue
+          ? 'rgba(255,184,0,0.6)'      // HVN — amber
           : isLvn
-          ? 'rgba(55,65,81,0.55)'      // LVN — dim gray
-          : 'rgba(56,189,248,0.32)';   // normal — teal
+          ? 'rgba(100,100,120,0.3)'    // LVN — dim gray
+          : 'rgba(80,120,200,0.35)';   // normal — blue
 
         return (
           <rect
@@ -100,7 +100,7 @@ export function VolumeProfileOverlay({ minPrice, maxPrice, chartWidth, candleHei
         <line
           x1={0} x2={chartWidth}
           y1={toY(poc)} y2={toY(poc)}
-          stroke="#fbbf24" strokeWidth={1.5} opacity={0.95}
+          stroke="#FFB800" strokeWidth={1.5} opacity={0.95}
         />
       )}
 
@@ -109,7 +109,7 @@ export function VolumeProfileOverlay({ minPrice, maxPrice, chartWidth, candleHei
         <line
           x1={0} x2={chartWidth}
           y1={toY(vah)} y2={toY(vah)}
-          stroke="#22c55e" strokeWidth={1} strokeDasharray="5 3" opacity={0.78}
+          stroke="rgba(0,200,100,0.9)" strokeWidth={1} strokeDasharray="5 3" opacity={0.78}
         />
       )}
 
@@ -118,17 +118,17 @@ export function VolumeProfileOverlay({ minPrice, maxPrice, chartWidth, candleHei
         <line
           x1={0} x2={chartWidth}
           y1={toY(val)} y2={toY(val)}
-          stroke="#ef4444" strokeWidth={1} strokeDasharray="5 3" opacity={0.78}
+          stroke="rgba(220,50,50,0.9)" strokeWidth={1} strokeDasharray="5 3" opacity={0.78}
         />
       )}
 
       {/* Legend chip — top-right of chart */}
       <rect x={chartWidth - MAX_BAR_WIDTH - 2} y={4} width={MAX_BAR_WIDTH + 2} height={82} fill="rgba(0,0,0,0.6)" rx={4} />
-      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={18} fill="#fbbf24" fontSize={10} fontFamily="monospace">─ POC</text>
-      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={32} fill="#22c55e" fontSize={10} fontFamily="monospace">- VAH</text>
-      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={46} fill="#ef4444" fontSize={10} fontFamily="monospace">- VAL</text>
-      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={60} fill="#60a5fa" fontSize={10} fontFamily="monospace">■ HVN</text>
-      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={74} fill="#6b7280" fontSize={10} fontFamily="monospace">□ LVN</text>
+      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={18} fill="#FFB800" fontSize={10} fontFamily="monospace">─ POC</text>
+      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={32} fill="rgba(0,200,100,0.9)" fontSize={10} fontFamily="monospace">- VAH</text>
+      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={46} fill="rgba(220,50,50,0.9)" fontSize={10} fontFamily="monospace">- VAL</text>
+      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={60} fill="rgba(255,184,0,0.9)" fontSize={10} fontFamily="monospace">■ HVN</text>
+      <text x={chartWidth - MAX_BAR_WIDTH + 4} y={74} fill="#646478" fontSize={10} fontFamily="monospace">□ LVN</text>
     </g>
   );
 }

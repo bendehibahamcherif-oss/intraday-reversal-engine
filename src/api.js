@@ -615,4 +615,29 @@ export const api = {
     const data = await response.json().catch(() => ({}));
     return { ...data, _url: url, _httpOk: response.ok };
   },
+
+  // ── Alert Engine ─────────────────────────────────────────────────────────────
+  getAlerts: async (symbol) => {
+    const qs = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
+    return fetch(`${API_BASE}/api/alerts${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  createAlert: async (data) =>
+    fetch(`${API_BASE}/api/alerts`, { method: 'POST', headers: headers(), body: JSON.stringify(data) }).then(handle),
+  getAlertDiagnostics: async () =>
+    fetch(`${API_BASE}/api/alerts/diagnostics`, { method: 'GET', headers: headers() }).then(handle),
+  getAlertHistory: async ({ alertId, limit = 50 } = {}) => {
+    const p = new URLSearchParams({ limit: String(limit) });
+    if (alertId) p.set('alertId', alertId);
+    return fetch(`${API_BASE}/api/alerts/history?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getAlert: async (id) =>
+    fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}`, { method: 'GET', headers: headers() }).then(handle),
+  updateAlert: async (id, updates) =>
+    fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}`, { method: 'PUT', headers: headers(), body: JSON.stringify(updates) }).then(handle),
+  deleteAlert: async (id) =>
+    fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}`, { method: 'DELETE', headers: headers() }).then(handle),
+  enableAlert: async (id) =>
+    fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/enable`, { method: 'POST', headers: headers() }).then(handle),
+  disableAlert: async (id) =>
+    fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/disable`, { method: 'POST', headers: headers() }).then(handle),
 };

@@ -20,6 +20,8 @@ import PaperTradingWorkspace from './workspaces/PaperTradingWorkspace.jsx';
 import LiveDataWorkspace from './workspaces/LiveDataWorkspace.jsx';
 import ChartOrderflowWorkspace from './workspaces/ChartOrderflowWorkspace.jsx';
 import AILabWorkspace from './workspaces/AILabWorkspace.jsx';
+import AlertsWorkspace from './workspaces/AlertsWorkspace.jsx';
+import AlertToast from './components/AlertToast.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useMarketStore } from './store/marketStore';
@@ -28,6 +30,7 @@ import { useWatchlistStore } from './store/watchlistStore';
 import { useActiveSymbolStore } from './store/activeSymbolStore';
 import { useSocketStore } from './store/socketStore';
 import { useMarketRuntimeStore } from './store/marketRuntimeStore';
+import { useAlertStore } from './store/alertStore.js';
 
 import { api, getToken, getUser } from './api.js';
 
@@ -61,6 +64,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       return <ChartOrderflowWorkspace />;
     case 'AILab':
       return <AILabWorkspace />;
+    case 'Alerts':
+      return <AlertsWorkspace />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;
@@ -104,10 +109,12 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     useMarketRuntimeStore.getState().startPolling(7000);
-    console.debug('[App] marketRuntimeStore polling started');
+    useAlertStore.getState().startPolling();
+    console.debug('[App] marketRuntimeStore + alertStore polling started');
     return () => {
       useMarketRuntimeStore.getState().stopPolling();
-      console.debug('[App] marketRuntimeStore polling stopped');
+      useAlertStore.getState().stopPolling();
+      console.debug('[App] polling stopped');
     };
   }, [user]);
 
@@ -151,6 +158,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <AlertToast />
       <div className="terminal-shell">
         <TerminalTopBar user={user} onLogout={() => setUser(null)} />
         <div style={{ display: 'flex', minHeight: 'calc(100vh - 58px)' }}>
