@@ -79,6 +79,13 @@ export const useQuantLabStore = create((set, get) => ({
   selectedBacktestResult: null,
   backtestLoading: false,
   backtestError: '',
+  walkForwardResult: null,
+  walkForwardLoading: false,
+  walkForwardError: '',
+  monteCarloResult: null,
+  monteCarloLoading: false,
+  monteCarloError: '',
+  reportDownloading: false,
   validationResults: [],
   selectedValidationResult: null,
   validationLoading: false,
@@ -293,6 +300,47 @@ export const useQuantLabStore = create((set, get) => ({
       set({ backtestResults: [], selectedBacktestResult: null, backtestLoading: false });
     } catch (err) {
       set({ backtestLoading: false, backtestError: normalizeError(err) });
+    }
+  },
+
+  runWalkForward: async (strategyId, config = {}) => {
+    const { symbol, timeframe } = get();
+    if (!strategyId) { set({ walkForwardError: 'Select a strategy before running walk-forward.' }); return; }
+    set({ walkForwardLoading: true, walkForwardError: '' });
+    try {
+      const payload = await api.runWalkForwardBacktest(symbol, { strategyId, timeframe, ...config });
+      set({ walkForwardResult: payload?.result || payload, walkForwardLoading: false });
+    } catch (err) {
+      set({ walkForwardLoading: false, walkForwardError: normalizeError(err) });
+    }
+  },
+
+  runMonteCarlo: async (strategyId, config = {}) => {
+    const { symbol, timeframe, selectedBacktestResult } = get();
+    const id = strategyId || selectedBacktestResult?.strategyId || '';
+    if (!id) { set({ monteCarloError: 'No strategy available for Monte Carlo simulation.' }); return; }
+    set({ monteCarloLoading: true, monteCarloError: '' });
+    try {
+      const payload = await api.runMonteCarloBacktest(symbol, { strategyId: id, timeframe, ...config });
+      set({ monteCarloResult: payload?.result || payload, monteCarloLoading: false });
+    } catch (err) {
+      set({ monteCarloLoading: false, monteCarloError: normalizeError(err) });
+    }
+  },
+
+  downloadReport: async (id) => {
+    const { symbol } = get();
+    if (!id) { set({ backtestError: 'No result selected for export.' }); return; }
+    set({ reportDownloading: true });
+    try {
+      const html = await api.getBacktestReport(symbol, id);
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      set({ reportDownloading: false });
+    } catch (err) {
+      set({ reportDownloading: false, backtestError: normalizeError(err) });
     }
   },
   loadValidationResults: async () => {
