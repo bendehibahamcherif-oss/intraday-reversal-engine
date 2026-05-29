@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useChartStore } from '../store/chartStore';
 import { useVolumeProfileStore } from '../store/volumeProfileStore';
+import { useCVDStore } from '../store/cvdStore.js';
 import { VolumeProfileOverlay, VolumeProfileSettings } from '../components/VolumeProfilePanel';
+import CVDOverlay from '../components/CVDOverlay.jsx';
 
 function formatNumber(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
@@ -98,11 +100,15 @@ export default function ChartOrderflowWorkspace() {
     refreshChart();
   }, [symbol, timeframe, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Initial volume profile load on mount (the store's chartStore subscription handles
-  // subsequent refreshes on symbol/timeframe changes and chart reloads).
+  // Initial volume profile load on mount.
   useEffect(() => {
     useVolumeProfileStore.getState().loadVolumeProfile();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load CVD whenever symbol changes; also on mount.
+  useEffect(() => {
+    useCVDStore.getState().loadCVD();
+  }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     console.debug('[ChartOrderflowWorkspace] chart data length', candles?.length || 0);
@@ -173,6 +179,11 @@ export default function ChartOrderflowWorkspace() {
             <div>Top Asks: <strong>{(orderflow.topAsks || []).map((a) => `${formatNumber(a?.price, 4)} x ${formatNumber(a?.size, 0)}`).join(' | ') || '—'}</strong></div>
           </div>
         )}
+      </div>
+
+      {/* CVD panel — positioned after orderflow, before source/warnings */}
+      <div className="terminal-card" style={{ padding: 14 }}>
+        <CVDOverlay />
       </div>
 
       <div className="terminal-card" style={{ padding: 14 }}>
