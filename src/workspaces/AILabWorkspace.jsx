@@ -349,7 +349,12 @@ export default function AILabWorkspace() {
       {/* Controls */}
       <div style={{ ...panel, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10 }}>
         <label style={{ fontSize: 12, color: MUTED }}>Symbol
-          <input value={s.symbol} onChange={(e) => s.setSymbol(e.target.value)} style={{ ...iStyle, width: '100%', marginTop: 3 }} />
+          <input
+            value={s.symbol}
+            onChange={(e) => s.setSymbol(e.target.value)}
+            onBlur={() => { if (!s.symbol.trim()) s.setSymbol('SPY'); }}
+            style={{ ...iStyle, width: '100%', marginTop: 3 }}
+          />
         </label>
         <label style={{ fontSize: 12, color: MUTED }}>Horizon (bars)
           <input type="number" min="1" value={s.horizon} onChange={(e) => s.setHorizon(e.target.value)} style={{ ...iStyle, width: '100%', marginTop: 3 }} />
