@@ -70,7 +70,7 @@ export const useAILabStore = create((set, get) => ({
   comparisonError:           '',
 
   // ── Setters ───────────────────────────────────────────────────────────────
-  setSymbol:    (symbol) => set({ symbol: (symbol || '').trim().toUpperCase() || 'SPY' }),
+  setSymbol:    (symbol) => set({ symbol: (symbol || '').toUpperCase() }),
   setHorizon:   (horizon) => set({ horizon: Number(horizon) || 10 }),
   setLimit:     (limit) => set({ limit: Number(limit) || 50 }),
   clearError:   () => set({ error: '', analyticsError: '', trainError: '', registryError: '', championError: '', inferenceError: '', driftError: '', importanceError: '', comparisonError: '' }),
