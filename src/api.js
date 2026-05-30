@@ -530,8 +530,35 @@ export const api = {
     { method: 'POST', headers: headers() }
   ).then(handle),
 
-
-
+  // ── Execution Engine (Phase 11) ───────────────────────────────────────────
+  placeOrder: async (order, mode = 'paper') => fetch(
+    `${API_BASE}/api/execution/order?mode=${encodeURIComponent(mode)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(order) }
+  ).then(handle),
+  getExecutionOrders: async ({ mode = 'paper', symbol, status } = {}) => {
+    const p = new URLSearchParams({ mode });
+    if (symbol) p.set('symbol', symbol);
+    if (status) p.set('status', status);
+    return fetch(`${API_BASE}/api/execution/orders?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  cancelExecutionOrder: async (orderId, mode = 'paper') => fetch(
+    `${API_BASE}/api/execution/order/${encodeURIComponent(orderId)}?mode=${encodeURIComponent(mode)}`,
+    { method: 'DELETE', headers: headers() }
+  ).then(handle),
+  getExecutionFills: async ({ mode = 'paper', symbol } = {}) => {
+    const p = new URLSearchParams({ mode });
+    if (symbol) p.set('symbol', symbol);
+    return fetch(`${API_BASE}/api/execution/fills?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  preTradeRiskCheck: async (order, mode = 'paper') => fetch(
+    `${API_BASE}/api/execution/risk-check?mode=${encodeURIComponent(mode)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(order) }
+  ).then(handle),
+  getExecutionAnalytics: async ({ mode = 'paper', symbol } = {}) => {
+    const p = new URLSearchParams({ mode });
+    if (symbol) p.set('symbol', symbol);
+    return fetch(`${API_BASE}/api/execution/analytics?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
   getFeedStatus: async () => feedFetch(
     `/api/feeds/status`,
     { method: 'GET', headers: headers() }
