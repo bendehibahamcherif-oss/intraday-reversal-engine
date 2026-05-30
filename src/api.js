@@ -667,4 +667,30 @@ export const api = {
     fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/enable`, { method: 'POST', headers: headers() }).then(handle),
   disableAlert: async (id) =>
     fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/disable`, { method: 'POST', headers: headers() }).then(handle),
+
+  // ── Portfolio & Risk Analytics ────────────────────────────────────────────────
+  getPortfolioPositions: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/positions?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getPortfolioPnL: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/pnl?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getPortfolioExposure: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/exposure?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getPortfolioDrawdown: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/drawdown?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getPortfolioVaR: async (mode = 'paper', { confidence = 0.95, method = 'historical', horizon = 1 } = {}) => fetch(
+    `${API_BASE}/api/portfolio/var?mode=${encodeURIComponent(mode)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ confidence, method, horizon }) }
+  ).then(handle),
+  runPortfolioStressTest: async (mode = 'paper', { scenarios = [] } = {}) => fetch(
+    `${API_BASE}/api/portfolio/stress-test?mode=${encodeURIComponent(mode)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ scenarios }) }
+  ).then(handle),
 };
