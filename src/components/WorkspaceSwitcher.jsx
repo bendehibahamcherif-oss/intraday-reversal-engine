@@ -17,6 +17,7 @@ export default function WorkspaceSwitcher() {
     'ChartOrderflow',
     'AILab',
     'Alerts',
+    'OMS',
   ];
 
   return (

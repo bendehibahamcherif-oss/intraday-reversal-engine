@@ -758,4 +758,32 @@ export const api = {
     `${API_BASE}/api/portfolio/stress-test?mode=${encodeURIComponent(mode)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ scenarios }) }
   ).then(handle),
+
+  // ── OMS (Phase 12) ─────────────────────────────────────────────────────────
+  getOMSOrders: async ({ symbol, status, limit = 100 } = {}) => {
+    const p = new URLSearchParams({ limit: String(limit) });
+    if (symbol) p.set('symbol', symbol);
+    if (status) p.set('status', status);
+    return fetch(`${API_BASE}/api/oms/orders?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getOMSOrder: async (orderId) => fetch(
+    `${API_BASE}/api/oms/orders/${encodeURIComponent(orderId)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getOMSOrderEvents: async (orderId) => fetch(
+    `${API_BASE}/api/oms/orders/${encodeURIComponent(orderId)}/events`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  runOMSReconciliation: async () => fetch(
+    `${API_BASE}/api/oms/reconciliation`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  getOMSReconciliation: async () => fetch(
+    `${API_BASE}/api/oms/reconciliation`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getOMSStats: async () => fetch(
+    `${API_BASE}/api/oms/stats`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
 };

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useExecutionStore } from '../store/executionStore';
+import { useOMSStore, OMS_TERMINAL } from '../store/omsStore';
 import OrderTicket from '../components/OrderTicket.jsx';
 
 const BG      = '#050505';
@@ -254,6 +255,11 @@ export default function ExecutionWorkspace() {
     cancelOrder, refreshAll, clearErrors,
   } = useExecutionStore();
 
+  const omsOrders = useOMSStore((s) => s.orders);
+  const omsReconciliation = useOMSStore((s) => s.reconciliation);
+  const omsActiveCount = omsOrders.filter((o) => !OMS_TERMINAL.has(String(o.omsState ?? o.state ?? o.status ?? '').toUpperCase())).length;
+  const omsDivergences = Array.isArray(omsReconciliation?.divergences) ? omsReconciliation.divergences.length : 0;
+
   useEffect(() => { refreshAll(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isLive = mode === 'live';
@@ -268,6 +274,22 @@ export default function ExecutionWorkspace() {
         {isLive && liveUnlocked && (
           <span style={{ background: RED + '22', color: RED, border: `1px solid ${RED}55`, borderRadius: 6, fontSize: 11, padding: '3px 10px', fontWeight: 700 }}>
             ● LIVE ORDERS ACTIVE
+          </span>
+        )}
+        {omsActiveCount > 0 && (
+          <span style={{
+            background: BLUE + '11', color: BLUE, border: `1px solid ${BLUE}44`,
+            borderRadius: 6, fontSize: 11, padding: '3px 10px', fontWeight: 700,
+          }}>
+            OMS {omsActiveCount} active
+          </span>
+        )}
+        {omsDivergences > 0 && (
+          <span style={{
+            background: AMBER + '22', color: AMBER, border: `1px solid ${AMBER}55`,
+            borderRadius: 6, fontSize: 11, padding: '3px 10px', fontWeight: 700,
+          }}>
+            ⚠ {omsDivergences} OMS divergence{omsDivergences !== 1 ? 's' : ''}
           </span>
         )}
         <button
