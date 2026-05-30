@@ -23,6 +23,7 @@ import AILabWorkspace from './workspaces/AILabWorkspace.jsx';
 import AlertsWorkspace from './workspaces/AlertsWorkspace.jsx';
 import OMSWorkspace from './workspaces/OMSWorkspace.jsx';
 import InstitutionalWorkspace from './workspaces/InstitutionalWorkspace.jsx';
+import OpsWorkspace from './workspaces/OpsWorkspace.jsx';
 import AlertToast from './components/AlertToast.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
@@ -72,6 +73,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       return <OMSWorkspace />;
     case 'Institutional':
       return <InstitutionalWorkspace />;
+    case 'Ops':
+      return <OpsWorkspace />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;
