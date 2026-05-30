@@ -18,6 +18,7 @@ export default function WorkspaceSwitcher() {
     'AILab',
     'Alerts',
     'OMS',
+    'Institutional',
   ];
 
   return (

@@ -22,6 +22,7 @@ import ChartOrderflowWorkspace from './workspaces/ChartOrderflowWorkspace.jsx';
 import AILabWorkspace from './workspaces/AILabWorkspace.jsx';
 import AlertsWorkspace from './workspaces/AlertsWorkspace.jsx';
 import OMSWorkspace from './workspaces/OMSWorkspace.jsx';
+import InstitutionalWorkspace from './workspaces/InstitutionalWorkspace.jsx';
 import AlertToast from './components/AlertToast.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
@@ -69,6 +70,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       return <AlertsWorkspace />;
     case 'OMS':
       return <OMSWorkspace />;
+    case 'Institutional':
+      return <InstitutionalWorkspace />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;

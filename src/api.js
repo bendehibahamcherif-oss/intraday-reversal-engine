@@ -759,6 +759,20 @@ export const api = {
     { method: 'POST', headers: headers(), body: JSON.stringify({ scenarios }) }
   ).then(handle),
 
+  // ── Institutional Toolkit (Phase 14) ─────────────────────────────────────
+  persistInstitutionalAnalysis: async ({ type, inputs, outputs, mode = 'paper' } = {}) => fetch(
+    `${API_BASE}/api/institutional/analysis`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ type, inputs, outputs, mode }) }
+  ).then(handle),
+  persistInstitutionalScenarios: async ({ results, positions, mode = 'paper', accountEquity } = {}) => fetch(
+    `${API_BASE}/api/institutional/scenarios`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ results, positions, mode, accountEquity }) }
+  ).then(handle),
+  getInstitutionalAudit: async ({ limit = 50 } = {}) => {
+    const p = new URLSearchParams({ limit: String(limit) });
+    return fetch(`${API_BASE}/api/institutional/audit?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+
   // ── Multi-Asset Analytics (Phase 13) ─────────────────────────────────────
   getMultiAssetCorrelation: async ({ symbols = [], window = 20, timeframe = '1d' } = {}) => {
     const p = new URLSearchParams({ window: String(window), timeframe });
