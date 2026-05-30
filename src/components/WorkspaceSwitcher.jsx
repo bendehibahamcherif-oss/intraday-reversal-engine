@@ -19,6 +19,7 @@ export default function WorkspaceSwitcher() {
     'Alerts',
     'OMS',
     'Institutional',
+    'Ops',
   ];
 
   return (

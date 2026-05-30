@@ -820,4 +820,10 @@ export const api = {
     `${API_BASE}/api/oms/stats`,
     { method: 'GET', headers: headers() }
   ).then(handle),
+
+  // ── Ops / Observability (Phase 15) ───────────────────────────────────────
+  getOpsStatus: async () => fetch(
+    `${API_BASE}/api/ops/status`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
 };
