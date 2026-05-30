@@ -318,6 +318,44 @@ export const api = {
     { method: 'DELETE', headers: headers() }
   ).then(handle),
 
+  // ── ML Model Engine (Phase 9) ─────────────────────────────────────────────
+  trainMLModel: async (symbol, config = {}) => fetch(
+    `${API_BASE}/api/ai/models/train`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, ...config }) }
+  ).then(handle),
+  getMLModelRegistry: async (symbol) => {
+    const qs = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
+    return fetch(`${API_BASE}/api/ai/models${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMLModel: async (modelId) => fetch(
+    `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getChampionModel: async (symbol) => fetch(
+    `${API_BASE}/api/ai/models/champion/${encodeURIComponent(symbol)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  setChampionModel: async (modelId) => fetch(
+    `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/champion`,
+    { method: 'POST', headers: headers() }
+  ).then(handle),
+  runMLInference: async (symbol, config = {}) => fetch(
+    `${API_BASE}/api/ai/inference/${encodeURIComponent(symbol)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify(config) }
+  ).then(handle),
+  getMLDrift: async (symbol, modelId) => {
+    const qs = modelId ? `?modelId=${encodeURIComponent(modelId)}` : '';
+    return fetch(`${API_BASE}/api/ai/drift/${encodeURIComponent(symbol)}${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMLFeatureImportance: async (modelId) => fetch(
+    `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/importance`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  compareMLModels: async (championId, challengerId) => fetch(
+    `${API_BASE}/api/ai/models/compare`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ championId, challengerId }) }
+  ).then(handle),
+
   getSavedStrategies: async (symbol) => strategyLabFetch(
     `/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
