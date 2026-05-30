@@ -759,6 +759,26 @@ export const api = {
     { method: 'POST', headers: headers(), body: JSON.stringify({ scenarios }) }
   ).then(handle),
 
+  // ── Multi-Asset Analytics (Phase 13) ─────────────────────────────────────
+  getMultiAssetCorrelation: async ({ symbols = [], window = 20, timeframe = '1d' } = {}) => {
+    const p = new URLSearchParams({ window: String(window), timeframe });
+    if (symbols.length) p.set('symbols', symbols.join(','));
+    return fetch(`${API_BASE}/api/multi-asset/correlation?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMultiAssetBeta: async ({ symbol = 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d' } = {}) => {
+    const p = new URLSearchParams({ symbol, benchmark, window: String(window), timeframe });
+    return fetch(`${API_BASE}/api/multi-asset/beta?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMultiAssetSectorRotation: async ({ window = 20, timeframe = '1d' } = {}) => {
+    const p = new URLSearchParams({ window: String(window), timeframe });
+    return fetch(`${API_BASE}/api/multi-asset/sector-rotation?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMultiAssetVolatility: async ({ symbols = [], window = 20, timeframe = '1d' } = {}) => {
+    const p = new URLSearchParams({ window: String(window), timeframe });
+    if (symbols.length) p.set('symbols', symbols.join(','));
+    return fetch(`${API_BASE}/api/multi-asset/volatility?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+
   // ── OMS (Phase 12) ─────────────────────────────────────────────────────────
   getOMSOrders: async ({ symbol, status, limit = 100 } = {}) => {
     const p = new URLSearchParams({ limit: String(limit) });
