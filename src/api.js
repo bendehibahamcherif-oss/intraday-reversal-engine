@@ -604,6 +604,12 @@ export const api = {
     `${API_BASE}/api/chart/cvd/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
+  getChartFootprint: async (symbol, { timeframe = '1m', limit = 15, clusterSize, imbalanceThreshold } = {}) => {
+    const p = new URLSearchParams({ timeframe, limit: String(limit) });
+    if (clusterSize)          p.set('clusterSize', String(clusterSize));
+    if (imbalanceThreshold)   p.set('imbalanceThreshold', String(imbalanceThreshold));
+    return fetch(`${API_BASE}/api/chart/footprint/${encodeURIComponent(symbol)}?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
 
   getVolumeProfile: async (symbol, signal, { mode, bins } = {}) => {
     const params = new URLSearchParams();

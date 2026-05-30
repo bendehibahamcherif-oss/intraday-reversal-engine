@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useChartStore } from '../store/chartStore';
 import { useVolumeProfileStore } from '../store/volumeProfileStore';
 import { useCVDStore } from '../store/cvdStore.js';
+import { useFootprintStore } from '../store/footprintStore.js';
 import { VolumeProfileOverlay, VolumeProfileSettings } from '../components/VolumeProfilePanel';
 import CVDOverlay from '../components/CVDOverlay.jsx';
+import FootprintSettings from '../components/FootprintSettings.jsx';
+import FootprintChart from '../components/FootprintChart.jsx';
 
 function formatNumber(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
@@ -110,6 +113,13 @@ export default function ChartOrderflowWorkspace() {
     useCVDStore.getState().loadCVD();
   }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync footprint timeframe with chart timeframe; reload if footprint panel is open.
+  useEffect(() => {
+    const fp = useFootprintStore.getState();
+    fp.setTimeframe(timeframe);
+    if (fp.visible) fp.loadFootprint();
+  }, [symbol, timeframe]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     console.debug('[ChartOrderflowWorkspace] chart data length', candles?.length || 0);
   }, [candles]);
@@ -181,9 +191,15 @@ export default function ChartOrderflowWorkspace() {
         )}
       </div>
 
-      {/* CVD panel — positioned after orderflow, before source/warnings */}
+      {/* CVD panel */}
       <div className="terminal-card" style={{ padding: 14 }}>
         <CVDOverlay />
+      </div>
+
+      {/* Footprint chart — settings panel first (collapsed by default), chart below when visible */}
+      <div className="terminal-card" style={{ padding: 14 }}>
+        <FootprintSettings />
+        <FootprintChart />
       </div>
 
       <div className="terminal-card" style={{ padding: 14 }}>
