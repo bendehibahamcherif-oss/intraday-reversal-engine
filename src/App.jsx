@@ -21,6 +21,7 @@ import LiveDataWorkspace from './workspaces/LiveDataWorkspace.jsx';
 import ChartOrderflowWorkspace from './workspaces/ChartOrderflowWorkspace.jsx';
 import AILabWorkspace from './workspaces/AILabWorkspace.jsx';
 import AlertsWorkspace from './workspaces/AlertsWorkspace.jsx';
+import OMSWorkspace from './workspaces/OMSWorkspace.jsx';
 import AlertToast from './components/AlertToast.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
@@ -66,6 +67,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       return <AILabWorkspace />;
     case 'Alerts':
       return <AlertsWorkspace />;
+    case 'OMS':
+      return <OMSWorkspace />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;
