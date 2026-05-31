@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { normalizeSymbol, useWatchlistStore } from './store/watchlistStore';
+import WatchlistMLSignalCell from './components/WatchlistMLSignalCell.jsx';
+import { useMLSignalStore } from './store/mlSignalStore.js';
 
 const WORKSPACE_MAP = {
   Dashboard: 'Risk',
@@ -20,10 +22,16 @@ const WORKSPACE_MAP = {
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {
-  const workspace = useWorkspaceStore((state) => state.workspace);
-  const addSymbol = useWatchlistStore((state) => state.addSymbol);
+  const workspace    = useWorkspaceStore((state) => state.workspace);
+  const addSymbol    = useWatchlistStore((state) => state.addSymbol);
   const removeSymbol = useWatchlistStore((state) => state.removeSymbol);
   const [symbolInput, setSymbolInput] = useState('');
+  const mlStore = useMLSignalStore();
+
+  // Load ML signals for all watchlist symbols
+  useEffect(() => {
+    for (const sym of watchlist) mlStore.loadSignal(sym);
+  }, [watchlist.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setWorkspace = useWorkspaceStore(
     (state) => state.setWorkspace
@@ -159,7 +167,14 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
                 style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, textAlign: 'left', cursor: 'pointer', flex: 1 }}
                 title={`Open ${symbol}`}
               >
-                {symbol}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {symbol}
+                  <WatchlistMLSignalCell
+                    symbol={symbol}
+                    signal={mlStore.signalBySymbol[symbol]}
+                    loading={mlStore.signalLoading[symbol]}
+                  />
+                </span>
               </button>
               <button
                 onClick={() => removeSymbol(symbol)}

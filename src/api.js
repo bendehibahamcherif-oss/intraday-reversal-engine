@@ -826,4 +826,27 @@ export const api = {
     `${API_BASE}/api/ops/status`,
     { method: 'GET', headers: headers() }
   ).then(handle),
+
+  // ── ML Signal Engine P1 (Phase 9A) ───────────────────────────────────────
+  getMLFeatures: async (symbol, timeframe = '1m', limit = 1) => {
+    const p = new URLSearchParams({ timeframe, limit: String(limit) });
+    return fetch(`${API_BASE}/api/ml/features/${encodeURIComponent(symbol)}?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMLSignal: async (symbol, timeframe = '1m', preview = false) => {
+    const p = new URLSearchParams({ timeframe });
+    if (preview) p.set('preview', '1');
+    return fetch(`${API_BASE}/api/ml/signal/${encodeURIComponent(symbol)}?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMLModels: async (symbol) => {
+    const p = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
+    return fetch(`${API_BASE}/api/ml/models${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  trainMLModelP1: async ({ symbol, timeframe = '1m', candles = [], xgbConfig = {} } = {}) =>
+    fetch(`${API_BASE}/api/ml/train`, { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, timeframe, candles, xgbConfig }) }).then(handle),
+  promoteMLModel: async (modelVersion) =>
+    fetch(`${API_BASE}/api/ml/models/${encodeURIComponent(modelVersion)}/promote`, { method: 'POST', headers: headers() }).then(handle),
+  getMLMetrics: async () =>
+    fetch(`${API_BASE}/api/ml/metrics`, { method: 'GET', headers: headers() }).then(handle),
+  getMLWorkerStatus: async () =>
+    fetch(`${API_BASE}/api/ml/worker/status`, { method: 'GET', headers: headers() }).then(handle),
 };

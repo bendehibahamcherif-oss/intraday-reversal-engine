@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
 import { useAILabStore } from '../store/aiLabStore.js';
+import { useMLSignalStore } from '../store/mlSignalStore.js';
+import MLSignalPanel from '../components/MLSignalPanel.jsx';
+import MLDiagnosticsPanel from '../components/MLDiagnosticsPanel.jsx';
 
 const BG      = '#050505';
 const SURFACE = '#0d0d1a';
@@ -332,11 +335,25 @@ function ModelRegistryTable({ models, championModel, onPromote, onViewImportance
 
 // ── Main workspace ────────────────────────────────────────────────────────────
 export default function AILabWorkspace() {
-  const s = useAILabStore();
+  const s  = useAILabStore();
+  const ml = useMLSignalStore();
 
   useEffect(() => { s.refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load P1 signal when symbol changes
+  useEffect(() => {
+    if (s.symbol) {
+      ml.loadSignal(s.symbol);
+      ml.loadFeatures(s.symbol);
+      ml.loadDiagnostics();
+    }
+  }, [s.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const champId = s.championModel?.modelId || s.championModel?.id;
+  const mlSignal   = ml.signalBySymbol[s.symbol] || null;
+  const mlFeatures = ml.featuresBySymbol[s.symbol] || null;
+  const mlSigLoading = ml.signalLoading[s.symbol] || false;
+  const mlSigError   = ml.signalError[s.symbol] || '';
 
   return (
     <section style={{ display: 'grid', gap: 12 }}>
@@ -371,6 +388,35 @@ export default function AILabWorkspace() {
             {(s.loading || s.analyticsLoading) ? 'Refreshing…' : '↻ Refresh All'}
           </button>
         </div>
+      </div>
+
+      {/* ── P1 ML Signal ──────────────────────────────────────────────────── */}
+      <div style={panel}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <h3 style={{ margin: 0, fontSize: 14, color: TEXT }}>P1 ML Signal — {s.symbol}</h3>
+          <button
+            onClick={() => ml.refreshAll(s.symbol)}
+            style={{ background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 6, color: MUTED, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}
+          >
+            Refresh Signal
+          </button>
+        </div>
+        <MLSignalPanel
+          signal={mlSignal}
+          features={mlFeatures}
+          loading={mlSigLoading}
+          error={mlSigError}
+        />
+      </div>
+
+      {/* ── P1 Diagnostics ────────────────────────────────────────────────── */}
+      <div style={panel}>
+        <h3 style={{ margin: '0 0 10px', fontSize: 14, color: TEXT }}>ML Diagnostics & Drift</h3>
+        <MLDiagnosticsPanel
+          diagnostics={ml.diagnostics}
+          loading={ml.diagnosticsLoading}
+          error={ml.diagnosticsError}
+        />
       </div>
 
       {/* Error */}
