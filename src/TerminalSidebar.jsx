@@ -19,6 +19,7 @@ const WORKSPACE_MAP = {
   'Live Data': 'LiveData',
   'Chart / Orderflow': 'ChartOrderflow',
   'AI Lab': 'AILab',
+  'ML Engine': 'MLEngine',
 };
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {
@@ -52,6 +53,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
     'Live Data',
     'Chart / Orderflow',
     'AI Lab',
+    'ML Engine',
     'Admin',
   ];
 

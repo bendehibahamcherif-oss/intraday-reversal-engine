@@ -24,6 +24,7 @@ import AlertsWorkspace from './workspaces/AlertsWorkspace.jsx';
 import OMSWorkspace from './workspaces/OMSWorkspace.jsx';
 import InstitutionalWorkspace from './workspaces/InstitutionalWorkspace.jsx';
 import OpsWorkspace from './workspaces/OpsWorkspace.jsx';
+import MLDashboard from './workspaces/MLDashboard.jsx';
 import AlertToast from './components/AlertToast.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
@@ -75,6 +76,8 @@ function WorkspaceRenderer({ workspace, marketData }) {
       return <InstitutionalWorkspace />;
     case 'Ops':
       return <OpsWorkspace />;
+    case 'MLEngine':
+      return <MLDashboard />;
     case 'Risk':
     default:
       return <RiskWorkspace marketData={marketData} />;
