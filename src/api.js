@@ -849,4 +849,36 @@ export const api = {
     fetch(`${API_BASE}/api/ml/metrics`, { method: 'GET', headers: headers() }).then(handle),
   getMLWorkerStatus: async () =>
     fetch(`${API_BASE}/api/ml/worker/status`, { method: 'GET', headers: headers() }).then(handle),
+
+  // ── ML Engine Phase 9B ────────────────────────────────────────────────────
+  getMLHealth: async () =>
+    fetch(`${API_BASE}/api/ml/health`, { method: 'GET', headers: headers() }).then(handle),
+
+  getMLModelInfo: async () =>
+    fetch(`${API_BASE}/api/ml/model`, { method: 'GET', headers: headers() }).then(handle),
+
+  mlInfer: async (symbol, body) =>
+    fetch(`${API_BASE}/api/ml/infer/${encodeURIComponent(symbol)}`, {
+      method: 'POST', headers: headers(), body: JSON.stringify(body),
+    }).then(handle),
+
+  getMLModelRuns: async () =>
+    fetch(`${API_BASE}/api/ml/model-runs`, { method: 'GET', headers: headers() }).then(handle),
+
+  getMLPredictions: async ({ limit = 100, symbol } = {}) => {
+    const p = new URLSearchParams({ limit: String(limit) });
+    if (symbol) p.set('symbol', symbol);
+    return fetch(`${API_BASE}/api/ml/predictions?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+
+  getMLFeatureImportance: async (modelVersion) => {
+    const p = modelVersion ? `?modelVersion=${encodeURIComponent(modelVersion)}` : '';
+    return fetch(`${API_BASE}/api/ml/feature-importance${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+
+  getMLDriftMetrics: async () =>
+    fetch(`${API_BASE}/api/ml/drift`, { method: 'GET', headers: headers() }).then(handle),
+
+  getMLModelCard: async () =>
+    fetch(`${API_BASE}/api/ml/model-card`, { method: 'GET', headers: headers() }).then(handle),
 };
