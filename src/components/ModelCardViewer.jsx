@@ -20,8 +20,8 @@ const TABS = ['Overview', 'Performance', 'Features', 'Risks', 'Deployment', 'Met
 function MetricGrid({ metrics }) {
   if (!metrics) return null;
   const entries = [
-    ['Accuracy',    metrics.accuracy,      v => (v*100).toFixed(1)+'%'],
-    ['F1 Macro',    metrics.f1_macro,      v => (v*100).toFixed(1)+'%'],
+    ['Accuracy',    metrics.accuracy,      v => (Number(v)*100).toFixed(1)+'%'],
+    ['F1 Macro',    metrics.f1_macro,      v => (Number(v)*100).toFixed(1)+'%'],
     ['ROC AUC',     metrics.roc_auc_macro, v => Number(v).toFixed(3)],
     ['Brier (Long)',metrics.brier_long,    v => Number(v).toFixed(4)],
     ['Log Loss',    metrics.mlogloss,      v => Number(v).toFixed(4)],
@@ -302,7 +302,7 @@ export default function ModelCardViewer({ onExport }) {
             <div style={row}>
               <span style={{ color: MUTED }}>Error rate</span>
               <span style={{ color: TEXT, fontFamily: 'monospace' }}>
-                {deployment.errorRate != null ? `${(deployment.errorRate * 100).toFixed(2)}%` : '—'}
+                {deployment.errorRate != null ? `${(Number(deployment.errorRate) * 100).toFixed(2)}%` : '—'}
               </span>
             </div>
           </div>

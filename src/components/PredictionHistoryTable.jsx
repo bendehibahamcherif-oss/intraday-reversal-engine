@@ -106,16 +106,16 @@ export default function PredictionHistoryTable({ predictions, loading, error, pa
                     borderRadius: 4, padding: '1px 6px', display: 'inline-block', textAlign: 'center',
                   }}>{p.signal || '—'}</span>
                   <span style={{ color: MUTED, fontFamily: 'monospace', textAlign: 'right' }}>
-                    {p.probability != null ? (p.probability * 100).toFixed(0) + '%' : '—'}
+                    {p.probability != null ? (Number(p.probability) * 100).toFixed(0) + '%' : '—'}
                   </span>
                   <span style={{ color: MUTED, fontFamily: 'monospace', textAlign: 'right' }}>
-                    {p.confidence != null ? (p.confidence * 100).toFixed(0) + '%' : '—'}
+                    {p.confidence != null ? (Number(p.confidence) * 100).toFixed(0) + '%' : '—'}
                   </span>
                   <span style={{ color: outcomeColor, textAlign: 'center' }}>
                     {p.outcome === 'correct' ? '✓' : p.outcome === 'incorrect' ? '✗' : '—'}
                   </span>
                   <span style={{ color: pnlColor, fontFamily: 'monospace', textAlign: 'right', fontWeight: p.pnl != null ? 700 : 400 }}>
-                    {p.pnl != null ? (p.pnl > 0 ? '+' : '') + p.pnl.toFixed(2) : '—'}
+                    {p.pnl != null ? (Number(p.pnl) > 0 ? '+' : '') + Number(p.pnl).toFixed(2) : '—'}
                   </span>
                 </div>
               );
