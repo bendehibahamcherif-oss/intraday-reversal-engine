@@ -16,7 +16,9 @@ const initialState = {
   activeProviders: [],
   activeSymbols: [],
   providerCredentialsStatus: {},
+  providerCredentialsMeta: {},
   selectedProviders: [],
+  providerSelectionDirty: false,
   hasHydratedProviders: false,
   lastValidActiveProviders: [],
   credentialsDraft: {},
@@ -149,14 +151,17 @@ function uniqueStrings(values = []) {
 }
 
 function deriveActiveProvidersFromPayload(payload, fallback = []) {
-  const fromProviders = uniqueStrings(payload?.providers);
+  const fromActiveProviders = uniqueStrings(payload?.activeProviders);
+  if (fromActiveProviders.length) return fromActiveProviders;
+  const fromProviders = uniqueStrings(asArray(payload?.providers).filter((p) => p?.active === true || p?.selected === true).map((p) => pickProviderName(p)));
+  if (fromProviders.length) return fromProviders;
   const fromProviderOrder = uniqueStrings(payload?.providerOrder);
   const fromEnabledMap = uniqueStrings(
     Object.entries(payload?.enabledByProvider || {})
       .filter(([, enabled]) => enabled === true)
       .map(([name]) => name)
   );
-  const merged = uniqueStrings([...fromProviders, ...fromProviderOrder, ...fromEnabledMap]);
+  const merged = uniqueStrings([...fromProviderOrder, ...fromEnabledMap]);
   return merged.length ? merged : uniqueStrings(fallback);
 }
 
@@ -233,12 +238,25 @@ function buildRuntimeFromFeedStatus(feedStatus = {}, fallbackRuntime = {}) {
   };
 }
 
-function mirrorRuntimeFields(runtime = {}) {
+function mirrorRuntimeFields(runtime = {}, state = {}) {
+  const activeProviders = runtime.activeProviders || [];
   return {
-    activeProviders: runtime.activeProviders || [],
-    selectedProviders: runtime.activeProviders || [],
-    lastValidActiveProviders: runtime.activeProviders || [],
+    activeProviders,
+    selectedProviders: state.providerSelectionDirty ? (state.selectedProviders || []) : activeProviders,
+    lastValidActiveProviders: activeProviders,
   };
+}
+
+function credentialStatusFromProvider(provider = {}) {
+  return provider?.credentialStatus || provider?.credentialsStatus || provider?.status || 'unknown';
+}
+
+function credentialsMetaFromPayload(payload = {}) {
+  const meta = {};
+  Object.entries(payload?.credentials || {}).forEach(([provider, value]) => {
+    meta[provider] = value;
+  });
+  return meta;
 }
 
 function isValidProviderStatePayload(payload) {
@@ -265,6 +283,29 @@ export const useFeedStore = create((set, get) => ({
 
   clearError: () => set({ error: '' }),
 
+
+  loadProviderCredentials: async () => {
+    set({ credentialsLoading: true, credentialsError: '' });
+    try {
+      const payload = await api.listProviderCredentials();
+      const providerCredentialsMeta = credentialsMetaFromPayload(payload);
+      const providerCredentialsStatus = {};
+      Object.entries(providerCredentialsMeta).forEach(([provider, info]) => {
+        providerCredentialsStatus[provider] = info?.configured ? 'configured' : 'missing';
+      });
+      set((state) => ({
+        providerCredentialsMeta,
+        providerCredentialsStatus: { ...state.providerCredentialsStatus, ...providerCredentialsStatus },
+        credentialsLoading: false,
+      }));
+      return providerCredentialsMeta;
+    } catch (error) {
+      get().syncFeedDebug();
+      set({ credentialsLoading: false, credentialsError: normalizeError(error) });
+      return {};
+    }
+  },
+
   loadProviders: async () => {
     set({ credentialsLoading: true, credentialsError: '' });
     try {
@@ -275,7 +316,7 @@ export const useFeedStore = create((set, get) => ({
       mergedProviders.forEach((provider) => {
         const key = provider?.provider || provider?.id || provider?.name;
         if (!key) return;
-        providerCredentialsStatus[key] = provider?.credentialsStatus || provider?.status || 'unknown';
+        providerCredentialsStatus[key] = credentialStatusFromProvider(provider);
       });
       const providerNames = uniqueStrings(providers.map((p) => pickProviderName(p)));
       set((state) => {
@@ -301,7 +342,7 @@ export const useFeedStore = create((set, get) => ({
             selectedProviders: nextSelected,
           },
         });
-        return { providers: nextProviders, providerCredentialsStatus, selectedProviders: nextSelected, credentialsLoading: false };
+        return { providers: nextProviders, providerCredentialsStatus: { ...state.providerCredentialsStatus, ...providerCredentialsStatus }, selectedProviders: nextSelected, credentialsLoading: false };
       });
       return providers;
     } catch (error) {
@@ -315,7 +356,7 @@ export const useFeedStore = create((set, get) => ({
     const selectedProviders = state.selectedProviders.includes(provider)
       ? state.selectedProviders.filter((p) => p !== provider)
       : [...state.selectedProviders, provider];
-    return { selectedProviders };
+    return { selectedProviders, providerSelectionDirty: true };
   }),
 
   loadActiveProviders: async () => {
@@ -369,7 +410,12 @@ export const useFeedStore = create((set, get) => ({
         });
 
         const runtime = { ...(state.runtime || {}), activeProviders, providerOrder: activeProviders.length ? activeProviders : (state.runtime?.providerOrder || []), lastUpdate: new Date().toISOString() };
-        return { activeProviders, activeSymbols, selectedProviders, lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders, runtime, hasHydratedProviders: true, providerHydrationInFlight: false, providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'loadActiveProviders', credentialsLoading: false };
+        const providerCredentialsStatus = {};
+        asArray(payload?.providers).forEach((provider) => {
+          const key = pickProviderName(provider);
+          if (key) providerCredentialsStatus[key] = credentialStatusFromProvider(provider);
+        });
+        return { activeProviders, activeSymbols, selectedProviders, providerSelectionDirty: false, lastValidActiveProviders: activeProviders.length ? activeProviders : state.lastValidActiveProviders, runtime, hasHydratedProviders: true, providerHydrationInFlight: false, providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'loadActiveProviders', credentialsLoading: false, providerCredentialsStatus: { ...state.providerCredentialsStatus, ...providerCredentialsStatus } };
       });
       return { activeProviders: activeProvidersFromApi, activeSymbols };
     } catch (error) {
@@ -388,7 +434,7 @@ export const useFeedStore = create((set, get) => ({
       const result = await api.setActiveFeedProviders(requestedProviders, [symbol]);
       await get().loadActiveProviders();
       await get().loadFeedStatus();
-      set({ credentialsLoading: false, providerSelectionSavedAt: new Date().toISOString() });
+      set({ credentialsLoading: false, providerSelectionDirty: false, providerSelectionSavedAt: new Date().toISOString() });
       return result;
     } catch (error) {
       get().syncFeedDebug();
@@ -412,11 +458,14 @@ export const useFeedStore = create((set, get) => ({
     set({ credentialsLoading: true, credentialsError: '' });
     try {
       const result = await api.saveFeedProviderCredentials(provider, draft);
+      await get().loadProviderCredentials();
+      await get().loadActiveProviders();
+      await get().loadFeedStatus();
       set((state) => ({
         credentialsLoading: false,
         providerCredentialsStatus: {
           ...state.providerCredentialsStatus,
-          [provider]: result?.credentialsStatus || result?.status || 'configured',
+          [provider]: result?.provider?.credentialStatus || 'configured',
         },
         credentialsDraft: { ...state.credentialsDraft, [provider]: {} },
       }));
@@ -432,11 +481,14 @@ export const useFeedStore = create((set, get) => ({
     set({ credentialsLoading: true, credentialsError: '' });
     try {
       const result = await api.deleteFeedProviderCredentials(provider);
+      await get().loadProviderCredentials();
+      await get().loadActiveProviders();
+      await get().loadFeedStatus();
       set((state) => ({
         credentialsLoading: false,
         providerCredentialsStatus: {
           ...state.providerCredentialsStatus,
-          [provider]: result?.credentialsStatus || 'missing_credentials',
+          [provider]: result?.provider?.credentialStatus || 'missing',
         },
       }));
       return result;
@@ -469,7 +521,14 @@ export const useFeedStore = create((set, get) => ({
         },
       });
       const runtime = buildRuntimeFromFeedStatus(feedStatus, currentState.runtime);
-      set({ feedStatus, runtime, ...mirrorRuntimeFields(runtime), loading: false, lastUpdated: new Date().toISOString() });
+      set((state) => {
+        const providerCredentialsStatus = {};
+        asArray(payload?.providers).forEach((provider) => {
+          const key = pickProviderName(provider);
+          if (key) providerCredentialsStatus[key] = credentialStatusFromProvider(provider);
+        });
+        return { feedStatus, runtime, ...mirrorRuntimeFields(runtime, state), providerCredentialsStatus: { ...state.providerCredentialsStatus, ...providerCredentialsStatus }, loading: false, lastUpdated: new Date().toISOString() };
+      });
       console.debug('[feedStore] runtime source updated', runtime);
       return feedStatus;
     } catch (error) {
@@ -567,6 +626,7 @@ export const useFeedStore = create((set, get) => ({
   initializeFeedWorkspace: async () => {
     console.debug('[feedStore] provider runtime hydration start', { hydrationOrder: [1,2,3,4] });
     set({ providerHydrationInFlight: true });
+    await get().loadProviderCredentials(); // 0 credential status
     await get().loadActiveProviders(); // 1 runtime
     await get().loadFeedStatus(); // 2 status
     await get().loadLatestMarketData(); // 3/4 market
@@ -659,7 +719,7 @@ export const useFeedStore = create((set, get) => ({
       };
       console.debug('[feedStore] syncProvidersFromBackendStatus', { before, backendPayload: payload, after });
       const runtime = buildRuntimeFromFeedStatus(feedStatus, state.runtime);
-      return { feedStatus, runtime, ...mirrorRuntimeFields(runtime), providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'providers/status' };
+      return { feedStatus, runtime, ...mirrorRuntimeFields(runtime, state), providerLastSyncAt: new Date().toISOString(), providerLastSyncSource: 'providers/status' };
     });
   },
 }));

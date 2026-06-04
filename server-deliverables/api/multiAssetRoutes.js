@@ -2,7 +2,7 @@
 
 const { Router } = require('express');
 const router = Router();
-const historicalStore = require('../persistence/historicalStore');
+const historicalStore = require('../../server/persistence/historicalStore');
 const engine = require('../multiAsset/multiAssetEngine');
 
 const DEFAULT_SYMBOLS = ['SPY', 'QQQ', 'IWM', 'DIA', 'TLT', 'GLD'];

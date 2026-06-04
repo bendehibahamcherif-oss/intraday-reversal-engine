@@ -574,7 +574,7 @@ export const api = {
     return fetch(`${API_BASE}/api/execution/analytics?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getFeedStatus: async () => feedFetch(
-    `/api/feeds/status`,
+    `/api/feed/status`,
     { method: 'GET', headers: headers() }
   ),
   getFeedStatusBySource: async (source) => feedFetch(
@@ -614,7 +614,7 @@ export const api = {
     { method: 'POST', headers: headers() }
   ),
   getFeedProviders: async () => feedFetch(
-    `/api/feeds/providers`,
+    `/api/providers/health`,
     { method: 'GET', headers: headers() }
   ),
   getFeedProvider: async (provider) => feedFetch(
@@ -622,20 +622,20 @@ export const api = {
     { method: 'GET', headers: headers() }
   ),
   saveFeedProviderCredentials: async (provider, credentials = {}) => feedFetch(
-    `/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ credentials }) }
+    `/api/providers/credentials/${encodeURIComponent(provider)}`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ apiKey: credentials?.apiKey }) }
   ),
 
   listProviderCredentials: async () => fetch(
     `${API_BASE}/api/providers/credentials`,
     { method: 'GET', headers: headers() }
   ).then(handle),
-  saveProviderCredentials: async ({ provider, apiKey, secret, enabled }) => fetch(
-    `${API_BASE}/api/providers/credentials`,
+  saveProviderCredentials: async ({ provider, apiKey }) => fetch(
+    `${API_BASE}/api/providers/credentials/${encodeURIComponent(provider)}`,
     {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ provider, apiKey, secret, enabled }),
+      body: JSON.stringify({ apiKey }),
     }
   ).then(handle),
   deleteProviderCredentials: async (provider) => fetch(
@@ -644,16 +644,16 @@ export const api = {
   ).then(handle),
 
   deleteFeedProviderCredentials: async (provider) => feedFetch(
-    `/api/feeds/providers/${encodeURIComponent(provider)}/credentials`,
+    `/api/providers/credentials/${encodeURIComponent(provider)}`,
     { method: 'DELETE', headers: headers() }
   ),
   getActiveFeedProviders: async () => feedFetch(
-    `/api/feeds/providers/active`,
+    `/api/providers/health`,
     { method: 'GET', headers: headers() }
   ),
   setActiveFeedProviders: async (providers = [], symbols = []) => feedFetch(
-    `/api/feeds/providers/active`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ providers, symbols }) }
+    `/api/providers/active`,
+    { method: 'POST', headers: headers(), body: JSON.stringify({ providers, providerOrder: providers, symbols }) }
   ),
 
   getChartCandles: async (symbol, timeframe = '1m', limit = 200) => fetch(
