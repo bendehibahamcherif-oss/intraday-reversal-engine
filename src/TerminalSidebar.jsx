@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useWorkspaceStore } from './store/workspaceStore';
-import { normalizeSymbol, useWatchlistStore } from './store/watchlistStore';
-import WatchlistMLSignalCell from './components/WatchlistMLSignalCell.jsx';
+import { useEffect } from 'react';
+import { useWorkspaceStore } from './store/workspaceStore.js';
+import { useWatchlistStore } from './store/watchlistStore.js';
 import { useMLSignalStore } from './store/mlSignalStore.js';
 
 const WORKSPACE_MAP = {
@@ -22,172 +21,143 @@ const WORKSPACE_MAP = {
   'ML Engine': 'MLEngine',
 };
 
+const NAV_ITEMS = [
+  { id: 'ChartOrderflow',  abbr: 'CH', title: 'Chart / Orderflow', shortcut: 'Alt+1' },
+  { id: 'Risk',            abbr: 'RK', title: 'Risk / Dashboard',  shortcut: 'Alt+6' },
+  { id: 'Macro',           abbr: 'MK', title: 'Live Markets',      shortcut: '' },
+  { id: 'Execution',       abbr: 'EX', title: 'Quant Signals',     shortcut: 'Alt+2' },
+  { id: 'Portfolio',       abbr: 'PF', title: 'Portfolio',         shortcut: 'Alt+5' },
+  { id: 'LiveData',        abbr: 'LD', title: 'Live Data',         shortcut: '' },
+  { id: 'Alerts',          abbr: 'AL', title: 'Alerts',            shortcut: 'Alt+3' },
+  { id: 'MLEngine',        abbr: 'ML', title: 'ML Engine',         shortcut: 'Alt+4' },
+  { id: 'AILab',           abbr: 'AI', title: 'AI Lab',            shortcut: '' },
+  { id: 'QuantLab',        abbr: 'QL', title: 'Quant Lab',         shortcut: '' },
+  { id: 'StrategyLab',     abbr: 'SL', title: 'Strategy Lab',      shortcut: '' },
+  { id: 'StrategyBuilder', abbr: 'SB', title: 'Strategy Builder',  shortcut: '' },
+  { id: 'PaperTrading',    abbr: 'PT', title: 'Paper Trading',     shortcut: '' },
+  { id: 'Replay',          abbr: 'RP', title: 'Replay',            shortcut: '' },
+];
+
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {
-  const workspace    = useWorkspaceStore((state) => state.workspace);
-  const addSymbol    = useWatchlistStore((state) => state.addSymbol);
-  const removeSymbol = useWatchlistStore((state) => state.removeSymbol);
-  const [symbolInput, setSymbolInput] = useState('');
-  const mlStore = useMLSignalStore();
+  const workspace    = useWorkspaceStore((s) => s.workspace);
+  const setWorkspace = useWorkspaceStore((s) => s.setWorkspace);
+  const mlStore      = useMLSignalStore();
 
   // Load ML signals for all watchlist symbols
   useEffect(() => {
     for (const sym of watchlist) mlStore.loadSignal(sym);
   }, [watchlist.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const setWorkspace = useWorkspaceStore(
-    (state) => state.setWorkspace
-  );
-
-  const nav = [
-    'Dashboard',
-    'Live Markets',
-    'Quant Signals',
-    'Risk Analytics',
-    'Macro Intelligence',
-    'Portfolio',
-    'Replay',
-    'Quant Lab',
-    'Strategy Lab',
-    'Strategy Builder',
-    'Paper Trading',
-    'Live Data',
-    'Chart / Orderflow',
-    'AI Lab',
-    'ML Engine',
-    'Admin',
-  ];
-
-  function handleAddSymbol() {
-    const added = addSymbol(symbolInput);
-    if (added) setSymbolInput('');
+  function navButtonStyle(active) {
+    return {
+      width: 40,
+      height: 40,
+      margin: '2px auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 3,
+      background: active ? 'var(--t-accent)' : 'transparent',
+      color: active ? 'white' : 'var(--t-text-3)',
+      border: active ? '1px solid var(--t-accent-hover)' : '1px solid transparent',
+      fontSize: 10,
+      fontWeight: 700,
+      fontFamily: 'monospace',
+      cursor: 'pointer',
+      position: 'relative',
+    };
   }
 
   return (
     <aside
       style={{
-        width: 240,
-        background: '#070707',
-        borderRight: '1px solid #1a1a1a',
-        padding: 18,
+        width: 48,
+        background: 'var(--t-bg-2)',
+        borderRight: '1px solid var(--t-border)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 18,
+        height: '100%',
+        overflow: 'hidden',
+        position: 'relative',
+        flexShrink: 0,
       }}
     >
-      <div>
-        <div style={{ color: '#9ca3af', fontSize: 11, letterSpacing: 1 }}>REVERSAL</div>
-        <div style={{ fontSize: 22, fontWeight: 900 }}>TERMINAL</div>
+      {/* Logo */}
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 16,
+          fontWeight: 900,
+          color: 'var(--t-accent)',
+          flexShrink: 0,
+        }}
+        title="Reversal Terminal"
+      >
+        R
       </div>
 
-      <div>
-        <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 8 }}>SYSTEM STATUS</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 999,
-              background: socketStatus === 'connected' ? '#22c55e' : socketStatus === 'connecting' ? '#f59e0b' : '#ef4444',
-              display: 'inline-block',
-            }}
-          />
-          <span style={{ textTransform: 'capitalize' }}>{socketStatus}</span>
-        </div>
-      </div>
-
-      <nav style={{ display: 'grid', gap: 8 }}>
-        {nav.map((item) => {
-          const targetWorkspace = WORKSPACE_MAP[item];
-          const active = workspace === targetWorkspace;
-          const isConnected = Boolean(targetWorkspace);
-
+      {/* Nav items */}
+      <nav
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          scrollbarWidth: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {NAV_ITEMS.map((item) => {
+          const active = workspace === item.id;
+          const tooltip = item.shortcut ? `${item.title} (${item.shortcut})` : item.title;
           return (
             <button
-              key={item}
-              onClick={() => isConnected && setWorkspace(targetWorkspace)}
-              title={isConnected ? `Open ${item} workspace` : 'Not connected yet: workspace coming soon'}
-              style={{
-                background: active ? '#2563eb' : '#111111',
-                border: active
-                  ? '1px solid #3b82f6'
-                  : '1px solid #1f1f1f',
-                borderRadius: 10,
-                color: 'white',
-                textAlign: 'left',
-                padding: '10px 12px',
-                cursor: isConnected ? 'pointer' : 'not-allowed',
-                opacity: isConnected ? 1 : 0.6,
-                fontWeight: 700,
-                transition: 'all 0.2s ease',
+              key={item.id}
+              onClick={() => setWorkspace(item.id)}
+              style={navButtonStyle(active)}
+              data-tooltip={tooltip}
+              title={tooltip}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = 'var(--t-bg-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = 'transparent';
+                }
               }}
             >
-              {item}
-              {!isConnected && (
-                <span style={{ display: 'block', fontSize: 10, color: '#f59e0b', marginTop: 4 }}>
-                  Not connected yet
-                </span>
-              )}
+              {item.abbr}
             </button>
           );
         })}
       </nav>
 
-      <div>
-        <div style={{ color: '#9ca3af', fontSize: 12, marginBottom: 8 }}>WATCHLIST</div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-          <input
-            value={symbolInput}
-            onChange={(e) => setSymbolInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAddSymbol();
-            }}
-            placeholder="Add ticker (SPY, BTC-USD, EURUSD=X)"
-            style={{ flex: '1 1 140px', minWidth: 0, background: '#050505', border: '1px solid #202020', borderRadius: 8, color: 'white', padding: '8px 10px' }}
-          />
-          <button onClick={handleAddSymbol} style={{ background: '#2563eb', color: 'white', border: '1px solid #3b82f6', borderRadius: 8, padding: '8px 10px', fontWeight: 700 }}>
-            Add
-          </button>
-        </div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {watchlist.map((symbol) => (
-            <div
-              key={symbol}
-              style={{
-                background: '#050505',
-                border: '1px solid #202020',
-                borderRadius: 10,
-                padding: 8,
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-              }}
-            >
-              <button
-                onClick={() => onSelectSymbol?.(normalizeSymbol(symbol))}
-                style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: 800, textAlign: 'left', cursor: 'pointer', flex: 1 }}
-                title={`Open ${symbol}`}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {symbol}
-                  <WatchlistMLSignalCell
-                    symbol={symbol}
-                    signal={mlStore.signalBySymbol[symbol]}
-                    loading={mlStore.signalLoading[symbol]}
-                  />
-                </span>
-              </button>
-              <button
-                onClick={() => removeSymbol(symbol)}
-                style={{ background: '#111827', color: '#fca5a5', border: '1px solid #374151', borderRadius: 6, width: 28, height: 28, cursor: 'pointer' }}
-                title={`Remove ${symbol}`}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
+      {/* Bottom section */}
+      <div style={{ flexShrink: 0 }}>
+        <div style={{ borderTop: '1px solid var(--t-border)', margin: '4px 0' }} />
+        <button
+          onClick={() => setWorkspace('Admin')}
+          style={navButtonStyle(workspace === 'Admin')}
+          data-tooltip="Admin"
+          title="Admin"
+          onMouseEnter={(e) => {
+            if (workspace !== 'Admin') {
+              e.currentTarget.style.background = 'var(--t-bg-hover)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (workspace !== 'Admin') {
+              e.currentTarget.style.background = 'transparent';
+            }
+          }}
+        >
+          AD
+        </button>
       </div>
     </aside>
   );

@@ -1,0 +1,338 @@
+/* ============================================================
+   terminalTheme.css — Bloomberg/Institutional Terminal Theme
+   ============================================================ */
+
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;600&display=swap');
+
+/* ── Design Tokens ── */
+:root {
+  /* Backgrounds */
+  --t-bg-0: #080C10;
+  --t-bg-1: #0B0F14;
+  --t-bg-2: #11161C;
+  --t-bg-3: #161D26;
+  --t-bg-hover: #1A2130;
+
+  /* Borders */
+  --t-border: #232C37;
+  --t-border-muted: #1A2130;
+  --t-border-focus: #42A5F5;
+
+  /* Text */
+  --t-text: #E6EDF3;
+  --t-text-2: #9DA7B3;
+  --t-text-3: #6B7785;
+  --t-text-4: #4A5568;
+
+  /* Semantic Colors */
+  --t-bull: #00C853;
+  --t-bull-dim: rgba(0, 200, 83, 0.12);
+  --t-bear: #FF5252;
+  --t-bear-dim: rgba(255, 82, 82, 0.12);
+  --t-neutral: #FFA726;
+  --t-neutral-dim: rgba(255, 167, 38, 0.12);
+  --t-info: #42A5F5;
+  --t-info-dim: rgba(66, 165, 245, 0.12);
+  --t-warning: #FFB300;
+  --t-critical: #EF5350;
+  --t-accent: #0077CC;
+  --t-accent-hover: #005A9E;
+
+  /* Typography */
+  --t-font-ui: 'Inter', 'IBM Plex Sans', system-ui, sans-serif;
+  --t-font-mono: 'Roboto Mono', 'IBM Plex Mono', monospace;
+
+  /* Layout Dimensions */
+  --t-topbar-h: 48px;
+  --t-sidebar-w: 48px;
+  --t-statusbar-h: 26px;
+  --t-panel-header-h: 32px;
+  --t-row-h: 28px;
+}
+
+/* ── Global Reset ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--t-bg-0);
+  color: var(--t-text);
+  font-family: var(--t-font-ui);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Thin Scrollbars (4px) ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--t-border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--t-border);
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--t-text-4);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Focus Visible — accent color outline ── */
+:focus-visible {
+  outline: 1.5px solid var(--t-accent);
+  outline-offset: 1px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Utility: Typography ── */
+.font-mono {
+  font-family: var(--t-font-mono) !important;
+}
+
+.text-bull {
+  color: var(--t-bull) !important;
+}
+
+.text-bear {
+  color: var(--t-bear) !important;
+}
+
+.text-neutral {
+  color: var(--t-neutral) !important;
+}
+
+.text-muted {
+  color: var(--t-text-3) !important;
+}
+
+/* ── Panel Base ── */
+.t-panel {
+  background: var(--t-bg-1);
+  border: 1px solid var(--t-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Panel Header ── */
+.t-panel-header {
+  height: var(--t-panel-header-h);
+  min-height: var(--t-panel-header-h);
+  background: var(--t-bg-2);
+  border-bottom: 1px solid var(--t-border);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t-text-2);
+  user-select: none;
+}
+
+/* ── Compact Table ── */
+.t-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: var(--t-font-mono);
+}
+
+.t-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--t-bg-2);
+}
+
+.t-table thead th {
+  height: var(--t-panel-header-h);
+  padding: 0 8px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t-text-3);
+  text-align: right;
+  border-bottom: 1px solid var(--t-border);
+  white-space: nowrap;
+}
+
+.t-table thead th:first-child {
+  text-align: left;
+}
+
+.t-table tbody tr {
+  height: var(--t-row-h);
+  border-bottom: 1px solid var(--t-border-muted);
+  transition: background 0.08s ease;
+}
+
+.t-table tbody tr:hover {
+  background: var(--t-bg-hover);
+}
+
+.t-table tbody td {
+  height: var(--t-row-h);
+  padding: 0 8px;
+  text-align: right;
+  color: var(--t-text);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.t-table tbody td:first-child {
+  text-align: left;
+  color: var(--t-text-2);
+}
+
+/* ── Badges ── */
+.t-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--t-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 2px;
+  padding: 1px 5px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.t-badge--bull {
+  background: var(--t-bull-dim);
+  color: var(--t-bull);
+}
+
+.t-badge--bear {
+  background: var(--t-bear-dim);
+  color: var(--t-bear);
+}
+
+.t-badge--neutral {
+  background: var(--t-neutral-dim);
+  color: var(--t-neutral);
+}
+
+.t-badge--info {
+  background: var(--t-info-dim);
+  color: var(--t-info);
+}
+
+/* ── Tooltip via data-tooltip attribute (left → right side) ── */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+  background: var(--t-bg-3);
+  color: var(--t-text);
+  font-family: var(--t-font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--t-border);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* ── Button Reset ── */
+button {
+  font-family: var(--t-font-ui);
+  cursor: pointer;
+}
+
+/* ── Link Reset ── */
+a {
+  color: var(--t-info);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--t-text);
+  text-decoration: underline;
+}
+
+/* ── Input / Select Base ── */
+input,
+select,
+textarea {
+  font-family: var(--t-font-ui);
+  color: var(--t-text);
+  background: var(--t-bg-1);
+  border: 1px solid var(--t-border);
+  border-radius: 2px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--t-text-4);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--t-border-focus);
+  outline: none;
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(0, 119, 204, 0.35);
+  color: var(--t-text);
+}
