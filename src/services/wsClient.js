@@ -110,8 +110,26 @@ class ResilientWebSocket {
   }
 }
 
-const wsClient = new ResilientWebSocket(
-  import.meta.env.VITE_WS_URL || 'ws://localhost:3001/ws'
-);
+function resolveWsUrl() {
+  // 1. Explicit override always wins.
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+
+  // 2. Derive from VITE_API_BASE: replace http(s): with ws(s):
+  const apiBase = import.meta.env.VITE_API_BASE;
+  if (apiBase) {
+    return apiBase.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:').replace(/\/?$/, '') + '/ws';
+  }
+
+  // 3. Derive from current page origin (same host as frontend).
+  //    Guarantees wss: on HTTPS pages — fixes mixed-content block in production.
+  if (typeof window !== 'undefined') {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws`;
+  }
+
+  return 'ws://localhost:3001/ws';
+}
+
+const wsClient = new ResilientWebSocket(resolveWsUrl());
 
 export default wsClient;

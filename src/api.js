@@ -41,6 +41,17 @@ function headers(extra = {}) {
   return h;
 }
 
+const STATUS_MESSAGES = {
+  400: 'Bad request',
+  401: 'Session invalide ou expirée',
+  403: 'Access denied',
+  404: 'Endpoint not available',
+  429: 'Too many requests — please wait',
+  500: 'Server error',
+  502: 'Backend unreachable',
+  503: 'Service temporarily unavailable',
+};
+
 async function handle(res) {
   if (res.status === 401) {
     const err = new Error('Session invalide ou expirée');
@@ -50,8 +61,11 @@ async function handle(res) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const err = new Error(body.error || `HTTP ${res.status}`);
+    // Prefer backend-supplied message; fall back to a human-readable status label.
+    const message = body.error || body.message || STATUS_MESSAGES[res.status] || `HTTP ${res.status}`;
+    const err = new Error(message);
     err.status = res.status;
+    err.endpoint = res.url;
     throw err;
   }
 
