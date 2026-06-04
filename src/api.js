@@ -61,10 +61,15 @@ async function handle(res) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    // Prefer backend-supplied message; fall back to a human-readable status label.
-    const message = body.error || body.message || STATUS_MESSAGES[res.status] || `HTTP ${res.status}`;
+    // body.error may be a string or an object { code, message }; extract the string in both cases.
+    const rawError = body.error;
+    const message = (typeof rawError === 'string' ? rawError : rawError?.message)
+      || body.message
+      || STATUS_MESSAGES[res.status]
+      || `HTTP ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
+    err.code = typeof rawError === 'object' ? rawError?.code : undefined;
     err.endpoint = res.url;
     throw err;
   }

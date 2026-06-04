@@ -52,9 +52,12 @@ function statusLabel(status) {
   const connected = Boolean(status?.connected === true);
   const explicitLive = String(status?.live || status?.feedType || '').toLowerCase() === 'live';
   const isDemoSource = source.includes('fallback_demo') || source.includes('idle_demo');
+  const runtimeStatus = String(status?.runtimeStatus || status?.status || '');
+  const isDelayed = runtimeStatus === 'delayed' || runtimeStatus.includes('delayed');
   const isLive = connected && explicitLive && !isDemoSource;
   if (isLive) return `LIVE (${source})`;
   if (isDemoSource) return `DEMO (${source})`;
+  if (!connected && isDelayed) return `DELAYED (${source})`;
   return `${connected ? 'CONNECTED' : 'NOT CONNECTED'} (${source})`;
 }
 
