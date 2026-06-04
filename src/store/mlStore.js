@@ -152,7 +152,7 @@ export const useMLStore = create((set, get) => ({
     set({ trainingLoading: true, trainingError: '' });
     try {
       const data = await api.getMLModelRuns();
-      const runs = Array.isArray(data) ? data : (data.models || []);
+      const runs = Array.isArray(data) ? data : (data.activeJobs || data.runs || data.models || []);
       set({ trainingRuns: runs, trainingLoading: false });
     } catch (err) {
       set({ trainingLoading: false, trainingError: err.message });
