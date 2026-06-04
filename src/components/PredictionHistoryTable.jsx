@@ -19,7 +19,8 @@ const SIGNAL_COLORS = { LONG: GREEN, SHORT: RED, NEUTRAL: MUTED };
  *   error         string
  *   pageSize      number (default 25)
  */
-export default function PredictionHistoryTable({ predictions = [], loading, error, pageSize = 25 }) {
+export default function PredictionHistoryTable({ predictions, loading, error, pageSize = 25 }) {
+  predictions = Array.isArray(predictions) ? predictions : [];
   const [page, setPage]           = useState(0);
   const [filterSymbol, setFilter] = useState('');
   const [filterSignal, setFSig]   = useState('');

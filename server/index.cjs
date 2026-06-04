@@ -23,6 +23,9 @@ const institutionalRoutes   = require('../server-deliverables/api/institutionalR
 // Phase 9B: ML routes (worker-pool inference)
 const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
 
+// Portfolio & paper-trading routes
+const portfolioRoutes       = require('../server-deliverables/api/portfolioRoutes');
+
 // Phase 15: market session guardrail
 const { guardLiveOrder }    = require('../server-deliverables/guardrails/marketSessionGuardrails');
 
@@ -91,6 +94,10 @@ async function start() {
 
   // ── Phase 9B: ML inference (worker-pool XGBoost) ──────────────────────────
   app.use('/api/ml', mlRoutes);
+
+  // ── Portfolio & paper-trading analytics ────────────────────────────────────
+  app.use('/api/portfolio', portfolioRoutes);
+  app.use('/api/paper',     portfolioRoutes);
 
   // ── Phase 13: multi-asset analysis ────────────────────────────────────────
   app.use('/api/multi-asset', multiAssetRoutes);

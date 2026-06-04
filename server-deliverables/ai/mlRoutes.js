@@ -95,7 +95,7 @@ router.get('/model', (req, res) => {
       ? sqlRegistry.getChampion()
       : (registry ? { ...registry.getStats(), version: registry.getStats()?.champion } : null);
 
-    if (!champ) return res.status(404).json({ error: 'No champion model registered' });
+    if (!champ) return res.json({ ok: false, status: 'no_champion', version: null, message: 'No champion model registered yet. Train a model to get started.' });
 
     const metricsPath = path.join(MODEL_DIR, 'metrics.json');
     const schemaPath  = path.join(MODEL_DIR, 'feature_schema.json');
