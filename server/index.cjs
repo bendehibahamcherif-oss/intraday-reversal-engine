@@ -8,6 +8,7 @@ const integrateRuntime = require('./bootstrap/runtimeIntegration');
 const runtimeHealthEndpoint = require('./monitoring/runtimeHealthEndpoint');
 const runtimeBootstrapper = require('./runtime/runtimeBootstrapper');
 const marketDataAdapter = require('./integration/marketDataAdapter');
+const { createProviderRouter } = require('./providerStateService.cjs');
 
 // Phase 15: observability middleware
 const correlationMiddleware = require('../server-deliverables/middleware/correlationMiddleware');
@@ -91,6 +92,8 @@ async function start() {
   const mongoDb = mongoClient ? mongoClient.db(process.env.MONGO_DB_NAME || 'intraday_reversal_engine') : null;
 
   integrateRuntime({ app, wss, mongoDb });
+
+  app.use('/api', createProviderRouter());
 
   // ── Phase 9B: ML inference (worker-pool XGBoost) ──────────────────────────
   app.use('/api/ml', mlRoutes);

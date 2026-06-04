@@ -102,10 +102,20 @@ export default function LiveDataWorkspace() {
   const providerOrder = ['polygon', 'alphaVantage', 'ibkr', 'yahoo', 'fallback_demo'];
 
   const providerStatus = (provider) => {
+    const canonical = (Array.isArray(store.providers) ? store.providers : []).find((p) => (p?.id || p?.provider || p?.source) === provider);
+    if (canonical?.runtimeStatus) return canonical.runtimeStatus;
     const sourceStatus = store.providerCredentialsStatus?.[provider] || 'unknown';
     if (provider === 'fallback_demo') return 'idle_demo';
-    if (provider === 'yahoo') return sourceStatus === 'connected' ? 'connected' : 'delayed';
-    return sourceStatus;
+    if (provider === 'yahoo') return 'delayed';
+    return sourceStatus === 'configured' ? (provider === 'alphaVantage' ? 'delayed' : 'disconnected') : sourceStatus;
+  };
+
+  const credentialMeta = (provider) => store.providerCredentialsMeta?.[provider] || {};
+  const credentialLabel = (provider) => {
+    const meta = credentialMeta(provider);
+    if (!meta || Object.keys(meta).length === 0) return 'Unknown';
+    if (!meta.configured) return `Not configured (${meta.source || 'none'})`;
+    return `Configured (${meta.source || 'backend'})${meta.masked ? ` · ${meta.masked}` : ''}`;
   };
 
   useEffect(() => {
@@ -246,16 +256,16 @@ export default function LiveDataWorkspace() {
           <div style={{ fontSize: 12, color: '#9ca3af' }}>Active providers</div>
           <div style={{ fontWeight: 700 }}>{formatArray(parsedProviders)}</div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
-            Backend activeProviders: {formatArray(store.feedStatus?.activeProviders)}
+            Backend activeProviders: {formatArray(store.activeProviders)}
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
-            Backend providers: {formatArray(backendProviders)}
+            Backend providerOrder: {formatArray(store.runtime?.providerOrder || store.feedStatus?.providerOrder)}
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
-            Parsed providers: {formatArray(parsedProviders)}
+            Draft selectedProviders: {formatArray(store.selectedProviders)}
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
-            UI selectedProviders: {formatArray(store.selectedProviders)}
+            Dirty state: {store.providerSelectionDirty ? 'dirty / unsaved' : 'clean / matches backend'}
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
             Hydration status: {store.hasHydratedProviders ? 'hydrated' : (store.providerHydrationInFlight ? 'hydrating' : 'idle')}
@@ -264,7 +274,7 @@ export default function LiveDataWorkspace() {
             Last sync timestamp: {formatDate(store.providerLastSyncAt)} ({formatText(store.providerLastSyncSource)})
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
-            Provider order: {formatArray(store.activeProviders.map((provider, idx) => `${idx + 1}. ${provider}`))}
+            Provider order: {formatArray((store.runtime?.providerOrder || store.activeProviders).map((provider, idx) => `${idx + 1}. ${provider}`))}
           </div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
             Persistence: {store.providerSelectionSavedAt ? `Saved ${formatDate(store.providerSelectionSavedAt)}` : 'Waiting for save'}
@@ -281,8 +291,9 @@ export default function LiveDataWorkspace() {
         </div>
         {store.selectedProviders.includes('fallback_demo') ? <p style={{ color: '#fbbf24' }}>Demo/fallback data only, not live market data.</p> : null}
         {store.selectedProviders.includes('yahoo') ? <p style={{ color: '#fbbf24' }}>Fallback/delayed provider; not institutional real-time feed.</p> : null}
-        {store.selectedProviders.some((p) => ['polygon', 'alphaVantage', 'ibkr'].includes(p) && String(providerStatus(p)).includes('missing_credentials')) ? <p style={{ color: '#fca5a5' }}>One or more selected providers are missing credentials.</p> : null}
+        {store.selectedProviders.some((p) => ['polygon', 'alphaVantage', 'ibkr'].includes(p) && (String(providerStatus(p)).includes('missing_credentials') || String(store.providerCredentialsStatus?.[p]).includes('missing'))) ? <p style={{ color: '#fca5a5' }}>One or more selected providers are missing credentials.</p> : null}
         {store.selectedProviders.includes('ibkr') && String(providerStatus('ibkr')).includes('requires_gateway') ? <p style={{ color: '#fbbf24' }}>IBKR requires TWS/IB Gateway setup and active session.</p> : null}
+        {store.credentialsError ? <p style={{ color: '#fca5a5' }}>Save error: {store.credentialsError}</p> : null}
         <button onClick={store.saveActiveProviders} disabled={store.credentialsLoading}>Save provider selection</button>
       </section> : null}
 
@@ -309,7 +320,7 @@ export default function LiveDataWorkspace() {
                 <input type={f.type || 'text'} value={store.credentialsDraft?.[provider]?.[f.key] || ''} onChange={(e) => store.updateCredentialField(provider, f.key, e.target.value)} />
               </label>
             ))}
-            <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Configured status: {String(providerStatus(provider)).includes('missing') ? 'Not configured' : 'Configured/masked'}</div>
+            <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 6 }}>Configured status: {credentialLabel(provider)}</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => store.saveCredentials(provider)} disabled={store.credentialsLoading || fields.length === 0}>Save credentials</button>
               <button onClick={() => store.deleteCredentials(provider)} disabled={store.credentialsLoading || fields.length === 0}>Delete credentials</button>
