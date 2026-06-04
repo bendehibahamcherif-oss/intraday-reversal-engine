@@ -669,9 +669,9 @@ export default function StrategyAnalyzer() {
                   </span>
                 );
               })()}
-              <span style={{ color: '#64748b' }}>PRIX <span style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '14px' }}>{derived.currentPrice.toFixed(2)}</span></span>
-              <span style={{ color: '#64748b' }}>{derived.priceSource === 'POST-MARKET' || derived.priceSource === 'POST-MARKET (clos)' ? 'CLÔTURE JOUR' : 'VEILLE'} <span style={{ color: '#f1f5f9' }}>{derived.prevClose?.toFixed(2)}</span></span>
-              <span style={{ color: '#64748b' }}>GAP <span style={{ color: calc.gap >= 0 ? '#4ade80' : '#f87171' }}>{calc.gap >= 0 ? '+' : ''}{calc.gap?.toFixed(2)} ({calc.gapPct?.toFixed(2)}%)</span></span>
+              <span style={{ color: '#64748b' }}>PRIX <span style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '14px' }}>{Number(derived.currentPrice).toFixed(2)}</span></span>
+              <span style={{ color: '#64748b' }}>{derived.priceSource === 'POST-MARKET' || derived.priceSource === 'POST-MARKET (clos)' ? 'CLÔTURE JOUR' : 'VEILLE'} <span style={{ color: '#f1f5f9' }}>{derived.prevClose != null ? Number(derived.prevClose).toFixed(2) : '—'}</span></span>
+              <span style={{ color: '#64748b' }}>GAP <span style={{ color: calc.gap >= 0 ? '#4ade80' : '#f87171' }}>{calc.gap >= 0 ? '+' : ''}{calc.gap != null ? Number(calc.gap).toFixed(2) : '—'} ({calc.gapPct != null ? Number(calc.gapPct).toFixed(2) : '—'}%)</span></span>
               <span style={{ color: '#64748b' }}>VIX <span style={{ color: '#f1f5f9' }}>{derived.vix?.toFixed(1) ?? '—'}</span></span>
             </div>
           )}
