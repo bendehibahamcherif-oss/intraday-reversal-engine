@@ -9,6 +9,23 @@ const runtimeHealthEndpoint = require('./monitoring/runtimeHealthEndpoint');
 const runtimeBootstrapper = require('./runtime/runtimeBootstrapper');
 const marketDataAdapter = require('./integration/marketDataAdapter');
 
+// Phase 15: observability middleware
+const correlationMiddleware = require('../server-deliverables/middleware/correlationMiddleware');
+const latencyMiddleware     = require('../server-deliverables/middleware/latencyMiddleware');
+const { rateLimiter }       = require('../server-deliverables/middleware/rateLimiter');
+const metrics               = require('../server-deliverables/observability/metrics');
+
+// Phase 15: route modules
+const opsRoutes             = require('../server-deliverables/api15/opsRoutes');
+const multiAssetRoutes      = require('../server-deliverables/api/multiAssetRoutes');
+const institutionalRoutes   = require('../server-deliverables/api/institutionalRoutes');
+
+// Phase 9B: ML routes (worker-pool inference)
+const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
+
+// Phase 15: market session guardrail
+const { guardLiveOrder }    = require('../server-deliverables/guardrails/marketSessionGuardrails');
+
 const PORT = Number(process.env.PORT || 3001);
 const MONGO_URI = process.env.MONGO_URI || '';
 const MARKET_FEED_KEY = process.env.MARKET_FEED_KEY || '';
@@ -26,6 +43,15 @@ async function connectMongo() {
   return client;
 }
 
+// ── Global error handlers — prevent silent crashes ─────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] unhandledRejection:', reason);
+});
+
 async function start() {
   const app = express();
   const server = http.createServer(app);
@@ -40,9 +66,19 @@ async function start() {
   }));
   app.use(express.json({ limit: '1mb' }));
 
+  // ── Phase 15: request tracing + latency recording ──────────────────────────
+  app.use(correlationMiddleware);
+  app.use(latencyMiddleware);
+
   app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
   app.use('/api/monitoring', runtimeHealthEndpoint);
   app.use('/api/runtime', runtimeHealthEndpoint);
+
+  // ── Phase 15: rate-limiting per tier ──────────────────────────────────────
+  app.use('/api/ml',            rateLimiter('heavy'));
+  app.use('/api/multi-asset',   rateLimiter('heavy'));
+  app.use('/api/institutional', rateLimiter('heavy'));
+  app.use('/api',               rateLimiter('api'));
 
   const mongoClient = await connectMongo().catch((err) => {
     console.error('Mongo connection failed, continuing without mongo:', err.message);
@@ -52,6 +88,25 @@ async function start() {
   const mongoDb = mongoClient ? mongoClient.db(process.env.MONGO_DB_NAME || 'intraday_reversal_engine') : null;
 
   integrateRuntime({ app, wss, mongoDb });
+
+  // ── Phase 9B: ML inference (worker-pool XGBoost) ──────────────────────────
+  app.use('/api/ml', mlRoutes);
+
+  // ── Phase 13: multi-asset analysis ────────────────────────────────────────
+  app.use('/api/multi-asset', multiAssetRoutes);
+
+  // ── Phase 13: institutional sizing + scenario analysis ────────────────────
+  app.use('/api/institutional', institutionalRoutes);
+
+  // ── Phase 15: ops status + Prometheus metrics ─────────────────────────────
+  app.use('/api/ops', opsRoutes);
+  app.get('/metrics', (_req, res) => {
+    res.set('Content-Type', 'text/plain; version=0.0.4');
+    res.send(metrics.getPrometheusText());
+  });
+
+  // ── Market session guardrail: live orders only during RTH ─────────────────
+  app.use('/api/execution/order', guardLiveOrder());
 
   runtimeBootstrapper.boot({ marketDataAdapter });
 

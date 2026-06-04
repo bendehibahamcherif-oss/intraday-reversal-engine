@@ -32,6 +32,9 @@ function normalizeCVD(payload) {
   };
 }
 
+// ── In-flight request guard ───────────────────────────────────────────────────
+let _cvdAbort = null;
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 export const useCVDStore = create((set, get) => ({
   symbol:         useActiveSymbolStore.getState().symbol,
@@ -48,12 +51,18 @@ export const useCVDStore = create((set, get) => ({
   // ── API load ──────────────────────────────────────────────────────────────
   loadCVD: async () => {
     const symbol = useActiveSymbolStore.getState().symbol;
+    if (_cvdAbort) _cvdAbort.abort();
+    _cvdAbort = new AbortController();
+    const { signal } = _cvdAbort;
     set({ loading: true, error: '', liveUpdate: false });
     try {
-      const payload = await api.getChartCVD(symbol);
+      const payload = await api.getChartCVD(symbol, { signal });
+      if (signal.aborted) return;
+      if (useActiveSymbolStore.getState().symbol !== symbol) return;
       const { bars, sessionDelta, source, fallback, sessionResetAt } = normalizeCVD(payload);
       set({ bars, sessionDelta, source, fallback, sessionResetAt, loading: false, lastUpdated: new Date().toISOString() });
     } catch (err) {
+      if (signal.aborted) return;
       // If the backend doesn't have CVD data yet, store a graceful empty state.
       set({ loading: false, error: err?.message || 'Failed to load CVD', bars: [], sessionDelta: 0, fallback: true, source: 'unknown' });
     }

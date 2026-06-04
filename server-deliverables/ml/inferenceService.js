@@ -36,7 +36,15 @@ function _startWorker(modelPath) {
 
     _worker.stdout.on('data', _onData);
     _worker.stderr.on('data', (d) => { /* log only in debug */ });
-    _worker.on('exit', () => { _worker = null; _workerReady = false; _loadedModel = null; });
+    _worker.on('exit', (code) => {
+      _worker = null; _workerReady = false; _loadedModel = null;
+      // Reject any requests still waiting — prevents indefinite hangs.
+      for (const [id, pending] of _pendingRequests) {
+        clearTimeout(pending.timer);
+        pending.reject(new Error(`Inference worker exited unexpectedly (code ${code})`));
+      }
+      _pendingRequests.clear();
+    });
     _worker.on('error', (err) => { reject(err); });
 
     // Send load command
