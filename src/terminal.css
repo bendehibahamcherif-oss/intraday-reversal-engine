@@ -1,107 +1,82 @@
-body {
-  margin: 0;
-  background: #050505;
-  color: white;
-  font-family: Inter, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/* Import professional terminal theme tokens */
+@import './styles/terminalTheme.css';
 
-* {
-  box-sizing: border-box;
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1f2937;
-  border-radius: 20px;
-}
-
-::-webkit-scrollbar-track {
-  background: #050505;
-}
+/* ── Legacy class compatibility (used by existing workspaces) ───────────── */
 
 .terminal-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 22%),
-    radial-gradient(circle at top right, rgba(168,85,247,0.10), transparent 18%),
-    radial-gradient(circle at center, rgba(16,185,129,0.05), transparent 30%),
-    #050505;
+  background: var(--t-bg-0);
+  color: var(--t-text);
 }
 
 .terminal-container {
   max-width: 1760px;
   margin: 0 auto;
-  padding: 18px;
+  padding: 16px;
 }
 
 .terminal-grid {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
-  gap: 16px;
+  gap: 12px;
   align-items: start;
 }
 
 .terminal-card {
-  background: rgba(15,15,15,0.9);
-  border: 1px solid #232323;
-  border-radius: 18px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  background: var(--t-bg-1);
+  border: 1px solid var(--t-border);
+  border-radius: 4px;
 }
 
 .terminal-card:hover {
-  border-color: #374151;
+  border-color: var(--t-bg-hover);
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-  margin-bottom: 16px;
-  padding: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px;
 }
 
 .metric-card {
-  background: #0a0a0a;
-  border: 1px solid #1f1f1f;
-  border-radius: 14px;
-  padding: 14px;
+  background: var(--t-bg-0);
+  border: 1px solid var(--t-border-muted);
+  border-radius: 3px;
+  padding: 10px 12px;
 }
 
 .metric-label {
-  color: #9ca3af;
-  font-size: 12px;
-  margin-bottom: 8px;
+  color: var(--t-text-3);
+  font-size: 10px;
+  margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
 }
 
 .metric-value {
-  font-size: 28px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--t-font-mono);
+  color: var(--t-text);
 }
 
 .metric-hint {
-  color: #6b7280;
-  font-size: 12px;
-  margin-top: 6px;
+  color: var(--t-text-3);
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 .terminal-title {
-  font-size: 20px;
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--t-text);
 }
 
 .terminal-subtitle {
-  color: #9ca3af;
-  font-size: 12px;
+  color: var(--t-text-3);
+  font-size: 11px;
 }
 
 @media (max-width: 1100px) {
