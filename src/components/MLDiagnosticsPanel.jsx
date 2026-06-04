@@ -34,7 +34,7 @@ function DriftRow({ feature, entry }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', borderBottom: `1px solid ${BORDER}` }}>
       <span style={{ flex: 1, fontSize: 11, fontFamily: 'monospace', color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis' }}>{feature}</span>
       <span style={{ fontSize: 11, fontWeight: 700, color, width: 60, textAlign: 'right' }}>
-        {entry?.psi != null ? entry.psi.toFixed(3) : '—'}
+        {entry?.psi != null ? Number(entry.psi).toFixed(3) : '—'}
       </span>
       <span style={{ fontSize: 10, color, width: 55, textAlign: 'right' }}>
         {psiLabel(entry?.psi)}

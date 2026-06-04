@@ -108,7 +108,7 @@ export default function ModelHealthCard({ onPromoteChallenger, showPromoteButton
         <div style={S.row}>
           <span style={S.muted}>Test Acc / F1</span>
           <span style={S.val}>
-            {(testAcc * 100).toFixed(1)}% / {testF1 != null ? (testF1 * 100).toFixed(1) + '%' : '—'}
+            {(Number(testAcc) * 100).toFixed(1)}% / {testF1 != null ? (Number(testF1) * 100).toFixed(1) + '%' : '—'}
           </span>
         </div>
       )}

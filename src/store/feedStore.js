@@ -523,9 +523,20 @@ export const useFeedStore = create((set, get) => ({
       const runtime = buildRuntimeFromFeedStatus(feedStatus, currentState.runtime);
       set((state) => {
         const providerCredentialsStatus = {};
+        // Extract credential status from provider metadata (PR #89 approach)
         asArray(payload?.providers).forEach((provider) => {
           const key = pickProviderName(provider);
           if (key) providerCredentialsStatus[key] = credentialStatusFromProvider(provider);
+        });
+        // Also sync from feed status entries: if a status entry reports
+        // missing_credentials, ensure it surfaces in both panels consistently
+        asArray(feedStatus?.statuses).forEach((entry) => {
+          if (!entry?.source) return;
+          if (entry.status === 'missing_credentials') {
+            providerCredentialsStatus[entry.source] = 'missing_credentials';
+          } else if (entry.credentialsStatus && !providerCredentialsStatus[entry.source]) {
+            providerCredentialsStatus[entry.source] = entry.credentialsStatus;
+          }
         });
         return { feedStatus, runtime, ...mirrorRuntimeFields(runtime, state), providerCredentialsStatus: { ...state.providerCredentialsStatus, ...providerCredentialsStatus }, loading: false, lastUpdated: new Date().toISOString() };
       });

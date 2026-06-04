@@ -31,7 +31,7 @@ export default function ExecutionBlotter() {
               <td>{fill.quantity}</td>
               <td>{fill.fillPrice}</td>
               <td>
-                {fill.slippage.toFixed(4)}
+                {fill.slippage != null ? Number(fill.slippage).toFixed(4) : '—'}
               </td>
             </tr>
           ))}
