@@ -91,7 +91,7 @@ function CorrelationMatrix({ correlation, loading, error }) {
                 const cs = corrCellStyle(v, isDiag);
                 return (
                   <td key={ci} title={`${symbols[ri]} / ${symbols[ci]}: ${v}`} style={{ ...cellStyle, ...cs }}>
-                    {isDiag ? '1.00' : (v != null ? v.toFixed(2) : '—')}
+                    {isDiag ? '1.00' : (v != null ? Number(v).toFixed(2) : '—')}
                   </td>
                 );
               })}
@@ -125,13 +125,13 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
   let betaColor = TEXT;
   let betaLabel = '—';
   if (betaVal != null) {
-    betaLabel = betaVal >= 0 ? `+${betaVal.toFixed(2)}` : betaVal.toFixed(2);
+    betaLabel = betaVal >= 0 ? `+${Number(betaVal).toFixed(2)}` : Number(betaVal).toFixed(2);
     betaColor = betaVal > 1.2 ? RED : betaVal > 0.8 ? GREEN : AMBER;
   }
 
   const chips = [
     { label: 'Beta',     value: betaLabel,                   color: betaColor },
-    { label: 'R²',       value: r2Val != null ? r2Val.toFixed(3) : '—', color: r2Val != null && r2Val > 0.7 ? GREEN : MUTED },
+    { label: 'R²',       value: r2Val != null ? Number(r2Val).toFixed(3) : '—', color: r2Val != null && r2Val > 0.7 ? GREEN : MUTED },
     { label: 'Window',   value: `${w}d`,                     color: MUTED  },
     { label: 'Asset',    value: selectedAsset,               color: BLUE   },
     { label: 'Benchmark',value: benchmark,                   color: VIOLET },

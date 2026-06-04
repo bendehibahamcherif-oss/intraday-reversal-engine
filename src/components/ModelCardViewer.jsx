@@ -22,9 +22,9 @@ function MetricGrid({ metrics }) {
   const entries = [
     ['Accuracy',    metrics.accuracy,      v => (v*100).toFixed(1)+'%'],
     ['F1 Macro',    metrics.f1_macro,      v => (v*100).toFixed(1)+'%'],
-    ['ROC AUC',     metrics.roc_auc_macro, v => v.toFixed(3)],
-    ['Brier (Long)',metrics.brier_long,    v => v.toFixed(4)],
-    ['Log Loss',    metrics.mlogloss,      v => v.toFixed(4)],
+    ['ROC AUC',     metrics.roc_auc_macro, v => Number(v).toFixed(3)],
+    ['Brier (Long)',metrics.brier_long,    v => Number(v).toFixed(4)],
+    ['Log Loss',    metrics.mlogloss,      v => Number(v).toFixed(4)],
   ].filter(([, v]) => v != null);
 
   return (

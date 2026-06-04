@@ -79,7 +79,7 @@ export default function DriftDashboard() {
           { label: 'Global Status', value: globalStatus?.toUpperCase() || '—', color: statusColor },
           { label: 'Features Warning', value: nWarning, color: nWarning > 0 ? AMBER : GREEN },
           { label: 'Features Critical', value: nCritical, color: nCritical > 0 ? RED : GREEN },
-          { label: 'Pred Drift', value: predDrift != null ? predDrift.toFixed(3) : '—', color: psiColor(predDrift) },
+          { label: 'Pred Drift', value: predDrift != null ? Number(predDrift).toFixed(3) : '—', color: psiColor(predDrift) },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ background: '#080810', borderRadius: 6, padding: '8px 10px' }}>
             <div style={{ fontSize: 9, color: MUTED, marginBottom: 3 }}>{label}</div>
@@ -118,7 +118,7 @@ export default function DriftDashboard() {
                       </span>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: 'monospace' }}>
-                          {psi != null ? psi.toFixed(3) : '—'}
+                          {psi != null ? Number(psi).toFixed(3) : '—'}
                         </span>
                         <span style={{
                           fontSize: 9, fontWeight: 700, color,
@@ -145,14 +145,14 @@ export default function DriftDashboard() {
             <div>
               <div style={{ fontSize: 9, color: MUTED, marginBottom: 2 }}>Pred PSI</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: psiColor(predDrift), fontFamily: 'monospace' }}>
-                {predDrift.toFixed(3)}
+                {Number(predDrift).toFixed(3)}
               </div>
             </div>
             {dataDrift != null && (
               <div>
                 <div style={{ fontSize: 9, color: MUTED, marginBottom: 2 }}>Data Drift</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: psiColor(dataDrift), fontFamily: 'monospace' }}>
-                  {dataDrift.toFixed(3)}
+                  {Number(dataDrift).toFixed(3)}
                 </div>
               </div>
             )}

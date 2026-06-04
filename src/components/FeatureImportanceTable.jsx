@@ -102,13 +102,13 @@ export default function FeatureImportanceTable({ features = [], loading, error, 
                   <div style={{ width: `${bar}%`, height: '100%', background: BLUE, borderRadius: 3 }} />
                 </div>
                 <span style={{ fontSize: 10, fontFamily: 'monospace', color: BLUE, width: 36, textAlign: 'right' }}>
-                  {f.importance != null ? f.importance.toFixed(2) : '—'}
+                  {f.importance != null ? Number(f.importance).toFixed(2) : '—'}
                 </span>
               </div>
 
               {/* SHAP */}
               <span style={{ fontSize: 10, fontFamily: 'monospace', color: MUTED, textAlign: 'right' }}>
-                {shap != null ? shap.toFixed(4) : '—'}
+                {shap != null ? Number(shap).toFixed(4) : '—'}
               </span>
 
               {/* Direction */}
