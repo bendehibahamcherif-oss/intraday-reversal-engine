@@ -665,15 +665,15 @@ export const api = {
     `${API_BASE}/api/chart/payload/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}&limit=${encodeURIComponent(limit)}`,
     { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ).then(handle),
-  getChartCVD: async (symbol) => fetch(
+  getChartCVD: async (symbol, { signal } = {}) => fetch(
     `${API_BASE}/api/chart/cvd/${encodeURIComponent(symbol)}`,
-    { method: 'GET', headers: headers() }
+    { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }
   ).then(handle),
-  getChartFootprint: async (symbol, { timeframe = '1m', limit = 15, clusterSize, imbalanceThreshold } = {}) => {
+  getChartFootprint: async (symbol, { timeframe = '1m', limit = 15, clusterSize, imbalanceThreshold, signal } = {}) => {
     const p = new URLSearchParams({ timeframe, limit: String(limit) });
     if (clusterSize)          p.set('clusterSize', String(clusterSize));
     if (imbalanceThreshold)   p.set('imbalanceThreshold', String(imbalanceThreshold));
-    return fetch(`${API_BASE}/api/chart/footprint/${encodeURIComponent(symbol)}?${p}`, { method: 'GET', headers: headers() }).then(handle);
+    return fetch(`${API_BASE}/api/chart/footprint/${encodeURIComponent(symbol)}?${p}`, { method: 'GET', headers: headers(), ...(signal ? { signal } : {}) }).then(handle);
   },
 
   getVolumeProfile: async (symbol, signal, { mode, bins } = {}) => {

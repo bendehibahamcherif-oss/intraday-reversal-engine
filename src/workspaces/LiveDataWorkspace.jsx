@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useFeedStore } from '../store/feedStore.js';
+import { useShallow } from 'zustand/react/shallow';
 import MarketStreamStatus from '../components/MarketStreamStatus.jsx';
 import ProviderDiagnosticsPanel from '../components/ProviderDiagnosticsPanel.jsx';
 import VolumeProfilePanel from '../components/VolumeProfilePanel.jsx';
@@ -95,7 +96,7 @@ function formatOrderSide(levels) {
 }
 
 export default function LiveDataWorkspace() {
-  const store = useFeedStore();
+  const store = useFeedStore(useShallow((s) => s));
   const [tab, setTab] = useState('market');
   const showDebug = import.meta.env.VITE_LIVE_DATA_DEBUG === 'true';
   const providerOrder = ['polygon', 'alphaVantage', 'ibkr', 'yahoo', 'fallback_demo'];

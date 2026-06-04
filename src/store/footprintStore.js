@@ -53,6 +53,9 @@ function normalizePayload(payload) {
   };
 }
 
+// ── In-flight request guard ───────────────────────────────────────────────────
+let _footprintAbort = null;
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 export const useFootprintStore = create((set, get) => ({
   symbol:             useActiveSymbolStore.getState().symbol,
@@ -81,14 +84,20 @@ export const useFootprintStore = create((set, get) => ({
   loadFootprint: async () => {
     const { clusterSize, imbalanceThreshold, maxBars, timeframe } = get();
     const symbol = useActiveSymbolStore.getState().symbol;
+    if (_footprintAbort) _footprintAbort.abort();
+    _footprintAbort = new AbortController();
+    const { signal } = _footprintAbort;
     set({ loading: true, error: '', liveUpdate: false });
     try {
       const payload = await api.getChartFootprint(symbol, {
-        timeframe, limit: maxBars + 5, clusterSize, imbalanceThreshold,
+        timeframe, limit: maxBars + 5, clusterSize, imbalanceThreshold, signal,
       });
+      if (signal.aborted) return;
+      if (useActiveSymbolStore.getState().symbol !== symbol) return;
       const { bars, source, fallback, clusterSize: cs, imbalanceThreshold: it } = normalizePayload(payload);
       set({ bars, source, fallback, clusterSize: cs, imbalanceThreshold: it, loading: false, lastUpdated: new Date().toISOString() });
     } catch (err) {
+      if (signal.aborted) return;
       set({ loading: false, error: err?.message || 'Failed to load footprint', bars: [], fallback: true, source: 'unknown' });
     }
   },
