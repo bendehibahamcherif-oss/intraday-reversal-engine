@@ -106,6 +106,7 @@ async function start() {
 
   // ── Phase 13: multi-asset analysis ────────────────────────────────────────
   app.use('/api/multi-asset', multiAssetRoutes);
+  app.use('/api/macro',       multiAssetRoutes);
 
   // ── Phase 13: institutional sizing + scenario analysis ────────────────────
   app.use('/api/institutional', institutionalRoutes);

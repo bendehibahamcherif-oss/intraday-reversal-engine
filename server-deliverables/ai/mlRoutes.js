@@ -76,7 +76,7 @@ function getRegistryChampion() {
 
 function getRegistryChallengers() {
   if (sqlRegistry?.list_models) {
-    return sqlRegistry.list_models('', 50).filter((model) => model?.status === 'challenger' || model?.challenger === true);
+    return sqlRegistry.list_models(undefined, 50).filter((model) => model?.status === 'challenger' || model?.challenger === true);
   }
   if (registry?.getChallenger) {
     const challenger = registry.getChallenger();
@@ -99,6 +99,16 @@ function emptyModelResponse() {
 
 function emptyDriftResponse() {
   return { ok: true, drift: { status: 'not_enough_data', psi: {}, features: [], lastComputedAt: null } };
+}
+
+function optionalSymbol(raw, fallback = 'SPY') {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const symbol = String(raw).trim().toUpperCase();
+  return validateSymbol(symbol) ? symbol : fallback;
+}
+
+function jsonError(res, status, message, extra = {}) {
+  return res.status(status).type('application/json').json({ ok: false, status: extra.status || 'error', message, error: message, ...extra });
 }
 
 // ── GET /api/ml/health ────────────────────────────────────────────────────────
@@ -171,12 +181,12 @@ router.get('/model', (req, res) => {
 router.post('/infer/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    if (!validateSymbol(symbol)) return res.status(400).json({ error: 'Invalid symbol' });
+    if (!validateSymbol(symbol)) return jsonError(res, 400, 'Invalid symbol', { status: 'invalid_symbol' });
 
     const { timeframe = '1m', featureVector, modelVersion = 'champion' } = req.body || {};
 
     if (!validateTimeframe(timeframe)) {
-      return res.status(400).json({ error: `Invalid timeframe: ${timeframe}` });
+      return jsonError(res, 400, `Invalid timeframe: ${timeframe}`, { status: 'invalid_timeframe' });
     }
 
     if (!getRegistryChampion()) {
@@ -188,10 +198,10 @@ router.post('/infer/:symbol', async (req, res) => {
     }
 
     if (!Array.isArray(featureVector) || featureVector.length === 0) {
-      return res.status(400).json({ error: 'featureVector must be a non-empty array' });
+      return jsonError(res, 400, 'featureVector must be a non-empty array', { status: 'invalid_feature_vector' });
     }
     if (!featureVector.every((v) => typeof v === 'number' && Number.isFinite(v))) {
-      return res.status(400).json({ error: 'featureVector must contain only finite numbers' });
+      return jsonError(res, 400, 'featureVector must contain only finite numbers', { status: 'invalid_feature_vector' });
     }
 
     const pool = workerPool.getPoolStatus();
@@ -204,7 +214,7 @@ router.post('/infer/:symbol', async (req, res) => {
           return res.json({ ok: true, ...signal, _source: 'phase9a_fallback' });
         }
       }
-      return res.status(503).json({ error: 'No inference workers available' });
+      return jsonError(res, 503, 'Python inference worker stopped', { status: 'worker_stopped' });
     }
 
     // Get feature names from model schema
@@ -242,7 +252,7 @@ router.post('/infer/:symbol', async (req, res) => {
     });
   } catch (err) {
     const status = err.message?.includes('timeout') ? 504 : 500;
-    res.status(status).json({ ok: false, error: err.message });
+    jsonError(res, status, err.message, { status: status === 504 ? 'timeout' : 'inference_error' });
   }
 });
 
@@ -260,7 +270,7 @@ router.post('/train', async (req, res) => {
       const result = await runTraining({
         symbol: symbol.toUpperCase(), timeframe, candles, xgbConfig, estimatedRoundtripCostBps,
       });
-      if (!result.ok) return res.status(422).json({ error: result.error });
+      if (!result.ok) return res.status(422).json({ ok: false, status: 'training_unavailable', message: result.error || 'Training worker or dataset is not available.', details: { worker: 'unknown', dataset: 'missing_or_empty' } });
       return res.json({ ok: true, modelVersion: result.modelVersion, manifest: result.manifest });
     }
 
@@ -268,7 +278,7 @@ router.post('/train', async (req, res) => {
     const { spawn } = require('child_process');
     const trainScript = path.join(__dirname, 'training', 'train_pipeline.py');
     if (!fs.existsSync(trainScript)) {
-      return res.status(501).json({ error: 'Training pipeline not available' });
+      return res.status(501).json({ ok: false, status: 'training_unavailable', message: 'Training worker or dataset is not available.', details: { worker: 'stopped', dataset: 'missing_or_empty' } });
     }
 
     const args = ['--symbol', symbol.toUpperCase(), '--timeframe', timeframe,
@@ -296,7 +306,7 @@ router.post('/train', async (req, res) => {
 
     res.json({ ok: true, ...result });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(503).json({ ok: false, status: 'training_unavailable', message: 'Training worker or dataset is not available.', error: err.message, details: { worker: 'stopped', dataset: 'missing_or_empty' } });
   }
 });
 
@@ -305,10 +315,13 @@ const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 // ── GET /api/ml/model-runs ────────────────────────────────────────────────────
 router.get('/model-runs', (req, res) => {
   try {
+    const symbol = optionalSymbol(req.query.symbol);
+    const filterSymbol = req.query.symbol ? symbol : undefined;
     const raw = sqlRegistry?.list_models
-      ? sqlRegistry.list_models('', 50)
-      : (registry?.listModels ? registry.listModels() : []);
-    res.json({ ok: true, runs: normalizeRuns(raw) });
+      ? sqlRegistry.list_models(filterSymbol, 50)
+      : (registry?.listModels ? registry.listModels(filterSymbol) : []);
+    const runs = normalizeRuns(raw);
+    res.json({ ok: true, runs, symbol, status: runs.length ? 'available' : 'empty' });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -317,12 +330,13 @@ router.get('/model-runs', (req, res) => {
 // ── GET /api/ml/predictions ───────────────────────────────────────────────────
 router.get('/predictions', (req, res) => {
   try {
+    const symbol = optionalSymbol(req.query.symbol);
+    let predictions = [];
     if (evaluation?.getPredictionHistory) {
-      const predictions = normalizeRuns(evaluation.getPredictionHistory());
-      return res.json({ ok: true, predictions });
+      predictions = normalizeRuns(evaluation.getPredictionHistory());
+      if (req.query.symbol) predictions = predictions.filter((p) => String(p?.symbol || '').toUpperCase() === symbol);
     }
-    // Return empty history — will be populated when evaluation module is upgraded
-    res.json({ ok: true, predictions: [] });
+    res.json({ ok: true, predictions, symbol, status: predictions.length ? 'available' : 'empty' });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -354,7 +368,7 @@ router.get('/feature-importance', (req, res) => {
       }
     }
 
-    res.json({ ok: true, features: [] });
+    res.json({ ok: true, features: [], status: 'no_model' });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -457,9 +471,9 @@ router.post('/models/:version/promote', (req, res) => {
       const model = registry.promoteChampion(version);
       return res.json({ ok: true, champion: model });
     }
-    res.status(404).json({ error: 'No registry available' });
+    jsonError(res, 404, 'No registry available', { status: 'registry_unavailable' });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    jsonError(res, 400, err.message, { status: 'promote_failed' });
   }
 });
 
@@ -538,6 +552,26 @@ router.get('/worker/status', (req, res) => {
   res.json({
     pool: workerPool.getPoolStatus(),
     phase9: inferenceService?.getWorkerStatus?.() || null,
+  });
+});
+
+
+// Keep /api/ml/* missing-route responses JSON-only so Render/Express never serves HTML for ML API paths.
+router.use((req, res) => {
+  res.status(404).type('application/json').json({
+    ok: false,
+    status: 'not_found',
+    message: `ML endpoint not available: ${req.method} ${req.originalUrl}`,
+    endpoint: req.originalUrl,
+  });
+});
+
+router.use((err, req, res, _next) => {
+  res.status(err.status || 500).type('application/json').json({
+    ok: false,
+    status: err.status === 404 ? 'not_found' : 'server_error',
+    message: err.message || 'ML route error',
+    endpoint: req.originalUrl,
   });
 });
 

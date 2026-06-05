@@ -1,7 +1,21 @@
 // ============ API CLIENT ============
 // Centralized backend client. Supports JWT Bearer auth and legacy X-User-Token fallback.
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:10000';
+const RENDER_BACKEND_BASE = 'https://reversal.onrender.com';
+
+function resolveApiBase() {
+  const envBase = import.meta.env.VITE_API_BASE;
+  if (envBase) return envBase.replace(/\/$/, '');
+  try {
+    const host = window?.location?.hostname || '';
+    if (host === 'intraday-reversal-engine.onrender.com' || (host.endsWith('.onrender.com') && host !== 'reversal.onrender.com')) {
+      return RENDER_BACKEND_BASE;
+    }
+  } catch {}
+  return 'http://localhost:10000';
+}
+
+const API_BASE = resolveApiBase();
 const TOKEN_KEY = 'reversal_user_token';
 const USER_KEY = 'reversal_user_profile';
 
@@ -41,6 +55,10 @@ function headers(extra = {}) {
   return h;
 }
 
+function endpointLabel(url) {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 const STATUS_MESSAGES = {
   400: 'Bad request',
   401: 'Session invalide ou expirée',
@@ -52,16 +70,55 @@ const STATUS_MESSAGES = {
   503: 'Service temporarily unavailable',
 };
 
-async function parseResponseBody(res) {
+async function parseResponseBody(res, endpointHint = '') {
   if (res.status === 204) return null;
+  const endpoint = res.url || endpointHint;
+  const contentType = res.headers?.get?.('content-type') || '';
   const text = await res.text().catch(() => '');
-  if (!text) return null;
+  if (!text) {
+    if (res.ok) {
+      const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+      err.status = res.status;
+      err.endpoint = endpoint;
+      err.contentType = contentType;
+      err.responsePreview = '';
+      throw err;
+    }
+    const err = new Error(STATUS_MESSAGES[res.status] || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.endpoint = endpoint;
+    err.contentType = contentType;
+    throw err;
+  }
+  if (/json/i.test(contentType)) {
+    try { return JSON.parse(text); }
+    catch (error) {
+      if (import.meta.env.DEV) console.warn('Invalid JSON API response', { endpoint, status: res.status, preview: text.slice(0, 120) });
+      const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+      err.status = res.status;
+      err.endpoint = endpoint;
+      err.contentType = contentType;
+      err.responsePreview = text.slice(0, 120);
+      err.cause = error;
+      throw err;
+    }
+  }
+  if (/html/i.test(contentType) || /^\s*<!doctype html/i.test(text) || /^\s*<html/i.test(text)) {
+    const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+    err.status = res.status;
+    err.endpoint = endpoint;
+    err.contentType = contentType || 'text/html';
+    err.responsePreview = text.slice(0, 120);
+    throw err;
+  }
   try { return JSON.parse(text); }
   catch (error) {
-    const err = new Error('Invalid JSON response');
+    if (import.meta.env.DEV) console.warn('Invalid JSON API response', { endpoint, status: res.status, preview: text.slice(0, 120) });
+    const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
     err.status = res.status;
-    err.endpoint = res.url;
-    err.responseText = text;
+    err.endpoint = endpoint;
+    err.contentType = contentType;
+    err.responsePreview = text.slice(0, 120);
     err.cause = error;
     throw err;
   }
@@ -79,7 +136,7 @@ export async function apiRequest(endpoint, { method = 'GET', headers: extraHeade
       body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
       signal: signal || controller?.signal,
     });
-    const data = await parseResponseBody(res);
+    const data = await parseResponseBody(res, endpoint);
     const errorPayload = data?.error;
     const message = (typeof errorPayload === 'string' ? errorPayload : errorPayload?.message)
       || data?.message
@@ -381,33 +438,42 @@ export const api = {
   ).then(handle),
 
   // ── ML Model Engine (Phase 9) ─────────────────────────────────────────────
-  trainMLModel: async (symbol, config = {}) => fetch(
-    `${API_BASE}/api/ai/models/train`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, ...config }) }
-  ).then(handle),
+  trainMLModel: async (symbol, config = {}) => {
+    const sym = String(symbol || 'SPY').trim().toUpperCase();
+    return fetch(
+      `${API_BASE}/api/ml/train`,
+      { method: 'POST', headers: headers(), body: JSON.stringify({ symbol: sym, ...config }) }
+    ).then(handle);
+  },
   getMLModelRegistry: async (symbol) => {
-    const qs = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
-    return fetch(`${API_BASE}/api/ai/models${qs}`, { method: 'GET', headers: headers() }).then(handle);
+    const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
+    return fetch(`${API_BASE}/api/ml/model-runs${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMLModel: async (modelId) => fetch(
     `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
-  getChampionModel: async (symbol) => fetch(
-    `${API_BASE}/api/ai/models/champion/${encodeURIComponent(symbol)}`,
-    { method: 'GET', headers: headers() }
-  ).then(handle),
+  getChampionModel: async (symbol) => {
+    const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
+    return fetch(`${API_BASE}/api/ml/model${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
   setChampionModel: async (modelId) => fetch(
     `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/champion`,
     { method: 'POST', headers: headers() }
   ).then(handle),
-  runMLInference: async (symbol, config = {}) => fetch(
-    `${API_BASE}/api/ai/inference/${encodeURIComponent(symbol)}`,
-    { method: 'POST', headers: headers(), body: JSON.stringify(config) }
-  ).then(handle),
+  runMLInference: async (symbol, config = {}) => {
+    const sym = String(symbol || 'SPY').trim().toUpperCase();
+    return fetch(
+      `${API_BASE}/api/ml/infer/${encodeURIComponent(sym)}`,
+      { method: 'POST', headers: headers(), body: JSON.stringify(config) }
+    ).then(handle);
+  },
   getMLDrift: async (symbol, modelId) => {
-    const qs = modelId ? `?modelId=${encodeURIComponent(modelId)}` : '';
-    return fetch(`${API_BASE}/api/ai/drift/${encodeURIComponent(symbol)}${qs}`, { method: 'GET', headers: headers() }).then(handle);
+    const p = new URLSearchParams();
+    if (symbol) p.set('symbol', String(symbol).toUpperCase());
+    if (modelId) p.set('modelVersion', modelId);
+    const qs = p.toString() ? `?${p}` : '';
+    return fetch(`${API_BASE}/api/ml/drift${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMLFeatureImportance: async (modelId) => fetch(
     `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/importance`,
@@ -933,13 +999,17 @@ export const api = {
   getMLModelInfo: async () =>
     fetch(`${API_BASE}/api/ml/model`, { method: 'GET', headers: headers() }).then(handle),
 
-  mlInfer: async (symbol, body) =>
-    fetch(`${API_BASE}/api/ml/infer/${encodeURIComponent(symbol)}`, {
-      method: 'POST', headers: headers(), body: JSON.stringify(body),
-    }).then(handle),
+  mlInfer: async (symbol, body) => {
+    const sym = String(symbol || 'SPY').trim().toUpperCase();
+    return fetch(`${API_BASE}/api/ml/infer/${encodeURIComponent(sym)}`, {
+      method: 'POST', headers: headers(), body: JSON.stringify(body || {}),
+    }).then(handle);
+  },
 
-  getMLModelRuns: async () =>
-    fetch(`${API_BASE}/api/ml/model-runs`, { method: 'GET', headers: headers() }).then(handle),
+  getMLModelRuns: async (symbol) => {
+    const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
+    return fetch(`${API_BASE}/api/ml/model-runs${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
 
   getMLPredictions: async ({ limit = 100, symbol } = {}) => {
     const p = new URLSearchParams({ limit: String(limit) });

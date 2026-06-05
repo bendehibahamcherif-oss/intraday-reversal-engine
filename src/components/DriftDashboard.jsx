@@ -178,7 +178,7 @@ export default function DriftDashboard() {
       {/* Empty state */}
       {Object.keys(features).length === 0 && !loading && (
         <div style={{ color: MUTED, fontSize: 12, textAlign: 'center', padding: 20 }}>
-          No drift data — run inference or train a model to populate
+          Not enough prediction history for drift monitoring.
         </div>
       )}
     </div>
