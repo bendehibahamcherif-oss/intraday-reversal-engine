@@ -983,10 +983,10 @@ export const api = {
     const p = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
     return fetch(`${API_BASE}/api/ml/models${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  trainMLModelP1: async ({ symbol, timeframe = '1m', candles = [], xgbConfig = {} } = {}) =>
-    fetch(`${API_BASE}/api/ml/train`, { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, timeframe, candles, xgbConfig }) }).then(handle),
+  trainMLModelP1: async ({ symbol, timeframe = '1m', horizon = 20, datasetPath, promote = false } = {}) =>
+    fetch(`${API_BASE}/api/ml/train`, { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, timeframe, horizon, datasetPath, promote }) }).then(handle),
   promoteMLModel: async (modelVersion) =>
-    fetch(`${API_BASE}/api/ml/models/${encodeURIComponent(modelVersion)}/promote`, { method: 'POST', headers: headers() }).then(handle),
+    fetch(`${API_BASE}/api/ml/promote/${encodeURIComponent(modelVersion)}`, { method: 'POST', headers: headers() }).then(handle),
   getMLMetrics: async () =>
     fetch(`${API_BASE}/api/ml/metrics`, { method: 'GET', headers: headers() }).then(handle),
   getMLWorkerStatus: async () =>
