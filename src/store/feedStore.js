@@ -63,14 +63,15 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
     const symbols = asArray(entry?.symbols || entry?.activeSymbols);
     const connected = entry?.connected === true;
     const status = String(
-      entry?.status
+      entry?.runtimeStatus
+      || entry?.status
       || entry?.state
       || (source === 'fallback_demo' ? 'idle_demo' : (connected ? 'connected' : 'disconnected'))
     );
 
     const nextWarnings = [...warnings];
     if (source === 'yahoo' && !nextWarnings.some((w) => String(w).toLowerCase().includes('delayed'))) {
-      nextWarnings.push('Yahoo feed is delayed/fallback, not institutional real-time.');
+      nextWarnings.push('Yahoo is delayed data, not live institutional feed.');
     }
 
     statuses.push({
@@ -83,6 +84,9 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
       latencyMs: entry?.latencyMs,
       mode: entry?.mode,
       live: entry?.live,
+      runtimeStatus: entry?.runtimeStatus,
+      credentialStatus: entry?.credentialStatus || entry?.credentialsStatus,
+      sourceType: entry?.sourceType,
     });
   };
 
@@ -94,7 +98,9 @@ function normalizeFeedStatusPayload(payload, activeProviders = [], providers = [
     if (!providerName) return;
     pushStatus({
       source: providerName,
-      status: provider?.status || provider?.connectionStatus,
+      status: provider?.runtimeStatus || provider?.status || provider?.connectionStatus,
+      runtimeStatus: provider?.runtimeStatus,
+      credentialStatus: provider?.credentialStatus || provider?.credentialsStatus,
       connected: provider?.connected,
       symbols: provider?.symbols || provider?.activeSymbols,
       warnings: provider?.warnings,
@@ -225,8 +231,10 @@ function buildRuntimeFromFeedStatus(feedStatus = {}, fallbackRuntime = {}) {
   const providerOrder = normalizeProviderList(feedStatus?.providerOrder || feedStatus?.statuses?.map((s) => s?.source) || activeProviders);
   const source = normalizeProviderName(feedStatus?.source || fallbackRuntime?.source || providerOrder[0] || 'unknown') || 'unknown';
   const warnings = asArray(feedStatus?.warnings || fallbackRuntime?.warnings || []);
+  const primaryStatus = String(feedStatus?.status || feedStatus?.runtimeStatus || '').toLowerCase();
   const connected = feedStatus?.connected === true;
-  const healthy = connected && source !== 'fallback_demo';
+  const delayed = primaryStatus === 'delayed' || primaryStatus.includes('delayed');
+  const healthy = (connected || delayed) && source !== 'fallback_demo';
   return {
     source,
     activeProviders,
@@ -562,11 +570,14 @@ export const useFeedStore = create((set, get) => ({
     set({ loading: true, error: '' });
     console.debug('[feedStore] loading market data', { symbol, timeframe });
     try {
-      const [latestTick, latestCandle, latestOrderBook] = await Promise.all([
+      const [tickPayload, candlePayload, orderBookPayload] = await Promise.all([
         api.getLatestTick(symbol, signal),
         api.getLatestCandle(symbol, timeframe, signal),
         api.getLatestOrderBook(symbol, signal),
       ]);
+      const latestTick = tickPayload?.tick || tickPayload?.data || (tickPayload?.price !== undefined ? tickPayload : null);
+      const latestCandle = candlePayload?.candle || candlePayload?.data || (candlePayload?.close !== undefined ? candlePayload : null);
+      const latestOrderBook = orderBookPayload?.orderBook || orderBookPayload?.orderbook || orderBookPayload?.data || (orderBookPayload?.bids ? orderBookPayload : null);
 
       // Post-fetch guard: discard if symbol changed while requests were in flight.
       if (get().symbol !== symbol) {

@@ -140,7 +140,8 @@ export const useMLStore = create((set, get) => ({
     set({ modelInfoLoading: true, modelInfoError: '' });
     try {
       const data = await api.getMLModelInfo();
-      set({ modelInfo: data, modelInfoLoading: false });
+      const modelInfo = data?.status === 'no_model' ? data : (data?.champion || data);
+      set({ modelInfo, modelInfoLoading: false });
     } catch (err) {
       set({ modelInfoLoading: false, modelInfoError: err.message });
     }
@@ -217,7 +218,7 @@ export const useMLStore = create((set, get) => ({
     set({ driftLoading: true, driftError: '' });
     try {
       const data = await api.getMLDriftMetrics();
-      set({ driftMetrics: data, driftLoading: false });
+      set({ driftMetrics: data?.drift || data, driftLoading: false });
     } catch (err) {
       set({ driftLoading: false, driftError: err.message });
     }
@@ -229,7 +230,7 @@ export const useMLStore = create((set, get) => ({
     set({ modelCardLoading: true, modelCardError: '' });
     try {
       const data = await api.getMLModelCard();
-      set({ modelCard: data, modelCardLoading: false });
+      set({ modelCard: data?.modelCard || data, modelCardLoading: false });
     } catch (err) {
       set({ modelCardLoading: false, modelCardError: err.message });
     }

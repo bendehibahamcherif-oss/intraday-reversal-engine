@@ -108,12 +108,22 @@ export const useMarketRuntimeStore = create((set, get) => ({
       // ── Provider health ───────────────────────────────────────────────────
       if (health && typeof health === 'object') {
         available.health = true;
-        // Backend may return { providers: {...} } or flat { polygon: {...}, ... }
-        const map = safeObj(health.providers || health.health || health);
+        const providerList = safeArray(health.providers);
+        // Backend may return { providers: [...] }, { providers: {...} }, or a flat map.
+        const map = providerList.length
+          ? Object.fromEntries(providerList.map((provider) => [provider?.id || provider?.provider || provider?.source, provider]).filter(([id]) => id))
+          : safeObj(health.providers || health.health || health);
         if (Object.keys(map).length > 0) {
           // Merge: keep existing entries if incoming doesn't replace them
           next.providerHealth = { ...state.providerHealth, ...map };
           console.debug('[marketRuntime] health merged', { providers: Object.keys(map) });
+        }
+        if (safeArray(health.activeProviders).length) {
+          next.activeProviders = safeArray(health.activeProviders);
+          next.providerOrder = safeArray(health.providerOrder).length ? safeArray(health.providerOrder) : safeArray(health.activeProviders);
+          next.source = health.source || safeArray(health.activeProviders)[0] || state.source;
+          next.activeProvider = health.source || safeArray(health.activeProviders)[0] || state.activeProvider;
+          next.warnings = Array.isArray(health.warnings) ? health.warnings : state.warnings;
         }
       } else if (health !== null) {
         available.health = false;
