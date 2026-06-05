@@ -52,6 +52,47 @@ const STATUS_MESSAGES = {
   503: 'Service temporarily unavailable',
 };
 
+async function parseResponseBody(res) {
+  if (res.status === 204) return null;
+  const text = await res.text().catch(() => '');
+  if (!text) return null;
+  try { return JSON.parse(text); }
+  catch (error) {
+    const err = new Error('Invalid JSON response');
+    err.status = res.status;
+    err.endpoint = res.url;
+    err.responseText = text;
+    err.cause = error;
+    throw err;
+  }
+}
+
+export async function apiRequest(endpoint, { method = 'GET', headers: extraHeaders, body, signal, timeoutMs = 15000 } = {}) {
+  const controller = !signal && timeoutMs > 0 ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  const upperMethod = String(method || 'GET').toUpperCase();
+  try {
+    const res = await fetch(url, {
+      method: upperMethod,
+      headers: headers(extraHeaders),
+      body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
+      signal: signal || controller?.signal,
+    });
+    const data = await parseResponseBody(res);
+    const errorPayload = data?.error;
+    const message = (typeof errorPayload === 'string' ? errorPayload : errorPayload?.message)
+      || data?.message
+      || (res.ok ? null : STATUS_MESSAGES[res.status] || `HTTP ${res.status}`);
+    return { ok: res.ok, status: res.status, data, error: res.ok ? null : message, endpoint, method: upperMethod };
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    return { ok: false, status: 0, data: null, error: timedOut ? 'Request timeout' : (error?.message || 'Network error'), endpoint, method: upperMethod };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function handle(res) {
   if (res.status === 401) {
     const err = new Error('Session invalide ou expirée');
@@ -59,22 +100,24 @@ async function handle(res) {
     throw err;
   }
 
+  const body = await parseResponseBody(res);
+
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
     // body.error may be a string or an object { code, message }; extract the string in both cases.
-    const rawError = body.error;
+    const rawError = body?.error;
     const message = (typeof rawError === 'string' ? rawError : rawError?.message)
-      || body.message
+      || body?.message
       || STATUS_MESSAGES[res.status]
       || `HTTP ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
     err.code = typeof rawError === 'object' ? rawError?.code : undefined;
     err.endpoint = res.url;
+    err.responseBody = body;
     throw err;
   }
 
-  return res.json();
+  return body;
 }
 
 async function authResult(promise) {
@@ -753,6 +796,10 @@ export const api = {
     fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/disable`, { method: 'POST', headers: headers() }).then(handle),
 
   // ── Portfolio & Risk Analytics ────────────────────────────────────────────────
+  getPortfolioSummary: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/summary?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
   getPortfolioPositions: async (mode = 'paper') => fetch(
     `${API_BASE}/api/portfolio/positions?mode=${encodeURIComponent(mode)}`,
     { method: 'GET', headers: headers() }
@@ -777,6 +824,16 @@ export const api = {
     `${API_BASE}/api/portfolio/stress-test?mode=${encodeURIComponent(mode)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ scenarios }) }
   ).then(handle),
+  getPortfolioHistory: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/history?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getRiskSummary: async () => fetch(`${API_BASE}/api/risk/summary`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskLimits: async () => fetch(`${API_BASE}/api/risk/limits`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskVaR: async () => fetch(`${API_BASE}/api/risk/var`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskDrawdown: async () => fetch(`${API_BASE}/api/risk/drawdown`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskExposure: async () => fetch(`${API_BASE}/api/risk/exposure`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskAlerts: async () => fetch(`${API_BASE}/api/risk/alerts`, { method: 'GET', headers: headers() }).then(handle),
 
   // ── Institutional Toolkit (Phase 14) ─────────────────────────────────────
   persistInstitutionalAnalysis: async ({ type, inputs, outputs, mode = 'paper' } = {}) => fetch(

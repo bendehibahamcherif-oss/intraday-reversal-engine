@@ -34,6 +34,31 @@ function getMode(req) {
   return m === 'live' ? 'live' : 'paper';
 }
 
+
+function portfolioSummary(mode) {
+  return {
+    ok: true,
+    mode,
+    summary: {
+      equity: 0,
+      cash: 0,
+      marketValue: 0,
+      realized: 0,
+      unrealized: 0,
+      totalPnl: 0,
+      currency: 'USD',
+    },
+    status: 'no_positions',
+    message: 'No portfolio activity yet. Paper trading positions will appear here.',
+  };
+}
+
+// ── GET /api/portfolio/summary ───────────────────────────────────────────────
+router.get('/summary', (req, res) => {
+  try { res.json(portfolioSummary(getMode(req))); }
+  catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
 // ── GET /api/portfolio/positions ─────────────────────────────────────────────
 router.get('/positions', (req, res) => {
   try {
@@ -105,6 +130,8 @@ router.get('/drawdown', (req, res) => {
       ok:       true,
       mode,
       drawdown: {
+        current: 0,
+        max:     0,
         currentDrawdown: 0,
         maxDrawdown:     0,
         series:          [],
@@ -113,6 +140,17 @@ router.get('/drawdown', (req, res) => {
       status:  'no_history',
       message: 'No trade history; drawdown series unavailable.',
     });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+// ── GET /api/portfolio/history ───────────────────────────────────────────────
+router.get('/history', (req, res) => {
+  try {
+    const mode = getMode(req);
+    res.json({ ok: true, mode, history: [], status: 'no_history', message: 'No portfolio history yet.' });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

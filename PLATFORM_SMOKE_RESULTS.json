@@ -1,0 +1,208 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-05T05:58:05.886Z",
+  "baseUrl": "http://127.0.0.1:4111",
+  "total": 22,
+  "passed": 22,
+  "failed": 0,
+  "results": [
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/health",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 8
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/model",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 4
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/model-runs",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 3
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/predictions",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 3
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/feature-importance",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 3
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/drift",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 2
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/model-card",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 2
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/providers/health",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 4
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/providers/credentials",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 6
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/providers/active",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 14
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feed/status",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 6
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feeds/tick/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 6
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feeds/candle/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 7
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feeds/orderbook/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 4
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/summary",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 5
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/positions",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 5
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/pnl",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 5
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/exposure",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 5
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/drawdown",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 7
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/summary",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 4
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/exposure",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 2
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/drawdown",
+      "ok": true,
+      "status": 200,
+      "json": true,
+      "missingKeys": [],
+      "latencyMs": 3
+    }
+  ]
+}

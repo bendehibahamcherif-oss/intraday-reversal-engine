@@ -91,7 +91,7 @@ describe('ProviderStateService credentials and active provider selection', () =>
       runtimeStatus: 'delayed',
       credentialStatus: 'not_required',
       sourceType: 'delayed',
-      warning: 'Yahoo is delayed data, not live institutional feed.',
+      warning: 'Yahoo is delayed data, not institutional real-time feed.',
     });
   });
 

@@ -109,7 +109,12 @@ router.get('/health', async (req, res) => {
     const champ  = getRegistryChampion();
 
     res.json({
-      ok:          pool.readyWorkers > 0 || (phase9?.ready ?? false),
+      ok: true,
+      status: 'available',
+      worker: {
+        available: pool.readyWorkers > 0 || (phase9?.ready ?? false),
+        mode: pool.readyWorkers > 0 ? 'worker_pool' : ((phase9?.ready ?? false) ? 'phase9_worker' : 'not_configured'),
+      },
       workerPool:  pool,
       phase9Worker: phase9,
       champion:    champ,
