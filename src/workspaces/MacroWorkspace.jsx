@@ -378,6 +378,19 @@ export default function MacroWorkspace() {
 
   useEffect(() => { refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Listen for dataset selection from Historical Data workspace
+  useEffect(() => {
+    function onDatasetCorrelation(e) {
+      const { datasetId } = e.detail || {};
+      if (datasetId) {
+        store.setCorrelationDatasetId(datasetId);
+        store.loadCorrelation();
+      }
+    }
+    window.addEventListener('reversal:use-dataset-correlation', onDatasetCorrelation);
+    return () => window.removeEventListener('reversal:use-dataset-correlation', onDatasetCorrelation);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const anyError = correlationError || betaError || sectorRotationError || volatilityError;
 
   return (

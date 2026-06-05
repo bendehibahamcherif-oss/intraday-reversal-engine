@@ -79,6 +79,7 @@ export const useQuantLabStore = create((set, get) => ({
   selectedBacktestResult: null,
   backtestLoading: false,
   backtestError: '',
+  backtestPendingDatasetId: null,
   walkForwardResult: null,
   walkForwardLoading: false,
   walkForwardError: '',
@@ -230,8 +231,11 @@ export const useQuantLabStore = create((set, get) => ({
     }
   },
 
+  setBacktestPendingDatasetId: (datasetId) => set({ backtestPendingDatasetId: datasetId }),
+  clearBacktestPendingDatasetId: () => set({ backtestPendingDatasetId: null }),
+
   runBacktest: async (strategyId) => {
-    const { symbol, timeframe, strategyCandidates } = get();
+    const { symbol, timeframe, strategyCandidates, backtestPendingDatasetId } = get();
     if (!strategyId) {
       set({ backtestError: 'No strategy selected for backtest.' });
       return;
@@ -249,7 +253,7 @@ export const useQuantLabStore = create((set, get) => ({
 
     set({ backtestLoading: true, backtestError: '' });
     try {
-      const payload = await api.runBacktest(symbol, strategyId, timeframe);
+      const payload = await api.runBacktest(symbol, strategyId, timeframe, backtestPendingDatasetId);
       const result = normalizeBacktestResult(payload);
       if (!result) {
         set({

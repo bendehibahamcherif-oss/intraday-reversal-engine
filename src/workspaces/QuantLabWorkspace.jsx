@@ -608,6 +608,8 @@ export default function QuantLabWorkspace() {
     clearReversalPoints,
     createStrategyFromReversal,
     saveStrategyFromReversal,
+    backtestPendingDatasetId,
+    setBacktestPendingDatasetId,
   } = useQuantLabStore();
 
   const [draftSymbol, setDraftSymbol] = useState(symbol);
@@ -623,6 +625,16 @@ export default function QuantLabWorkspace() {
     loadValidationResults();
     loadReversalPoints();
   }, [symbol, loadHistory, loadAnalytics]);
+
+  // Listen for dataset selection from Historical Data workspace
+  useEffect(() => {
+    function onDatasetBacktest(e) {
+      const { datasetId } = e.detail || {};
+      if (datasetId) setBacktestPendingDatasetId(datasetId);
+    }
+    window.addEventListener('reversal:use-dataset-backtest', onDatasetBacktest);
+    return () => window.removeEventListener('reversal:use-dataset-backtest', onDatasetBacktest);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClearHistory = async () => {
     if (!window.confirm(`Clear all analysis history for ${symbol}?`)) return;
@@ -770,7 +782,29 @@ export default function QuantLabWorkspace() {
 
       <Panel title="Alpha Signals"><AlphaSignalsPanel items={alphaSignals} loading={loading} /></Panel>
       <Panel title="Pattern Signals"><PatternSignalsPanel items={patternSignals} loading={loading} /></Panel>
-      <Panel title="Strategy Candidates"><StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} onValidate={validateStrategy} validationLoading={validationLoading} /></Panel>
+      <Panel title="Strategy Candidates">
+        {backtestPendingDatasetId && (
+          <div style={{
+            marginBottom: 8,
+            padding: '6px 10px',
+            background: 'rgba(37,99,235,.10)',
+            border: '1px solid #2563eb',
+            borderRadius: 4,
+            fontSize: 11,
+            color: '#93c5fd',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <span>Historical dataset queued: <strong>{backtestPendingDatasetId}</strong></span>
+            <button
+              onClick={() => setBacktestPendingDatasetId(null)}
+              style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 11 }}
+            >✕</button>
+          </div>
+        )}
+        <StrategyCandidatesPanel items={strategyCandidates} loading={loading} onRunBacktest={runBacktest} backtestLoading={backtestLoading} onValidate={validateStrategy} validationLoading={validationLoading} />
+      </Panel>
       <Panel title="Strategy Validation"><ValidationResultsPanel results={validationResults} selectedResult={selectedValidationResult} loading={validationLoading} error={validationError} onSelect={selectValidationResult} onClear={clearValidationResults} /></Panel>
       <Panel title="Backtest Results">
         <BacktestReport

@@ -196,22 +196,84 @@ router.post('/infer/:symbol', async (req, res) => {
 // ── POST /api/ml/train ────────────────────────────────────────────────────────
 router.post('/train', async (req, res) => {
   try {
-    const {
+    let {
       symbol = 'SPY', timeframe = '1m',
       candles = [], xgbConfig = {},
       estimatedRoundtripCostBps, snapshotPath,
+      datasetId, datasetPath,
     } = req.body || {};
 
-    // Phase 9A training pipeline (JS-driven)
+    // ── datasetId: load candles from a registered historical dataset ──────────
+    let resolvedDatasetPath = null;
+    let datasetRowCount     = 0;
+
+    if (datasetId) {
+      const histRegistry = require('../historical/historicalDatasetRegistry');
+      const dataset = histRegistry.get(datasetId);
+
+      if (!dataset) {
+        return res.status(400).json({
+          ok:    false,
+          error: { code: 'DATASET_NOT_FOUND', message: `Historical dataset '${datasetId}' not found in registry.` },
+        });
+      }
+
+      const csvPath = dataset.files && dataset.files.csv;
+      if (!csvPath || !fs.existsSync(csvPath)) {
+        return res.status(400).json({
+          ok:    false,
+          error: { code: 'DATASET_NOT_FOUND', message: `Dataset CSV file not found for datasetId '${datasetId}'.` },
+        });
+      }
+
+      resolvedDatasetPath = csvPath;
+
+      // Parse CSV: skip header, extract candle rows for the training symbol
+      const upperSymbol = symbol.toUpperCase();
+      const raw = fs.readFileSync(csvPath, 'utf8');
+      const lines = raw.split('\n').filter(Boolean);
+      // CSV header: timestamp,symbol,timeframe,open,high,low,close,volume,provider,session,sourceType,adjusted
+      const datasetCandles = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',');
+        if (parts.length < 8) continue;
+        const rowSymbol = String(parts[1]).toUpperCase();
+        // Filter to the training symbol
+        if (rowSymbol !== upperSymbol) continue;
+        datasetCandles.push({
+          timestamp: parts[0],
+          symbol:    parts[1],
+          timeframe: parts[2],
+          open:      parseFloat(parts[3]),
+          high:      parseFloat(parts[4]),
+          low:       parseFloat(parts[5]),
+          close:     parseFloat(parts[6]),
+          volume:    parseFloat(parts[7] || '0'),
+        });
+      }
+
+      candles        = datasetCandles;
+      datasetRowCount = datasetCandles.length;
+    } else if (datasetPath) {
+      // Caller supplied an explicit file path
+      resolvedDatasetPath = datasetPath;
+    }
+
+    // ── Phase 9A training pipeline (JS-driven) ────────────────────────────────
     if (runTraining) {
       const result = await runTraining({
         symbol: symbol.toUpperCase(), timeframe, candles, xgbConfig, estimatedRoundtripCostBps,
       });
       if (!result.ok) return res.status(422).json({ error: result.error });
-      return res.json({ ok: true, modelVersion: result.modelVersion, manifest: result.manifest });
+      return res.json({
+        ok: true,
+        modelVersion:   result.modelVersion,
+        manifest:       result.manifest,
+        ...(datasetId ? { datasetId, datasetPath: resolvedDatasetPath, datasetRowCount } : {}),
+      });
     }
 
-    // Phase 9B training pipeline (Python subprocess)
+    // ── Phase 9B training pipeline (Python subprocess) ────────────────────────
     const { spawn } = require('child_process');
     const trainScript = path.join(__dirname, 'training', 'train_pipeline.py');
     if (!fs.existsSync(trainScript)) {
@@ -220,7 +282,8 @@ router.post('/train', async (req, res) => {
 
     const args = ['--symbol', symbol.toUpperCase(), '--timeframe', timeframe,
                   '--output-dir', MODEL_DIR];
-    if (snapshotPath) args.push('--snapshot', snapshotPath);
+    if (resolvedDatasetPath) args.push('--snapshot', resolvedDatasetPath);
+    else if (snapshotPath)   args.push('--snapshot', snapshotPath);
 
     let stdout = '', stderr = '';
     const proc = spawn(PYTHON_BIN || 'python3', [trainScript, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -241,7 +304,11 @@ router.post('/train', async (req, res) => {
       setTimeout(() => reject(new Error('Training timeout (10 min)')), 600_000);
     });
 
-    res.json({ ok: true, ...result });
+    res.json({
+      ok: true,
+      ...result,
+      ...(datasetId ? { datasetId, datasetPath: resolvedDatasetPath, datasetRowCount } : {}),
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

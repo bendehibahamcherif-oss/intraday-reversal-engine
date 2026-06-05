@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMLStore } from '../store/mlStore.js';
+import { useWorkspaceStore } from '../store/workspaceStore.js';
 import MLSignalPanel from '../components/MLSignalPanel.jsx';
 import MLDiagnosticsPanel from '../components/MLDiagnosticsPanel.jsx';
 import ModelHealthCard from '../components/ModelHealthCard.jsx';
@@ -67,6 +68,9 @@ export default function MLDashboard() {
   const fetchModelCard       = useMLStore((s) => s.fetchModelCard);
   const loadDiagnostics      = useMLStore((s) => s.loadDiagnostics);
   const promoteModel         = useMLStore((s) => s.promoteModel);
+  const setPendingDatasetId  = useMLStore((s) => s.setPendingDatasetId);
+  const pendingDatasetId     = useMLStore((s) => s.pendingDatasetId);
+  const setWorkspace         = useWorkspaceStore((s) => s.setWorkspace);
 
   const sym = (symbol || activeSymbol || 'SPY').toUpperCase();
   const signal = signalBySymbol[sym];
@@ -92,6 +96,19 @@ export default function MLDashboard() {
   useEffect(() => {
     if (sym) loadSignal(sym);
   }, [sym]);
+
+  // Listen for dataset selection from Historical Data workspace
+  useEffect(() => {
+    function onDatasetML(e) {
+      const { datasetId } = e.detail || {};
+      if (datasetId) {
+        setPendingDatasetId(datasetId);
+        setActiveTab('runs');
+      }
+    }
+    window.addEventListener('reversal:use-dataset-ml', onDatasetML);
+    return () => window.removeEventListener('reversal:use-dataset-ml', onDatasetML);
+  }, []);
 
   const handlePromote = async (version) => {
     try { await promoteModel(version); } catch (err) { alert(err.message); }
@@ -167,6 +184,26 @@ export default function MLDashboard() {
         {/* ── Training Runs tab ────────────────────────────────────────────────── */}
         {activeTab === 'runs' && (
           <div style={{ maxWidth: 900 }}>
+            {pendingDatasetId && (
+              <div style={{
+                marginBottom: 12,
+                padding: '8px 12px',
+                background: 'rgba(37,99,235,.12)',
+                border: '1px solid #2563eb',
+                borderRadius: 6,
+                fontSize: 12,
+                color: '#93c5fd',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                <span>Historical dataset queued for next training run: <strong>{pendingDatasetId}</strong></span>
+                <button
+                  onClick={() => setPendingDatasetId(null)}
+                  style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 12 }}
+                >✕ Clear</button>
+              </div>
+            )}
             <TrainingRunsPanel onPromote={handlePromote} />
           </div>
         )}

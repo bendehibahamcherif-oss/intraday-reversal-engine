@@ -36,6 +36,7 @@ const NAV_ITEMS = [
   { id: 'StrategyBuilder', abbr: 'SB', title: 'Strategy Builder',  shortcut: '' },
   { id: 'PaperTrading',    abbr: 'PT', title: 'Paper Trading',     shortcut: '' },
   { id: 'Replay',          abbr: 'RP', title: 'Replay',            shortcut: '' },
+  { id: 'HistoricalData',  abbr: 'HD', title: 'Historical Data',   shortcut: '' },
 ];
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {

@@ -27,6 +27,9 @@ const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
 // Portfolio & paper-trading routes
 const portfolioRoutes       = require('../server-deliverables/api/portfolioRoutes');
 
+// Historical Data Download Center routes
+const historicalRoutes      = require('../server-deliverables/api/historicalRoutes');
+
 // Phase 15: market session guardrail
 const { guardLiveOrder }    = require('../server-deliverables/guardrails/marketSessionGuardrails');
 
@@ -107,6 +110,9 @@ async function start() {
 
   // ── Phase 13: institutional sizing + scenario analysis ────────────────────
   app.use('/api/institutional', institutionalRoutes);
+
+  // ── Historical Data Download Center ───────────────────────────────────────
+  app.use('/api/historical', historicalRoutes);
 
   // ── Phase 15: ops status + Prometheus metrics ─────────────────────────────
   app.use('/api/ops', opsRoutes);
