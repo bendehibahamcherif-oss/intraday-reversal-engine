@@ -26,6 +26,7 @@ const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
 
 // Portfolio & paper-trading routes
 const portfolioRoutes       = require('../server-deliverables/api/portfolioRoutes');
+const riskRoutes            = require('../server-deliverables/api/riskRoutes');
 
 // Phase 15: market session guardrail
 const { guardLiveOrder }    = require('../server-deliverables/guardrails/marketSessionGuardrails');
@@ -101,6 +102,7 @@ async function start() {
   // ── Portfolio & paper-trading analytics ────────────────────────────────────
   app.use('/api/portfolio', portfolioRoutes);
   app.use('/api/paper',     portfolioRoutes);
+  app.use('/api/risk',      riskRoutes);
 
   // ── Phase 13: multi-asset analysis ────────────────────────────────────────
   app.use('/api/multi-asset', multiAssetRoutes);

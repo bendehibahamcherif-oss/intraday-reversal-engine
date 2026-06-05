@@ -11,7 +11,8 @@
     "server:smoke": "node server/smoke.cjs",
     "frontend:build": "vite build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "platform:smoke": "node scripts/platform-smoke.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

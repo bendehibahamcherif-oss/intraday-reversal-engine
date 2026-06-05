@@ -132,7 +132,7 @@ class ProviderStateService {
   providerRuntimeStatus(providerId, credentialStatus, active = false) {
     if (providerId === 'ibkr' && PROVIDERS.ibkr.requiresGateway && process.env.IBKR_GATEWAY_CONNECTED !== 'true') return 'requires_gateway';
     if (credentialStatus === 'missing') return 'missing_credentials';
-    if (providerId === 'fallback_demo') return active ? 'demo' : 'idle_demo';
+    if (providerId === 'fallback_demo') return 'idle_demo';
     if (PROVIDERS[providerId].delayed) return 'delayed';
     return active ? 'connected' : 'disconnected';
   }
@@ -148,7 +148,7 @@ class ProviderStateService {
     const warnings = [];
     if (runtimeStatus === 'missing_credentials') warnings.push(`${provider.label} requires API key`);
     if (runtimeStatus === 'requires_gateway') warnings.push(`${provider.label} gateway is not connected`);
-    if (id === 'yahoo' && active) warnings.push('Yahoo is delayed data, not live institutional feed.');
+    if (id === 'yahoo' && active) warnings.push('Yahoo is delayed data, not institutional real-time feed.');
     if (id === 'fallback_demo' && active) warnings.push('Demo fallback source only. Not live market data.');
     return {
       id,
@@ -344,6 +344,21 @@ function createProviderRouter(service = new ProviderStateService()) {
   router.delete('/feeds/providers/:providerId/credentials', (req, res) => {
     try { res.json(service.deleteCredential(req.params.providerId)); } catch (error) { sendError(res, error); }
   });
+
+
+  router.post('/feeds/start', (req, res) => {
+    try { res.json(service.saveActiveProviders({ providers: [req.body?.source, ...unique(req.body?.providers || service.state.activeProviders)].filter(Boolean), providerOrder: [req.body?.source, ...unique(req.body?.providers || service.state.activeProviders)].filter(Boolean), symbols: req.body?.symbols })); } catch (error) { sendError(res, error); }
+  });
+  router.post('/feeds/stop', (req, res) => {
+    try {
+      const source = normalizeProviderId(req.body?.source);
+      const next = unique(service.state.activeProviders).filter((id) => id !== source);
+      res.json(service.saveActiveProviders({ providers: next.length ? next : ['yahoo'], providerOrder: next.length ? next : ['yahoo'], symbols: service.state.symbols }));
+    } catch (error) { sendError(res, error); }
+  });
+  router.post('/feeds/demo/tick/:symbol', (req, res) => res.json({ success: true, ok: false, symbol: String(req.params.symbol || '').toUpperCase(), tick: null, status: 'demo_generation_disabled', message: 'Demo data generation is disabled; no synthetic trading data was created.' }));
+  router.post('/feeds/demo/candle/:symbol', (req, res) => res.json({ success: true, ok: false, symbol: String(req.params.symbol || '').toUpperCase(), candle: null, status: 'demo_generation_disabled', message: 'Demo data generation is disabled; no synthetic trading data was created.' }));
+  router.post('/feeds/demo/orderbook/:symbol', (req, res) => res.json({ success: true, ok: false, symbol: String(req.params.symbol || '').toUpperCase(), orderBook: null, status: 'demo_generation_disabled', message: 'Demo data generation is disabled; no synthetic trading data was created.' }));
 
 
   router.get('/feeds/tick/:symbol', (req, res) => {
