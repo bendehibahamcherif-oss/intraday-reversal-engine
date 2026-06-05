@@ -95,7 +95,7 @@ describe('apiRequest standard response wrapper', () => {
     await expect(apiRequest('/missing')).resolves.toMatchObject({ ok: false, status: 404, error: 'missing' });
 
     global.fetch = vi.fn(async () => new Response('not json', { status: 200 }));
-    await expect(apiRequest('/bad-json')).resolves.toMatchObject({ ok: false, status: 0, error: 'Invalid JSON response' });
+    await expect(apiRequest('/bad-json')).resolves.toMatchObject({ ok: false, status: 0, error: 'API response is not JSON (/bad-json)' });
 
     global.fetch = vi.fn(async () => { throw new Error('offline'); });
     await expect(apiRequest('/offline')).resolves.toMatchObject({ ok: false, status: 0, error: 'offline' });

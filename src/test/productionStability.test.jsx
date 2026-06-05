@@ -83,7 +83,7 @@ describe('TrainingRunsPanel — 404 resilience', () => {
   it('shows empty state when training runs is empty array', () => {
     useMLStore.setState({ trainingRuns: [], trainingError: '' });
     render(<TrainingRunsPanel />);
-    expect(screen.getByText(/no training runs yet/i)).toBeTruthy();
+    expect(screen.getByText(/no trained models yet/i)).toBeTruthy();
   });
 });
 

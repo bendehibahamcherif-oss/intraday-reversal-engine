@@ -90,7 +90,7 @@ function psiLabel(v) {
 // ── PSI Drift table ───────────────────────────────────────────────────────────
 function DriftTable({ driftReport }) {
   if (!driftReport) {
-    return <div style={{ color: MUTED, fontSize: 12 }}>No drift data. Promote a champion model then click ↻ Check Drift.</div>;
+    return <div style={{ color: MUTED, fontSize: 12 }}>Not enough prediction history for drift monitoring.</div>;
   }
   const features = Array.isArray(driftReport.features) ? driftReport.features
     : Array.isArray(driftReport.psi) ? driftReport.psi : [];
@@ -535,7 +535,7 @@ export default function AILabWorkspace() {
             ))}
           </div>
         ) : (
-          <div style={{ color: MUTED, fontSize: 12, marginBottom: 12 }}>No champion model. Train a model and promote it via the registry.</div>
+          <div style={{ color: MUTED, fontSize: 12, marginBottom: 12 }}>No champion model. Train and promote a model.</div>
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
