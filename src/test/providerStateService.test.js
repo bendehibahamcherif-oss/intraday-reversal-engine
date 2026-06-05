@@ -81,6 +81,31 @@ describe('ProviderStateService credentials and active provider selection', () =>
     expect(service.feedStatusResponse().activeProviders).toEqual(service.healthResponse().activeProviders);
   });
 
+  it('yahoo delayed source reports runtimeStatus delayed and is not marked as websocket connected', () => {
+    service.saveActiveProviders({ providers: ['yahoo'], providerOrder: ['yahoo'] });
+    const yahoo = service.healthResponse().providers.find((p) => p.id === 'yahoo');
+    expect(yahoo).toMatchObject({
+      selected: true,
+      active: true,
+      connected: false,
+      runtimeStatus: 'delayed',
+      credentialStatus: 'not_required',
+      sourceType: 'delayed',
+      warning: 'Yahoo is delayed data, not live institutional feed.',
+    });
+  });
+
+  it('rejects empty provider selection with structured validation code', () => {
+    expect(() => service.saveActiveProviders({ providers: [], providerOrder: [] }))
+      .toThrow(/Select at least one provider/);
+    try {
+      service.saveActiveProviders({ providers: [], providerOrder: [] });
+    } catch (error) {
+      expect(error.code).toBe('NO_PROVIDER_SELECTED');
+      expect(error.status).toBe(400);
+    }
+  });
+
   it('env var credential counts as configured', () => {
     process.env.ALPHA_VANTAGE_API_KEY = 'ENV-ALPHA-9999';
     const withEnv = new ProviderStateService({ filePath: path.join(tmpDir, 'env-state.json') });

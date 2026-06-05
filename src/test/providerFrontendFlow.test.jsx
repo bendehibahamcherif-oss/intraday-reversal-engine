@@ -124,3 +124,11 @@ describe('frontend provider source-of-truth flow', () => {
     expect(useFeedStore.getState().providerCredentialsStatus.alphaVantage).toBe('configured');
   });
 });
+
+describe('frontend live data status labels', () => {
+  it('yahoo delayed status displays DELAYED rather than NOT CONNECTED when REST data is delayed', async () => {
+    const { statusLabel } = await import('../workspaces/LiveDataWorkspace.jsx');
+    expect(statusLabel({ source: 'yahoo', connected: false, runtimeStatus: 'delayed' })).toBe('DELAYED (yahoo)');
+    expect(statusLabel({ source: 'yahoo', connected: false, runtimeStatus: 'delayed' })).not.toContain('NOT CONNECTED');
+  });
+});

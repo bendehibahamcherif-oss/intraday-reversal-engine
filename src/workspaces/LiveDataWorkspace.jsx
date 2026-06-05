@@ -47,7 +47,7 @@ function uniqueStrings(values = []) {
   return [...new Set((Array.isArray(values) ? values : []).map((v) => String(v || '').trim()).filter(Boolean))];
 }
 
-function statusLabel(status) {
+export function statusLabel(status) {
   const source = String(status?.source || status?.mode || status?.state || 'unknown');
   const connected = Boolean(status?.connected === true);
   const explicitLive = String(status?.live || status?.feedType || '').toLowerCase() === 'live';

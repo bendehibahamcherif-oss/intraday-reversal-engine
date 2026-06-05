@@ -67,14 +67,46 @@ function validateTimeframe(tf) {
   return !tf || VALID_TIMEFRAMES.has(tf);
 }
 
+function getRegistryChampion() {
+  if (sqlRegistry?.getChampion) return sqlRegistry.getChampion();
+  if (sqlRegistry?.get_champion) return sqlRegistry.get_champion();
+  if (registry?.getChampion) return registry.getChampion();
+  return null;
+}
+
+function getRegistryChallengers() {
+  if (sqlRegistry?.list_models) {
+    return sqlRegistry.list_models('', 50).filter((model) => model?.status === 'challenger' || model?.challenger === true);
+  }
+  if (registry?.getChallenger) {
+    const challenger = registry.getChallenger();
+    return challenger ? [challenger] : [];
+  }
+  return [];
+}
+
+function normalizeRuns(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.runs)) return value.runs;
+  if (Array.isArray(value?.models)) return value.models;
+  if (Array.isArray(value?.activeJobs)) return value.activeJobs;
+  return [];
+}
+
+function emptyModelResponse() {
+  return { ok: true, champion: null, challengers: [], status: 'no_model' };
+}
+
+function emptyDriftResponse() {
+  return { ok: true, drift: { status: 'not_enough_data', psi: {}, features: [], lastComputedAt: null } };
+}
+
 // ── GET /api/ml/health ────────────────────────────────────────────────────────
 router.get('/health', async (req, res) => {
   try {
     const pool  = workerPool.getPoolStatus();
     const phase9 = inferenceService ? inferenceService.getWorkerStatus() : null;
-    const champ  = sqlRegistry
-      ? sqlRegistry.getChampion()
-      : (registry ? registry.getStats() : null);
+    const champ  = getRegistryChampion();
 
     res.json({
       ok:          pool.readyWorkers > 0 || (phase9?.ready ?? false),
@@ -91,11 +123,9 @@ router.get('/health', async (req, res) => {
 // ── GET /api/ml/model ─────────────────────────────────────────────────────────
 router.get('/model', (req, res) => {
   try {
-    const champ = sqlRegistry
-      ? sqlRegistry.getChampion()
-      : (registry ? { ...registry.getStats(), version: registry.getStats()?.champion } : null);
+    const champ = getRegistryChampion();
 
-    if (!champ) return res.json({ ok: false, status: 'no_champion', version: null, message: 'No champion model registered yet. Train a model to get started.' });
+    if (!champ) return res.json(emptyModelResponse());
 
     const metricsPath = path.join(MODEL_DIR, 'metrics.json');
     const schemaPath  = path.join(MODEL_DIR, 'feature_schema.json');
@@ -105,21 +135,30 @@ router.get('/model', (req, res) => {
     const schema  = fs.existsSync(schemaPath)  ? JSON.parse(fs.readFileSync(schemaPath,  'utf8')) : null;
     const meta    = fs.existsSync(metaPath)    ? JSON.parse(fs.readFileSync(metaPath,    'utf8')) : null;
 
-    res.json({
-      version:          champ.version || champ.champion,
-      datasetHash:      champ.dataset_hash  || meta?.datasetHash  || '',
-      featureHash:      champ.feature_schema_hash || meta?.featureSchemaHash || '',
+    const champion = {
+      ...champ,
+      version:          champ.version || champ.modelVersion || champ.champion,
+      datasetHash:      champ.dataset_hash  || champ.datasetHash || meta?.datasetHash  || '',
+      featureHash:      champ.feature_schema_hash || champ.featureHash || meta?.featureSchemaHash || '',
       symbol:           champ.symbol   || '',
       timeframe:        champ.timeframe || '',
       horizon:          champ.horizon   || 5,
-      trainingWindow:   { start: champ.training_window_start, end: champ.training_window_end },
+      trainingWindow:   { start: champ.training_window_start || champ.trainingWindowStart || null, end: champ.training_window_end || champ.trainingWindowEnd || null },
       metrics,
       schema,
-      promotedAt:       champ.promoted_at || null,
-      artifactUri:      champ.artifact_uri || null,
+      promotedAt:       champ.promoted_at || champ.promotedAt || null,
+      artifactUri:      champ.artifact_uri || champ.artifactUri || null,
+    };
+
+    res.json({
+      ok: true,
+      champion,
+      challengers: getRegistryChallengers(),
+      status: 'champion_available',
+      ...champion,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -134,6 +173,15 @@ router.post('/infer/:symbol', async (req, res) => {
     if (!validateTimeframe(timeframe)) {
       return res.status(400).json({ error: `Invalid timeframe: ${timeframe}` });
     }
+
+    if (!getRegistryChampion()) {
+      return res.json({
+        ok: false,
+        status: 'no_champion_model',
+        message: 'No champion model available. Train and promote a model first.',
+      });
+    }
+
     if (!Array.isArray(featureVector) || featureVector.length === 0) {
       return res.status(400).json({ error: 'featureVector must be a non-empty array' });
     }
@@ -252,16 +300,12 @@ const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 // ── GET /api/ml/model-runs ────────────────────────────────────────────────────
 router.get('/model-runs', (req, res) => {
   try {
-    if (sqlRegistry) {
-      return res.json(sqlRegistry.list_models('', 50));
-    }
-    if (registry) {
-      const models = registry.listModels();
-      return res.json(models);
-    }
-    res.json([]);
+    const raw = sqlRegistry?.list_models
+      ? sqlRegistry.list_models('', 50)
+      : (registry?.listModels ? registry.listModels() : []);
+    res.json({ ok: true, runs: normalizeRuns(raw) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -269,12 +313,13 @@ router.get('/model-runs', (req, res) => {
 router.get('/predictions', (req, res) => {
   try {
     if (evaluation?.getPredictionHistory) {
-      return res.json(evaluation.getPredictionHistory());
+      const predictions = normalizeRuns(evaluation.getPredictionHistory());
+      return res.json({ ok: true, predictions });
     }
     // Return empty history — will be populated when evaluation module is upgraded
-    res.json({ predictions: [], total: 0 });
+    res.json({ ok: true, predictions: [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -291,7 +336,7 @@ router.get('/feature-importance', (req, res) => {
       const sorted = Object.entries(importance)
         .sort((a, b) => b[1] - a[1])
         .map(([feature, score]) => ({ feature, importance: score, shap_value: null }));
-      return res.json({ modelVersion: modelVersion || 'champion', features: sorted });
+      return res.json({ ok: true, modelVersion: modelVersion || 'champion', features: sorted });
     }
 
     if (registry) {
@@ -300,13 +345,13 @@ router.get('/feature-importance', (req, res) => {
         const sorted = Object.entries(champ.featureImportance)
           .sort((a, b) => b[1] - a[1])
           .map(([feature, score]) => ({ feature, importance: score, shap_value: null }));
-        return res.json({ modelVersion: champ.modelVersion, features: sorted });
+        return res.json({ ok: true, modelVersion: champ.modelVersion, features: sorted });
       }
     }
 
-    res.json({ modelVersion: 'unknown', features: [] });
+    res.json({ ok: true, features: [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -314,17 +359,23 @@ router.get('/feature-importance', (req, res) => {
 router.get('/drift', (req, res) => {
   try {
     if (evaluation?.computeDriftReport) {
-      return res.json(evaluation.computeDriftReport());
+      const report = evaluation.computeDriftReport();
+      const featureDrift = report?.featureDrift || report?.features || {};
+      if (Object.keys(featureDrift).length === 0) return res.json(emptyDriftResponse());
+      return res.json({
+        ok: true,
+        drift: {
+          ...report,
+          status: report.globalStatus || report.global_status || 'unknown',
+          psi: Object.fromEntries(Object.entries(featureDrift).map(([key, value]) => [key, typeof value === 'number' ? value : value?.psi])),
+          features: Object.entries(featureDrift).map(([feature, value]) => ({ feature, ...(typeof value === 'number' ? { psi: value } : value) })),
+          lastComputedAt: report.computedAt || report.computed_at || null,
+        },
+      });
     }
-    res.json({
-      features: {},
-      global_status: 'unknown',
-      n_features_warning: 0,
-      n_features_critical: 0,
-      computed_at: new Date().toISOString(),
-    });
+    res.json(emptyDriftResponse());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -334,11 +385,17 @@ router.get('/model-card', (req, res) => {
     const cardPath = path.join(MODEL_DIR, 'model_card.md');
     const metaPath = path.join(MODEL_DIR, 'metadata.json');
 
-    const meta = fs.existsSync(metaPath) ? JSON.parse(fs.readFileSync(metaPath, 'utf8')) : {};
-    const card = fs.existsSync(cardPath) ? fs.readFileSync(cardPath, 'utf8') : null;
+    const hasMeta = fs.existsSync(metaPath);
+    const hasCard = fs.existsSync(cardPath);
+    if (!hasMeta && !hasCard && !getRegistryChampion()) {
+      return res.json({ ok: true, modelCard: null, status: 'not_available' });
+    }
 
-    res.json({
-      version:       meta.modelVersion || 'unknown',
+    const meta = hasMeta ? JSON.parse(fs.readFileSync(metaPath, 'utf8')) : {};
+    const card = hasCard ? fs.readFileSync(cardPath, 'utf8') : null;
+
+    const modelCard = {
+      version:       meta.modelVersion || getRegistryChampion()?.modelVersion || getRegistryChampion()?.version || 'unknown',
       trainingDate:  meta.createdAt || null,
       objective:     'Intraday 3-class signal (LONG / NEUTRAL / SHORT) for 1-minute bars',
       labelDefinition: {
@@ -374,9 +431,11 @@ router.get('/model-card', (req, res) => {
         trainingWindowEnd:   meta.trainingWindowEnd || '',
       },
       markdownContent: card,
-    });
+    };
+
+    res.json({ ok: true, modelCard, status: 'available', ...modelCard });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 

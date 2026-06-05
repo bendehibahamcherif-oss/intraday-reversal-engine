@@ -50,6 +50,7 @@ export default function MLDashboard() {
   const signalLoading   = useMLStore((s) => s.signalLoading);
   const diagnostics     = useMLStore((s) => s.diagnostics);
   const diagLoading     = useMLStore((s) => s.diagnosticsLoading);
+  const diagnosticsError = useMLStore((s) => s.diagnosticsError);
   const featureImportance = useMLStore((s) => s.featureImportance);
   const importanceLoading = useMLStore((s) => s.importanceLoading);
   const importanceError   = useMLStore((s) => s.importanceError);
@@ -152,6 +153,7 @@ export default function MLDashboard() {
               <MLDiagnosticsPanel
                 diagnostics={diagnostics}
                 loading={diagLoading}
+                error={diagnosticsError}
               />
             </div>
           </div>
