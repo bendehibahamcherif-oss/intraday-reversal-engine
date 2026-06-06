@@ -81,7 +81,7 @@ export default function TrainingRunsPanel({ onPromote, compact = false }) {
       </div>
 
       {runs.length === 0 && (
-        <div style={{ color: MUTED, fontSize: 12, textAlign: 'center', padding: 20 }}>No training runs yet</div>
+        <div style={{ color: MUTED, fontSize: 12, textAlign: 'center', padding: 20 }}>No trained models yet</div>
       )}
 
       {runs.map((run) => {

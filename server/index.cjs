@@ -26,6 +26,7 @@ const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
 
 // Portfolio & paper-trading routes
 const portfolioRoutes       = require('../server-deliverables/api/portfolioRoutes');
+const riskRoutes            = require('../server-deliverables/api/riskRoutes');
 
 // Historical Data Download Center routes
 const historicalRoutes      = require('../server-deliverables/api/historicalRoutes');
@@ -104,9 +105,11 @@ async function start() {
   // ── Portfolio & paper-trading analytics ────────────────────────────────────
   app.use('/api/portfolio', portfolioRoutes);
   app.use('/api/paper',     portfolioRoutes);
+  app.use('/api/risk',      riskRoutes);
 
   // ── Phase 13: multi-asset analysis ────────────────────────────────────────
   app.use('/api/multi-asset', multiAssetRoutes);
+  app.use('/api/macro',       multiAssetRoutes);
 
   // ── Phase 13: institutional sizing + scenario analysis ────────────────────
   app.use('/api/institutional', institutionalRoutes);

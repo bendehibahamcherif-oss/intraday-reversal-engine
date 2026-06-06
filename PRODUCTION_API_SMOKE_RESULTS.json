@@ -1,0 +1,124 @@
+{
+  "ok": false,
+  "apiBase": "https://reversal.onrender.com",
+  "generatedAt": "2026-06-05T06:34:33.062Z",
+  "results": [
+    {
+      "endpoint": "/api/ml/health",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/model",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/model-runs?symbol=SPY",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/predictions?limit=100&symbol=SPY",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/feature-importance",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/drift",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/model-card",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/train",
+      "method": "POST",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/ml/infer/SPY",
+      "method": "POST",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    },
+    {
+      "endpoint": "/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "method": "GET",
+      "status": 0,
+      "contentType": "",
+      "validJson": false,
+      "shapeOk": false,
+      "error": "fetch failed"
+    }
+  ]
+}

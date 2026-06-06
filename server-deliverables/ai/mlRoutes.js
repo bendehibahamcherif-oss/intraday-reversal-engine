@@ -29,6 +29,8 @@ const path        = require('path');
 const fs          = require('fs');
 
 const workerPool  = require('./pythonInference');
+const trainingService = require('./trainingService');
+const localRegistry = require('./modelRegistry');
 
 // Phase 9A modules (backward compat)
 let featureStore, registry, runTraining, inferenceService, evaluation, scheduler;
@@ -51,7 +53,7 @@ try {
   sqlRegistry = new ModelRegistry();
 } catch { /* SQLite registry not available */ }
 
-const MODEL_DIR  = path.join(__dirname, 'models');
+const MODEL_DIR  = localRegistry.ARTIFACT_ROOT;
 const VALID_SYMBOLS = /^[A-Z0-9\-._^=]{1,20}$/i;
 const VALID_TIMEFRAMES = new Set(['1m', '5m', '15m', '30m', '1h', '4h', '1d']);
 
@@ -67,17 +69,84 @@ function validateTimeframe(tf) {
   return !tf || VALID_TIMEFRAMES.has(tf);
 }
 
+function getRegistryChampion() {
+  return localRegistry.getChampion() || null;
+}
+
+function getRegistryChallengers() {
+  return localRegistry.listModels().filter((model) => model.status === 'candidate');
+}
+
+function normalizeRuns(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.runs)) return value.runs;
+  if (Array.isArray(value?.models)) return value.models;
+  if (Array.isArray(value?.activeJobs)) return value.activeJobs;
+  return [];
+}
+
+function emptyModelResponse() {
+  return { ok: true, champion: null, challengers: [], status: 'no_model' };
+}
+
+function emptyDriftResponse() {
+  return { ok: true, drift: { status: 'not_enough_data', psi: {}, features: [], lastComputedAt: null } };
+}
+
+function optionalSymbol(raw, fallback = 'SPY') {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const symbol = String(raw).trim().toUpperCase();
+  return validateSymbol(symbol) ? symbol : fallback;
+}
+
+function jsonError(res, status, message, extra = {}) {
+  return res.status(status).type('application/json').json({ ok: false, status: extra.status || 'error', message, error: message, ...extra });
+}
+
+
+function softmax(scores) {
+  const maxScore = Math.max(...scores);
+  const exps = scores.map((score) => Math.exp(score - maxScore));
+  const total = exps.reduce((sum, value) => sum + value, 0);
+  return exps.map((value) => value / total);
+}
+
+function inferFromChampionArtifact(champion, featureVector) {
+  const manifestPath = champion.manifestPath || path.join(champion.artifactPath || '', 'manifest.json');
+  const manifest = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : {};
+  const artifactPath = manifest.artifactFile || path.join(champion.artifactPath || manifest.artifactPath || '', 'model.json');
+  if (!artifactPath || !fs.existsSync(artifactPath)) return null;
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+  if (artifact.artifact_type !== 'pure_python_softmax_json') return null;
+  const names = artifact.feature_names || [];
+  if (featureVector.length !== names.length) {
+    throw new Error(`featureVector length ${featureVector.length} does not match champion schema length ${names.length}`);
+  }
+  const mean = artifact.standardizer.mean;
+  const scale = artifact.standardizer.scale;
+  const row = featureVector.map((value, index) => (value - mean[index]) / scale[index]);
+  const model = artifact.model;
+  const scores = model.weights.map((weights, classIndex) => weights.reduce((sum, weight, j) => sum + weight * row[j], model.bias[classIndex]));
+  const probabilities = softmax(scores);
+  const classIndex = probabilities.reduce((best, value, index) => value > probabilities[best] ? index : best, 0);
+  const signal = model.classNames[String(classIndex)] || model.classNames[classIndex] || ['SHORT', 'NEUTRAL', 'LONG'][classIndex];
+  return { signal, probability: probabilities[classIndex], confidence: probabilities[classIndex], probabilities, classIndex, modelVersion: champion.modelId };
+}
+
 // ── GET /api/ml/health ────────────────────────────────────────────────────────
 router.get('/health', async (req, res) => {
   try {
     const pool  = workerPool.getPoolStatus();
     const phase9 = inferenceService ? inferenceService.getWorkerStatus() : null;
-    const champ  = sqlRegistry
-      ? sqlRegistry.getChampion()
-      : (registry ? registry.getStats() : null);
+    const champ  = getRegistryChampion();
 
     res.json({
-      ok:          pool.readyWorkers > 0 || (phase9?.ready ?? false),
+      ok: true,
+      status: 'available',
+      worker: {
+        available: pool.readyWorkers > 0 || (phase9?.ready ?? false),
+        mode: pool.readyWorkers > 0 ? 'worker_pool' : ((phase9?.ready ?? false) ? 'phase9_worker' : 'not_configured'),
+      },
       workerPool:  pool,
       phase9Worker: phase9,
       champion:    champ,
@@ -91,35 +160,44 @@ router.get('/health', async (req, res) => {
 // ── GET /api/ml/model ─────────────────────────────────────────────────────────
 router.get('/model', (req, res) => {
   try {
-    const champ = sqlRegistry
-      ? sqlRegistry.getChampion()
-      : (registry ? { ...registry.getStats(), version: registry.getStats()?.champion } : null);
+    const champ = getRegistryChampion();
 
-    if (!champ) return res.json({ ok: false, status: 'no_champion', version: null, message: 'No champion model registered yet. Train a model to get started.' });
+    if (!champ) return res.json(emptyModelResponse());
 
-    const metricsPath = path.join(MODEL_DIR, 'metrics.json');
-    const schemaPath  = path.join(MODEL_DIR, 'feature_schema.json');
-    const metaPath    = path.join(MODEL_DIR, 'metadata.json');
+    const artifactDir = champ.artifactPath || MODEL_DIR;
+    const metricsPath = path.join(artifactDir, 'metrics.json');
+    const schemaPath  = path.join(artifactDir, 'feature_schema.json');
+    const metaPath    = champ.manifestPath || path.join(artifactDir, 'manifest.json');
 
-    const metrics = fs.existsSync(metricsPath) ? JSON.parse(fs.readFileSync(metricsPath, 'utf8')) : null;
+    const metricsDoc = fs.existsSync(metricsPath) ? JSON.parse(fs.readFileSync(metricsPath, 'utf8')) : null;
     const schema  = fs.existsSync(schemaPath)  ? JSON.parse(fs.readFileSync(schemaPath,  'utf8')) : null;
     const meta    = fs.existsSync(metaPath)    ? JSON.parse(fs.readFileSync(metaPath,    'utf8')) : null;
+    const metrics = metricsDoc?.test || metricsDoc || champ.metrics || null;
 
-    res.json({
-      version:          champ.version || champ.champion,
-      datasetHash:      champ.dataset_hash  || meta?.datasetHash  || '',
-      featureHash:      champ.feature_schema_hash || meta?.featureSchemaHash || '',
+    const champion = {
+      ...champ,
+      version:          champ.version || champ.modelVersion || champ.champion,
+      datasetHash:      champ.dataset_hash  || champ.datasetHash || meta?.datasetHash  || '',
+      featureHash:      champ.feature_schema_hash || champ.featureHash || meta?.featureSchemaHash || '',
       symbol:           champ.symbol   || '',
       timeframe:        champ.timeframe || '',
       horizon:          champ.horizon   || 5,
-      trainingWindow:   { start: champ.training_window_start, end: champ.training_window_end },
+      trainingWindow:   { start: champ.training_window_start || champ.trainingWindowStart || null, end: champ.training_window_end || champ.trainingWindowEnd || null },
       metrics,
       schema,
-      promotedAt:       champ.promoted_at || null,
-      artifactUri:      champ.artifact_uri || null,
+      promotedAt:       champ.promoted_at || champ.promotedAt || null,
+      artifactUri:      champ.artifact_uri || champ.artifactUri || champ.artifactPath || null,
+    };
+
+    res.json({
+      ok: true,
+      champion,
+      challengers: getRegistryChallengers(),
+      status: 'champion_available',
+      ...champion,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -127,18 +205,40 @@ router.get('/model', (req, res) => {
 router.post('/infer/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    if (!validateSymbol(symbol)) return res.status(400).json({ error: 'Invalid symbol' });
+    if (!validateSymbol(symbol)) return jsonError(res, 400, 'Invalid symbol', { status: 'invalid_symbol' });
 
     const { timeframe = '1m', featureVector, modelVersion = 'champion' } = req.body || {};
 
     if (!validateTimeframe(timeframe)) {
-      return res.status(400).json({ error: `Invalid timeframe: ${timeframe}` });
+      return jsonError(res, 400, `Invalid timeframe: ${timeframe}`, { status: 'invalid_timeframe' });
+    }
+
+    if (!getRegistryChampion()) {
+      return res.json({
+        ok: false,
+        status: 'no_champion_model',
+        message: 'No champion model available. Train and promote a model first.',
+      });
+    }
+
+    if (featureVector === undefined) {
+      return res.json({
+        ok: false,
+        status: 'feature_vector_required',
+        message: 'Champion model exists, but live feature extraction is not wired yet. Provide featureVector.',
+      });
     }
     if (!Array.isArray(featureVector) || featureVector.length === 0) {
-      return res.status(400).json({ error: 'featureVector must be a non-empty array' });
+      return jsonError(res, 400, 'featureVector must be a non-empty array', { status: 'invalid_feature_vector' });
     }
     if (!featureVector.every((v) => typeof v === 'number' && Number.isFinite(v))) {
-      return res.status(400).json({ error: 'featureVector must contain only finite numbers' });
+      return jsonError(res, 400, 'featureVector must contain only finite numbers', { status: 'invalid_feature_vector' });
+    }
+
+    const champion = getRegistryChampion();
+    const localResult = inferFromChampionArtifact(champion, featureVector);
+    if (localResult) {
+      return res.json({ ok: true, symbol: symbol.toUpperCase(), timeframe, ...localResult, timestamp: new Date().toISOString() });
     }
 
     const pool = workerPool.getPoolStatus();
@@ -151,7 +251,7 @@ router.post('/infer/:symbol', async (req, res) => {
           return res.json({ ok: true, ...signal, _source: 'phase9a_fallback' });
         }
       }
-      return res.status(503).json({ error: 'No inference workers available' });
+      return jsonError(res, 503, 'Python inference worker stopped', { status: 'worker_stopped' });
     }
 
     // Get feature names from model schema
@@ -189,128 +289,54 @@ router.post('/infer/:symbol', async (req, res) => {
     });
   } catch (err) {
     const status = err.message?.includes('timeout') ? 504 : 500;
-    res.status(status).json({ ok: false, error: err.message });
+    jsonError(res, status, err.message, { status: status === 504 ? 'timeout' : 'inference_error' });
   }
 });
 
 // ── POST /api/ml/train ────────────────────────────────────────────────────────
 router.post('/train', async (req, res) => {
   try {
-    let {
-      symbol = 'SPY', timeframe = '1m',
-      candles = [], xgbConfig = {},
-      estimatedRoundtripCostBps, snapshotPath,
-      datasetId, datasetPath,
-    } = req.body || {};
+    const body = { ...(req.body || {}) };
 
-    // ── datasetId: load candles from a registered historical dataset ──────────
-    let resolvedDatasetPath = null;
-    let datasetRowCount     = 0;
-
-    if (datasetId) {
+    // If datasetId is provided, resolve the CSV path and inject it as datasetPath
+    if (body.datasetId) {
       const histRegistry = require('../historical/historicalDatasetRegistry');
-      const dataset = histRegistry.get(datasetId);
+      const dataset = histRegistry.get(body.datasetId);
 
       if (!dataset) {
-        return res.status(400).json({
-          ok:    false,
-          error: { code: 'DATASET_NOT_FOUND', message: `Historical dataset '${datasetId}' not found in registry.` },
+        return res.status(400).type('application/json').json({
+          ok: false,
+          status: 'invalid_request',
+          error: { code: 'DATASET_NOT_FOUND', message: `Historical dataset '${body.datasetId}' not found in registry.` },
         });
       }
 
       const csvPath = dataset.files && dataset.files.csv;
       if (!csvPath || !fs.existsSync(csvPath)) {
-        return res.status(400).json({
-          ok:    false,
-          error: { code: 'DATASET_NOT_FOUND', message: `Dataset CSV file not found for datasetId '${datasetId}'.` },
+        return res.status(400).type('application/json').json({
+          ok: false,
+          status: 'invalid_request',
+          error: { code: 'DATASET_NOT_FOUND', message: `Dataset CSV file not found for datasetId '${body.datasetId}'.` },
         });
       }
 
-      resolvedDatasetPath = csvPath;
-
-      // Parse CSV: skip header, extract candle rows for the training symbol
-      const upperSymbol = symbol.toUpperCase();
-      const raw = fs.readFileSync(csvPath, 'utf8');
-      const lines = raw.split('\n').filter(Boolean);
-      // CSV header: timestamp,symbol,timeframe,open,high,low,close,volume,provider,session,sourceType,adjusted
-      const datasetCandles = [];
-      for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(',');
-        if (parts.length < 8) continue;
-        const rowSymbol = String(parts[1]).toUpperCase();
-        // Filter to the training symbol
-        if (rowSymbol !== upperSymbol) continue;
-        datasetCandles.push({
-          timestamp: parts[0],
-          symbol:    parts[1],
-          timeframe: parts[2],
-          open:      parseFloat(parts[3]),
-          high:      parseFloat(parts[4]),
-          low:       parseFloat(parts[5]),
-          close:     parseFloat(parts[6]),
-          volume:    parseFloat(parts[7] || '0'),
-        });
-      }
-
-      candles        = datasetCandles;
-      datasetRowCount = datasetCandles.length;
-    } else if (datasetPath) {
-      // Caller supplied an explicit file path
-      resolvedDatasetPath = datasetPath;
+      // Pass the resolved path to the training service
+      body.datasetPath = csvPath;
     }
 
-    // ── Phase 9A training pipeline (JS-driven) ────────────────────────────────
-    if (runTraining) {
-      const result = await runTraining({
-        symbol: symbol.toUpperCase(), timeframe, candles, xgbConfig, estimatedRoundtripCostBps,
-      });
-      if (!result.ok) return res.status(422).json({ error: result.error });
-      return res.json({
-        ok: true,
-        modelVersion:   result.modelVersion,
-        manifest:       result.manifest,
-        ...(datasetId ? { datasetId, datasetPath: resolvedDatasetPath, datasetRowCount } : {}),
-      });
-    }
-
-    // ── Phase 9B training pipeline (Python subprocess) ────────────────────────
-    const { spawn } = require('child_process');
-    const trainScript = path.join(__dirname, 'training', 'train_pipeline.py');
-    if (!fs.existsSync(trainScript)) {
-      return res.status(501).json({ error: 'Training pipeline not available' });
-    }
-
-    const args = ['--symbol', symbol.toUpperCase(), '--timeframe', timeframe,
-                  '--output-dir', MODEL_DIR];
-    if (resolvedDatasetPath) args.push('--snapshot', resolvedDatasetPath);
-    else if (snapshotPath)   args.push('--snapshot', snapshotPath);
-
-    let stdout = '', stderr = '';
-    const proc = spawn(PYTHON_BIN || 'python3', [trainScript, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
-
-    proc.stdout.on('data', (d) => { stdout += d; });
-    proc.stderr.on('data', (d) => { stderr += d; });
-
-    const result = await new Promise((resolve, reject) => {
-      proc.on('exit', (code) => {
-        if (code !== 0) {
-          reject(new Error(`Train pipeline exited (${code}): ${stderr.slice(0, 500)}`));
-          return;
-        }
-        try { resolve(JSON.parse(stdout.trim().split('\n').pop())); }
-        catch { reject(new Error(`Bad JSON from train pipeline: ${stdout.slice(0, 200)}`)); }
-      });
-      proc.on('error', reject);
-      setTimeout(() => reject(new Error('Training timeout (10 min)')), 600_000);
-    });
-
-    res.json({
-      ok: true,
+    const result = await trainingService.trainModel(body);
+    const statusCode = result.status === 'invalid_request' ? 400 : 200;
+    return res.status(statusCode).type('application/json').json({
       ...result,
-      ...(datasetId ? { datasetId, datasetPath: resolvedDatasetPath, datasetRowCount } : {}),
+      ...(body.datasetId ? { datasetId: body.datasetId } : {}),
     });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    return res.status(500).type('application/json').json({
+      ok: false,
+      status: 'training_failed',
+      message: err.message || 'Training failed',
+      details: {},
+    });
   }
 });
 
@@ -319,29 +345,26 @@ const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 // ── GET /api/ml/model-runs ────────────────────────────────────────────────────
 router.get('/model-runs', (req, res) => {
   try {
-    if (sqlRegistry) {
-      return res.json(sqlRegistry.list_models('', 50));
-    }
-    if (registry) {
-      const models = registry.listModels();
-      return res.json(models);
-    }
-    res.json([]);
+    const symbol = req.query.symbol ? optionalSymbol(req.query.symbol) : undefined;
+    const runs = localRegistry.listModels(symbol);
+    res.json({ ok: true, runs, status: runs.length ? 'available' : 'empty' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).type('application/json').json({ ok: false, status: 'registry_error', message: err.message });
   }
 });
 
 // ── GET /api/ml/predictions ───────────────────────────────────────────────────
 router.get('/predictions', (req, res) => {
   try {
+    const symbol = optionalSymbol(req.query.symbol);
+    let predictions = [];
     if (evaluation?.getPredictionHistory) {
-      return res.json(evaluation.getPredictionHistory());
+      predictions = normalizeRuns(evaluation.getPredictionHistory());
+      if (req.query.symbol) predictions = predictions.filter((p) => String(p?.symbol || '').toUpperCase() === symbol);
     }
-    // Return empty history — will be populated when evaluation module is upgraded
-    res.json({ predictions: [], total: 0 });
+    res.json({ ok: true, predictions, symbol, status: predictions.length ? 'available' : 'empty' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -358,7 +381,7 @@ router.get('/feature-importance', (req, res) => {
       const sorted = Object.entries(importance)
         .sort((a, b) => b[1] - a[1])
         .map(([feature, score]) => ({ feature, importance: score, shap_value: null }));
-      return res.json({ modelVersion: modelVersion || 'champion', features: sorted });
+      return res.json({ ok: true, modelVersion: modelVersion || 'champion', features: sorted });
     }
 
     if (registry) {
@@ -367,13 +390,13 @@ router.get('/feature-importance', (req, res) => {
         const sorted = Object.entries(champ.featureImportance)
           .sort((a, b) => b[1] - a[1])
           .map(([feature, score]) => ({ feature, importance: score, shap_value: null }));
-        return res.json({ modelVersion: champ.modelVersion, features: sorted });
+        return res.json({ ok: true, modelVersion: champ.modelVersion, features: sorted });
       }
     }
 
-    res.json({ modelVersion: 'unknown', features: [] });
+    res.json({ ok: true, features: [], status: 'no_model' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -381,17 +404,23 @@ router.get('/feature-importance', (req, res) => {
 router.get('/drift', (req, res) => {
   try {
     if (evaluation?.computeDriftReport) {
-      return res.json(evaluation.computeDriftReport());
+      const report = evaluation.computeDriftReport();
+      const featureDrift = report?.featureDrift || report?.features || {};
+      if (Object.keys(featureDrift).length === 0) return res.json(emptyDriftResponse());
+      return res.json({
+        ok: true,
+        drift: {
+          ...report,
+          status: report.globalStatus || report.global_status || 'unknown',
+          psi: Object.fromEntries(Object.entries(featureDrift).map(([key, value]) => [key, typeof value === 'number' ? value : value?.psi])),
+          features: Object.entries(featureDrift).map(([feature, value]) => ({ feature, ...(typeof value === 'number' ? { psi: value } : value) })),
+          lastComputedAt: report.computedAt || report.computed_at || null,
+        },
+      });
     }
-    res.json({
-      features: {},
-      global_status: 'unknown',
-      n_features_warning: 0,
-      n_features_critical: 0,
-      computed_at: new Date().toISOString(),
-    });
+    res.json(emptyDriftResponse());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -401,11 +430,17 @@ router.get('/model-card', (req, res) => {
     const cardPath = path.join(MODEL_DIR, 'model_card.md');
     const metaPath = path.join(MODEL_DIR, 'metadata.json');
 
-    const meta = fs.existsSync(metaPath) ? JSON.parse(fs.readFileSync(metaPath, 'utf8')) : {};
-    const card = fs.existsSync(cardPath) ? fs.readFileSync(cardPath, 'utf8') : null;
+    const hasMeta = fs.existsSync(metaPath);
+    const hasCard = fs.existsSync(cardPath);
+    if (!hasMeta && !hasCard && !getRegistryChampion()) {
+      return res.json({ ok: true, modelCard: null, status: 'not_available' });
+    }
 
-    res.json({
-      version:       meta.modelVersion || 'unknown',
+    const meta = hasMeta ? JSON.parse(fs.readFileSync(metaPath, 'utf8')) : {};
+    const card = hasCard ? fs.readFileSync(cardPath, 'utf8') : null;
+
+    const modelCard = {
+      version:       meta.modelVersion || getRegistryChampion()?.modelVersion || getRegistryChampion()?.version || 'unknown',
       trainingDate:  meta.createdAt || null,
       objective:     'Intraday 3-class signal (LONG / NEUTRAL / SHORT) for 1-minute bars',
       labelDefinition: {
@@ -441,30 +476,27 @@ router.get('/model-card', (req, res) => {
         trainingWindowEnd:   meta.trainingWindowEnd || '',
       },
       markdownContent: card,
-    });
+    };
+
+    res.json({ ok: true, modelCard, status: 'available', ...modelCard });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
 // ── POST /api/ml/models/:version/promote ─────────────────────────────────────
-router.post('/models/:version/promote', (req, res) => {
+function promoteModelResponse(req, res) {
   try {
-    const { version } = req.params;
-    if (sqlRegistry) {
-      sqlRegistry.promote_champion(version);
-      const champ = sqlRegistry.get_champion();
-      return res.json({ ok: true, champion: champ });
-    }
-    if (registry) {
-      const model = registry.promoteChampion(version);
-      return res.json({ ok: true, champion: model });
-    }
-    res.status(404).json({ error: 'No registry available' });
+    const modelId = req.params.modelId || req.params.version;
+    const champion = localRegistry.promoteModel(modelId);
+    return res.json({ ok: true, status: 'promoted', champion, modelId: champion.modelId });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    return jsonError(res, 400, err.message, { status: 'promote_failed' });
   }
-});
+}
+
+router.post('/promote/:modelId', promoteModelResponse);
+router.post('/models/:version/promote', promoteModelResponse);
 
 // ── Phase 9A backward-compat routes ──────────────────────────────────────────
 
@@ -509,16 +541,9 @@ router.get('/signal/:symbol', async (req, res) => {
 // GET /api/ml/models
 router.get('/models', (req, res) => {
   try {
-    if (sqlRegistry) {
-      const models = sqlRegistry.list_models(req.query.symbol || '');
-      return res.json({ models, ...sqlRegistry.get_stats() });
-    }
-    if (registry) {
-      const models = registry.listModels(req.query.symbol?.toUpperCase());
-      return res.json({ models, ...registry.getStats() });
-    }
-    res.json({ models: [] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const models = localRegistry.listModels(req.query.symbol?.toUpperCase());
+    res.json({ ok: true, models, ...localRegistry.getStats(), status: models.length ? 'available' : 'no_model' });
+  } catch (err) { res.status(500).type('application/json').json({ ok: false, status: 'registry_error', message: err.message }); }
 });
 
 // GET /api/ml/metrics
@@ -541,6 +566,26 @@ router.get('/worker/status', (req, res) => {
   res.json({
     pool: workerPool.getPoolStatus(),
     phase9: inferenceService?.getWorkerStatus?.() || null,
+  });
+});
+
+
+// Keep /api/ml/* missing-route responses JSON-only so Render/Express never serves HTML for ML API paths.
+router.use((req, res) => {
+  res.status(404).type('application/json').json({
+    ok: false,
+    status: 'not_found',
+    message: `ML endpoint not available: ${req.method} ${req.originalUrl}`,
+    endpoint: req.originalUrl,
+  });
+});
+
+router.use((err, req, res, _next) => {
+  res.status(err.status || 500).type('application/json').json({
+    ok: false,
+    status: err.status === 404 ? 'not_found' : 'server_error',
+    message: err.message || 'ML route error',
+    endpoint: req.originalUrl,
   });
 });
 

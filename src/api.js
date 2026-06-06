@@ -1,7 +1,21 @@
 // ============ API CLIENT ============
 // Centralized backend client. Supports JWT Bearer auth and legacy X-User-Token fallback.
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:10000';
+const RENDER_BACKEND_BASE = 'https://reversal.onrender.com';
+
+function resolveApiBase() {
+  const envBase = import.meta.env.VITE_API_BASE;
+  if (envBase) return envBase.replace(/\/$/, '');
+  try {
+    const host = window?.location?.hostname || '';
+    if (host === 'intraday-reversal-engine.onrender.com' || (host.endsWith('.onrender.com') && host !== 'reversal.onrender.com')) {
+      return RENDER_BACKEND_BASE;
+    }
+  } catch {}
+  return 'http://localhost:10000';
+}
+
+const API_BASE = resolveApiBase();
 const TOKEN_KEY = 'reversal_user_token';
 const USER_KEY = 'reversal_user_profile';
 
@@ -41,6 +55,10 @@ function headers(extra = {}) {
   return h;
 }
 
+function endpointLabel(url) {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 const STATUS_MESSAGES = {
   400: 'Bad request',
   401: 'Session invalide ou expirée',
@@ -52,6 +70,86 @@ const STATUS_MESSAGES = {
   503: 'Service temporarily unavailable',
 };
 
+async function parseResponseBody(res, endpointHint = '') {
+  if (res.status === 204) return null;
+  const endpoint = res.url || endpointHint;
+  const contentType = res.headers?.get?.('content-type') || '';
+  const text = await res.text().catch(() => '');
+  if (!text) {
+    if (res.ok) {
+      const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+      err.status = res.status;
+      err.endpoint = endpoint;
+      err.contentType = contentType;
+      err.responsePreview = '';
+      throw err;
+    }
+    const err = new Error(STATUS_MESSAGES[res.status] || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.endpoint = endpoint;
+    err.contentType = contentType;
+    throw err;
+  }
+  if (/json/i.test(contentType)) {
+    try { return JSON.parse(text); }
+    catch (error) {
+      if (import.meta.env.DEV) console.warn('Invalid JSON API response', { endpoint, status: res.status, preview: text.slice(0, 120) });
+      const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+      err.status = res.status;
+      err.endpoint = endpoint;
+      err.contentType = contentType;
+      err.responsePreview = text.slice(0, 120);
+      err.cause = error;
+      throw err;
+    }
+  }
+  if (/html/i.test(contentType) || /^\s*<!doctype html/i.test(text) || /^\s*<html/i.test(text)) {
+    const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+    err.status = res.status;
+    err.endpoint = endpoint;
+    err.contentType = contentType || 'text/html';
+    err.responsePreview = text.slice(0, 120);
+    throw err;
+  }
+  try { return JSON.parse(text); }
+  catch (error) {
+    if (import.meta.env.DEV) console.warn('Invalid JSON API response', { endpoint, status: res.status, preview: text.slice(0, 120) });
+    const err = new Error(`API response is not JSON (${endpointLabel(endpoint)})`);
+    err.status = res.status;
+    err.endpoint = endpoint;
+    err.contentType = contentType;
+    err.responsePreview = text.slice(0, 120);
+    err.cause = error;
+    throw err;
+  }
+}
+
+export async function apiRequest(endpoint, { method = 'GET', headers: extraHeaders, body, signal, timeoutMs = 15000 } = {}) {
+  const controller = !signal && timeoutMs > 0 ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  const upperMethod = String(method || 'GET').toUpperCase();
+  try {
+    const res = await fetch(url, {
+      method: upperMethod,
+      headers: headers(extraHeaders),
+      body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
+      signal: signal || controller?.signal,
+    });
+    const data = await parseResponseBody(res, endpoint);
+    const errorPayload = data?.error;
+    const message = (typeof errorPayload === 'string' ? errorPayload : errorPayload?.message)
+      || data?.message
+      || (res.ok ? null : STATUS_MESSAGES[res.status] || `HTTP ${res.status}`);
+    return { ok: res.ok, status: res.status, data, error: res.ok ? null : message, endpoint, method: upperMethod };
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError';
+    return { ok: false, status: 0, data: null, error: timedOut ? 'Request timeout' : (error?.message || 'Network error'), endpoint, method: upperMethod };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function handle(res) {
   if (res.status === 401) {
     const err = new Error('Session invalide ou expirée');
@@ -59,22 +157,24 @@ async function handle(res) {
     throw err;
   }
 
+  const body = await parseResponseBody(res);
+
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
     // body.error may be a string or an object { code, message }; extract the string in both cases.
-    const rawError = body.error;
+    const rawError = body?.error;
     const message = (typeof rawError === 'string' ? rawError : rawError?.message)
-      || body.message
+      || body?.message
       || STATUS_MESSAGES[res.status]
       || `HTTP ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
     err.code = typeof rawError === 'object' ? rawError?.code : undefined;
     err.endpoint = res.url;
+    err.responseBody = body;
     throw err;
   }
 
-  return res.json();
+  return body;
 }
 
 async function authResult(promise) {
@@ -338,33 +438,42 @@ export const api = {
   ).then(handle),
 
   // ── ML Model Engine (Phase 9) ─────────────────────────────────────────────
-  trainMLModel: async (symbol, config = {}) => fetch(
-    `${API_BASE}/api/ai/models/train`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, ...config }) }
-  ).then(handle),
+  trainMLModel: async (symbol, config = {}) => {
+    const sym = String(symbol || 'SPY').trim().toUpperCase();
+    return fetch(
+      `${API_BASE}/api/ml/train`,
+      { method: 'POST', headers: headers(), body: JSON.stringify({ symbol: sym, ...config }) }
+    ).then(handle);
+  },
   getMLModelRegistry: async (symbol) => {
-    const qs = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
-    return fetch(`${API_BASE}/api/ai/models${qs}`, { method: 'GET', headers: headers() }).then(handle);
+    const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
+    return fetch(`${API_BASE}/api/ml/model-runs${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMLModel: async (modelId) => fetch(
     `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
-  getChampionModel: async (symbol) => fetch(
-    `${API_BASE}/api/ai/models/champion/${encodeURIComponent(symbol)}`,
-    { method: 'GET', headers: headers() }
-  ).then(handle),
+  getChampionModel: async (symbol) => {
+    const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
+    return fetch(`${API_BASE}/api/ml/model${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
   setChampionModel: async (modelId) => fetch(
     `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/champion`,
     { method: 'POST', headers: headers() }
   ).then(handle),
-  runMLInference: async (symbol, config = {}) => fetch(
-    `${API_BASE}/api/ai/inference/${encodeURIComponent(symbol)}`,
-    { method: 'POST', headers: headers(), body: JSON.stringify(config) }
-  ).then(handle),
+  runMLInference: async (symbol, config = {}) => {
+    const sym = String(symbol || 'SPY').trim().toUpperCase();
+    return fetch(
+      `${API_BASE}/api/ml/infer/${encodeURIComponent(sym)}`,
+      { method: 'POST', headers: headers(), body: JSON.stringify(config) }
+    ).then(handle);
+  },
   getMLDrift: async (symbol, modelId) => {
-    const qs = modelId ? `?modelId=${encodeURIComponent(modelId)}` : '';
-    return fetch(`${API_BASE}/api/ai/drift/${encodeURIComponent(symbol)}${qs}`, { method: 'GET', headers: headers() }).then(handle);
+    const p = new URLSearchParams();
+    if (symbol) p.set('symbol', String(symbol).toUpperCase());
+    if (modelId) p.set('modelVersion', modelId);
+    const qs = p.toString() ? `?${p}` : '';
+    return fetch(`${API_BASE}/api/ml/drift${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMLFeatureImportance: async (modelId) => fetch(
     `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/importance`,
@@ -753,6 +862,10 @@ export const api = {
     fetch(`${API_BASE}/api/alerts/${encodeURIComponent(id)}/disable`, { method: 'POST', headers: headers() }).then(handle),
 
   // ── Portfolio & Risk Analytics ────────────────────────────────────────────────
+  getPortfolioSummary: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/summary?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
   getPortfolioPositions: async (mode = 'paper') => fetch(
     `${API_BASE}/api/portfolio/positions?mode=${encodeURIComponent(mode)}`,
     { method: 'GET', headers: headers() }
@@ -777,6 +890,16 @@ export const api = {
     `${API_BASE}/api/portfolio/stress-test?mode=${encodeURIComponent(mode)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ scenarios }) }
   ).then(handle),
+  getPortfolioHistory: async (mode = 'paper') => fetch(
+    `${API_BASE}/api/portfolio/history?mode=${encodeURIComponent(mode)}`,
+    { method: 'GET', headers: headers() }
+  ).then(handle),
+  getRiskSummary: async () => fetch(`${API_BASE}/api/risk/summary`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskLimits: async () => fetch(`${API_BASE}/api/risk/limits`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskVaR: async () => fetch(`${API_BASE}/api/risk/var`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskDrawdown: async () => fetch(`${API_BASE}/api/risk/drawdown`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskExposure: async () => fetch(`${API_BASE}/api/risk/exposure`, { method: 'GET', headers: headers() }).then(handle),
+  getRiskAlerts: async () => fetch(`${API_BASE}/api/risk/alerts`, { method: 'GET', headers: headers() }).then(handle),
 
   // ── Institutional Toolkit (Phase 14) ─────────────────────────────────────
   persistInstitutionalAnalysis: async ({ type, inputs, outputs, mode = 'paper' } = {}) => fetch(
@@ -861,13 +984,13 @@ export const api = {
     const p = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
     return fetch(`${API_BASE}/api/ml/models${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  trainMLModelP1: async ({ symbol, timeframe = '1m', candles = [], xgbConfig = {}, datasetId } = {}) =>
+  trainMLModelP1: async ({ symbol, timeframe = '1m', candles = [], xgbConfig = {}, datasetId, horizon = 20, datasetPath, promote = false } = {}) =>
     fetch(`${API_BASE}/api/ml/train`, {
       method: 'POST', headers: headers(),
-      body: JSON.stringify({ symbol, timeframe, candles, xgbConfig, ...(datasetId ? { datasetId } : {}) }),
+      body: JSON.stringify({ symbol, timeframe, candles, xgbConfig, horizon, datasetPath, promote, ...(datasetId ? { datasetId } : {}) }),
     }).then(handle),
   promoteMLModel: async (modelVersion) =>
-    fetch(`${API_BASE}/api/ml/models/${encodeURIComponent(modelVersion)}/promote`, { method: 'POST', headers: headers() }).then(handle),
+    fetch(`${API_BASE}/api/ml/promote/${encodeURIComponent(modelVersion)}`, { method: 'POST', headers: headers() }).then(handle),
   getMLMetrics: async () =>
     fetch(`${API_BASE}/api/ml/metrics`, { method: 'GET', headers: headers() }).then(handle),
   getMLWorkerStatus: async () =>
@@ -880,13 +1003,17 @@ export const api = {
   getMLModelInfo: async () =>
     fetch(`${API_BASE}/api/ml/model`, { method: 'GET', headers: headers() }).then(handle),
 
-  mlInfer: async (symbol, body) =>
-    fetch(`${API_BASE}/api/ml/infer/${encodeURIComponent(symbol)}`, {
-      method: 'POST', headers: headers(), body: JSON.stringify(body),
-    }).then(handle),
+  mlInfer: async (symbol, body) => {
+    const sym = String(symbol || 'SPY').trim().toUpperCase();
+    return fetch(`${API_BASE}/api/ml/infer/${encodeURIComponent(sym)}`, {
+      method: 'POST', headers: headers(), body: JSON.stringify(body || {}),
+    }).then(handle);
+  },
 
-  getMLModelRuns: async () =>
-    fetch(`${API_BASE}/api/ml/model-runs`, { method: 'GET', headers: headers() }).then(handle),
+  getMLModelRuns: async (symbol) => {
+    const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
+    return fetch(`${API_BASE}/api/ml/model-runs${qs}`, { method: 'GET', headers: headers() }).then(handle);
+  },
 
   getMLPredictions: async ({ limit = 100, symbol } = {}) => {
     const p = new URLSearchParams({ limit: String(limit) });

@@ -129,12 +129,12 @@ class ProviderStateService {
     return this.credentialInfo(providerId).configured;
   }
 
-  providerRuntimeStatus(providerId, credentialStatus) {
+  providerRuntimeStatus(providerId, credentialStatus, active = false) {
     if (providerId === 'ibkr' && PROVIDERS.ibkr.requiresGateway && process.env.IBKR_GATEWAY_CONNECTED !== 'true') return 'requires_gateway';
     if (credentialStatus === 'missing') return 'missing_credentials';
     if (providerId === 'fallback_demo') return 'idle_demo';
     if (PROVIDERS[providerId].delayed) return 'delayed';
-    return 'disconnected';
+    return active ? 'connected' : 'disconnected';
   }
 
   canonicalProvider(providerId) {
@@ -142,13 +142,14 @@ class ProviderStateService {
     const provider = PROVIDERS[id];
     const credential = this.credentialInfo(id);
     const credentialStatus = provider.requiresCredentials ? credential.credentialStatus : 'not_required';
-    const runtimeStatus = this.providerRuntimeStatus(id, credentialStatus);
     const activeProviders = unique(this.state.activeProviders);
     const active = activeProviders.includes(id);
+    const runtimeStatus = this.providerRuntimeStatus(id, credentialStatus, active);
     const warnings = [];
     if (runtimeStatus === 'missing_credentials') warnings.push(`${provider.label} requires API key`);
     if (runtimeStatus === 'requires_gateway') warnings.push(`${provider.label} gateway is not connected`);
-    if (id === 'yahoo') warnings.push('Yahoo feed is delayed/fallback, not institutional real-time.');
+    if (id === 'yahoo' && active) warnings.push('Yahoo is delayed data, not institutional real-time feed.');
+    if (id === 'fallback_demo' && active) warnings.push('Demo fallback source only. Not live market data.');
     return {
       id,
       provider: id,
@@ -161,9 +162,11 @@ class ProviderStateService {
       status: runtimeStatus,
       selected: active,
       active,
-      connected: id === 'yahoo' && active,
+      connected: active && provider.realtime && runtimeStatus === 'connected',
       realtime: provider.realtime,
       delayed: provider.delayed,
+      sourceType: id === 'fallback_demo' ? 'demo' : (provider.delayed ? 'delayed' : 'live'),
+      warning: warnings[0] || null,
       priority: provider.priority,
       warnings,
       capabilities: provider.capabilities,
@@ -185,8 +188,8 @@ class ProviderStateService {
       activeProviders,
       providerOrder: providerOrder.length ? providerOrder : activeProviders,
       source: activeProviders[0] || 'unknown',
-      connected: activeProviders.includes('yahoo'),
-      warnings: [],
+      connected: providers.some((provider) => provider.active && provider.connected),
+      warnings: providers.filter((provider) => provider.active).flatMap((provider) => provider.warnings || []),
     };
   }
 
@@ -243,9 +246,9 @@ class ProviderStateService {
     const requested = unique(providers);
     requested.forEach((id) => this.assertProvider(id));
     if (requested.length === 0) {
-      const error = new Error('Select at least one provider');
+      const error = new Error('Select at least one provider.');
       error.status = 400;
-      error.code = 'empty_provider_selection';
+      error.code = 'NO_PROVIDER_SELECTED';
       throw error;
     }
     for (const id of requested) {
@@ -279,7 +282,11 @@ class ProviderStateService {
     const health = this.healthResponse();
     return {
       ...health,
-      feedStatus: { source: health.source, connected: health.connected, status: health.connected ? 'connected' : 'disconnected' },
+      feedStatus: {
+        source: health.source,
+        connected: health.connected,
+        status: health.providers.find((provider) => provider.id === health.source)?.runtimeStatus || (health.connected ? 'connected' : 'disconnected'),
+      },
       symbols: this.state.symbols || ['SPY'],
       activeSymbols: this.state.symbols || ['SPY'],
       enabledByProvider: Object.fromEntries(Object.keys(PROVIDERS).map((id) => [id, health.activeProviders.includes(id)])),
@@ -292,7 +299,14 @@ function createProviderRouter(service = new ProviderStateService()) {
   const router = express.Router();
 
   function sendError(res, error) {
-    res.status(error.status || 500).json({ success: false, error: error.message, code: error.code || 'provider_state_error', provider: error.provider });
+    const code = error.code || 'provider_state_error';
+    const message = error.message || 'Provider state error';
+    res.status(error.status || 500).json({
+      success: false,
+      error: { code, message, provider: error.provider },
+      code,
+      provider: error.provider,
+    });
   }
 
   router.get('/providers/credentials', (_req, res) => res.json({ success: true, credentials: service.credentialsResponse() }));
@@ -329,6 +343,43 @@ function createProviderRouter(service = new ProviderStateService()) {
   });
   router.delete('/feeds/providers/:providerId/credentials', (req, res) => {
     try { res.json(service.deleteCredential(req.params.providerId)); } catch (error) { sendError(res, error); }
+  });
+
+
+  router.post('/feeds/start', (req, res) => {
+    try { res.json(service.saveActiveProviders({ providers: [req.body?.source, ...unique(req.body?.providers || service.state.activeProviders)].filter(Boolean), providerOrder: [req.body?.source, ...unique(req.body?.providers || service.state.activeProviders)].filter(Boolean), symbols: req.body?.symbols })); } catch (error) { sendError(res, error); }
+  });
+  router.post('/feeds/stop', (req, res) => {
+    try {
+      const source = normalizeProviderId(req.body?.source);
+      const next = unique(service.state.activeProviders).filter((id) => id !== source);
+      res.json(service.saveActiveProviders({ providers: next.length ? next : ['yahoo'], providerOrder: next.length ? next : ['yahoo'], symbols: service.state.symbols }));
+    } catch (error) { sendError(res, error); }
+  });
+  router.post('/feeds/demo/tick/:symbol', (req, res) => res.json({ success: true, ok: false, symbol: String(req.params.symbol || '').toUpperCase(), tick: null, status: 'demo_generation_disabled', message: 'Demo data generation is disabled; no synthetic trading data was created.' }));
+  router.post('/feeds/demo/candle/:symbol', (req, res) => res.json({ success: true, ok: false, symbol: String(req.params.symbol || '').toUpperCase(), candle: null, status: 'demo_generation_disabled', message: 'Demo data generation is disabled; no synthetic trading data was created.' }));
+  router.post('/feeds/demo/orderbook/:symbol', (req, res) => res.json({ success: true, ok: false, symbol: String(req.params.symbol || '').toUpperCase(), orderBook: null, status: 'demo_generation_disabled', message: 'Demo data generation is disabled; no synthetic trading data was created.' }));
+
+
+  router.get('/feeds/tick/:symbol', (req, res) => {
+    const symbol = String(req.params.symbol || '').toUpperCase();
+    const status = service.feedStatusResponse();
+    const source = status.source || status.activeProviders[0] || 'unknown';
+    res.json({ success: true, ok: true, tick: null, data: null, symbol, source, status: 'no_data' });
+  });
+  router.get('/feeds/candle/:symbol', (req, res) => {
+    const symbol = String(req.params.symbol || '').toUpperCase();
+    const timeframe = String(req.query.timeframe || '1m');
+    const status = service.feedStatusResponse();
+    const source = status.source || status.activeProviders[0] || 'unknown';
+    res.json({ success: true, ok: true, candle: null, data: null, symbol, timeframe, source, status: 'no_data' });
+  });
+  router.get('/feeds/orderbook/:symbol', (req, res) => {
+    const symbol = String(req.params.symbol || '').toUpperCase();
+    const status = service.feedStatusResponse();
+    const demoActive = status.activeProviders.includes('fallback_demo');
+    const source = demoActive ? 'fallback_demo' : (status.source || status.activeProviders[0] || 'unknown');
+    res.json({ success: true, ok: true, orderBook: null, orderbook: null, data: null, symbol, source, status: 'no_data' });
   });
 
   return router;
