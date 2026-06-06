@@ -340,6 +340,15 @@ export default function AILabWorkspace() {
 
   useEffect(() => { s.refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    function onDatasetMl(e) {
+      const { datasetId, dataset } = e.detail || {};
+      if (datasetId) s.setSelectedDataset(datasetId, dataset);
+    }
+    window.addEventListener('reversal:use-dataset-ml', onDatasetMl);
+    return () => window.removeEventListener('reversal:use-dataset-ml', onDatasetMl);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load P1 signal when symbol changes
   useEffect(() => {
     if (s.symbol) {
@@ -467,6 +476,7 @@ export default function AILabWorkspace() {
           </button>
         </div>
 
+        {s.selectedMlDatasetId && <div style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>Selected dataset: <strong>{s.selectedMlDatasetId}</strong></div>}
         {s.trainError && <div style={{ color: RED, fontSize: 12, marginTop: 8 }}>{s.trainError}</div>}
 
         {s.trainingJob && (

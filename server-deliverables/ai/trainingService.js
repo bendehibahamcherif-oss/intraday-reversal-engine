@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const registry = require('./modelRegistry');
+const historicalRegistry = require('../historical/historicalDatasetRegistry');
 
 const AI_DIR = __dirname;
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -49,7 +50,6 @@ function resolveDatasetPath(datasetPath) {
 function resolveDatasetFile(dataset) {
   const candidatePaths = [];
 
-  // Collect all candidate paths from known field shapes
   const rawCandidates = [
     dataset.files && dataset.files.csv,
     dataset.files && dataset.files.parquet,
@@ -86,7 +86,7 @@ function validateRequest(body = {}) {
   if (!VALID_TIMEFRAMES.has(timeframe)) return { error: `Invalid timeframe: ${timeframe}` };
   if (!Number.isInteger(horizon) || horizon < 1 || horizon > 500) return { error: 'horizon must be an integer between 1 and 500' };
   if (body.datasetPath && typeof body.datasetPath !== 'string') return { error: 'datasetPath must be a string when provided' };
-  return { symbol, timeframe, horizon, datasetPath: body.datasetPath || '', promote: body.promote === true, costBps: Number(body.costBps ?? body.estimatedRoundtripCostBps ?? 0) || 0 };
+  return { symbol, timeframe, horizon, datasetPath: body.datasetPath || '', datasetId: body.datasetId ? String(body.datasetId).trim() : '', promote: body.promote === true, costBps: Number(body.costBps ?? body.estimatedRoundtripCostBps ?? 0) || 0 };
 }
 
 function parseLastJson(stdout) {
@@ -230,12 +230,14 @@ async function trainModel(body = {}) {
   if (request.error) return { ok: false, status: 'invalid_request', message: request.error };
 
   const datasetPath = resolveDatasetPath(request.datasetPath);
+  const datasetId = body.datasetId || null;
   if (!datasetPath) {
     return {
       ok: false,
       status: 'dataset_missing',
       message: 'No dataset snapshot found. Generate or upload a dataset before training, or select a historical dataset from the Historical Data workspace.',
       expectedPaths: publicExpectedPaths(),
+      ...(datasetId ? { datasetId } : {}),
     };
   }
 
@@ -246,6 +248,7 @@ async function trainModel(body = {}) {
       status: result.status || 'training_failed',
       message: result.message || 'Training failed',
       details: result.details || {},
+      ...(datasetId ? { datasetId } : {}),
     };
   }
 
@@ -275,7 +278,7 @@ async function trainModel(body = {}) {
     artifactPath: registered.artifactPath,
     metrics: result.metrics,
     promoted,
-    ...(body.datasetId ? { datasetId: body.datasetId } : {}),
+    ...(datasetId ? { datasetId } : {}),
   };
 }
 

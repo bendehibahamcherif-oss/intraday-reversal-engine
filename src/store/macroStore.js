@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
+import { getDatasetId, normalizeDataset } from '../utils/datasets.js';
 
 const errMsg = (e) => e?.message || 'Multi-asset error';
 
@@ -19,6 +20,8 @@ export const useMacroStore = create((set, get) => ({
   correlationLoading: false,
   correlationError:   '',
   correlationDatasetId: null,
+  selectedCorrelationDatasetId: null,
+  selectedCorrelationDataset: null,
 
   // ── Rolling beta ──────────────────────────────────────────────────────────
   beta:        null,
@@ -53,8 +56,12 @@ export const useMacroStore = create((set, get) => ({
   clearErrors: () => set({ correlationError: '', betaError: '', sectorRotationError: '', volatilityError: '' }),
 
   // ── Data loaders ──────────────────────────────────────────────────────────
-  setCorrelationDatasetId: (datasetId) => set({ correlationDatasetId: datasetId }),
-  clearCorrelationDatasetId: () => set({ correlationDatasetId: null }),
+  setCorrelationDatasetId: (datasetId, dataset = null) => {
+    const id = datasetId || getDatasetId(dataset);
+    if (!id) return set({ correlationError: 'Dataset ID missing. Reload dataset registry.' });
+    set({ correlationDatasetId: id, selectedCorrelationDatasetId: id, selectedCorrelationDataset: dataset ? normalizeDataset(dataset) : get().selectedCorrelationDataset });
+  },
+  clearCorrelationDatasetId: () => set({ correlationDatasetId: null, selectedCorrelationDatasetId: null, selectedCorrelationDataset: null }),
 
   loadCorrelation: async () => {
     const { symbols, window: w, timeframe, correlationDatasetId } = get();
@@ -70,10 +77,10 @@ export const useMacroStore = create((set, get) => ({
   },
 
   loadBeta: async () => {
-    const { selectedAsset, benchmark, window: w, timeframe } = get();
+    const { selectedAsset, benchmark, window: w, timeframe, correlationDatasetId } = get();
     set({ betaLoading: true, betaError: '' });
     try {
-      const data = await api.getMultiAssetBeta({ symbol: selectedAsset, benchmark, window: w, timeframe });
+      const data = await api.getMultiAssetBeta({ symbol: selectedAsset, benchmark, window: w, timeframe, datasetId: correlationDatasetId || null });
       set({ beta: data, betaLoading: false });
     } catch (e) {
       set({ betaLoading: false, betaError: errMsg(e) });

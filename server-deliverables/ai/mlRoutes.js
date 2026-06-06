@@ -298,29 +298,21 @@ router.post('/train', async (req, res) => {
   try {
     const body = req.body || {};
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[mlRoutes] POST /api/ml/train', JSON.stringify({
-        datasetId: body.datasetId,
-        symbol: body.symbol,
-        timeframe: body.timeframe,
-        horizon: body.horizon,
-        hasDatasetPath: Boolean(body.datasetPath),
-        promote: body.promote,
-      }));
-    }
-
     const result = await trainingService.trainModel(body);
 
     const STATUS_HTTP = {
-      invalid_request:    400,
-      invalid_dataset_id: 400,
-      dataset_not_found:  404,
+      invalid_request:      400,
+      invalid_dataset_id:   400,
+      dataset_not_found:    404,
       dataset_file_missing: 400,
-      dataset_file_empty: 400,
+      dataset_file_empty:   400,
     };
     const statusCode = result.ok ? 200 : (STATUS_HTTP[result.status] || 422);
+    const responseBody = body.datasetId && !result.datasetId
+      ? { ...result, datasetId: body.datasetId }
+      : result;
 
-    return res.status(statusCode).type('application/json').json(result);
+    return res.status(statusCode).type('application/json').json(responseBody);
   } catch (err) {
     return res.status(500).type('application/json').json({
       ok: false,

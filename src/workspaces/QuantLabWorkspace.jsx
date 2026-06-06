@@ -629,8 +629,8 @@ export default function QuantLabWorkspace() {
   // Listen for dataset selection from Historical Data workspace
   useEffect(() => {
     function onDatasetBacktest(e) {
-      const { datasetId } = e.detail || {};
-      if (datasetId) setBacktestPendingDatasetId(datasetId);
+      const { datasetId, dataset } = e.detail || {};
+      if (datasetId) setBacktestPendingDatasetId(datasetId, dataset);
     }
     window.addEventListener('reversal:use-dataset-backtest', onDatasetBacktest);
     return () => window.removeEventListener('reversal:use-dataset-backtest', onDatasetBacktest);

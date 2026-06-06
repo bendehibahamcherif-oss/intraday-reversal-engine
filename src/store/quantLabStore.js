@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
+import { getDatasetId, normalizeDataset } from '../utils/datasets.js';
 
 function normalizeListPayload(payload) {
   if (Array.isArray(payload)) return payload;
@@ -80,6 +81,8 @@ export const useQuantLabStore = create((set, get) => ({
   backtestLoading: false,
   backtestError: '',
   backtestPendingDatasetId: null,
+  selectedBacktestDatasetId: null,
+  selectedBacktestDataset: null,
   walkForwardResult: null,
   walkForwardLoading: false,
   walkForwardError: '',
@@ -231,8 +234,12 @@ export const useQuantLabStore = create((set, get) => ({
     }
   },
 
-  setBacktestPendingDatasetId: (datasetId) => set({ backtestPendingDatasetId: datasetId }),
-  clearBacktestPendingDatasetId: () => set({ backtestPendingDatasetId: null }),
+  setBacktestPendingDatasetId: (datasetId, dataset = null) => {
+    const id = datasetId || getDatasetId(dataset);
+    if (!id) return set({ backtestError: 'Dataset ID missing. Reload dataset registry.' });
+    set({ backtestPendingDatasetId: id, selectedBacktestDatasetId: id, selectedBacktestDataset: dataset ? normalizeDataset(dataset) : get().selectedBacktestDataset });
+  },
+  clearBacktestPendingDatasetId: () => set({ backtestPendingDatasetId: null, selectedBacktestDatasetId: null, selectedBacktestDataset: null }),
 
   runBacktest: async (strategyId) => {
     const { symbol, timeframe, strategyCandidates, backtestPendingDatasetId } = get();

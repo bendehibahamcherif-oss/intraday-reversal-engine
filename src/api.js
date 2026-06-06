@@ -1,4 +1,5 @@
 // ============ API CLIENT ============
+import { stripUndefinedDeep, assertNoUndefinedDeep } from './utils/payload.js';
 // Centralized backend client. Supports JWT Bearer auth and legacy X-User-Token fallback.
 
 const RENDER_BACKEND_BASE = 'https://reversal.onrender.com';
@@ -133,7 +134,7 @@ export async function apiRequest(endpoint, { method = 'GET', headers: extraHeade
     const res = await fetch(url, {
       method: upperMethod,
       headers: headers(extraHeaders),
-      body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body),
+      body: body === undefined || typeof body === 'string' ? body : JSON.stringify(stripUndefinedDeep(body)),
       signal: signal || controller?.signal,
     });
     const data = await parseResponseBody(res, endpoint);
@@ -442,7 +443,7 @@ export const api = {
     const sym = String(symbol || 'SPY').trim().toUpperCase();
     return fetch(
       `${API_BASE}/api/ml/train`,
-      { method: 'POST', headers: headers(), body: JSON.stringify({ symbol: sym, ...config }) }
+      { method: 'POST', headers: headers(), body: JSON.stringify(stripUndefinedDeep({ symbol: sym, ...config })) }
     ).then(handle);
   },
   getMLModelRegistry: async (symbol) => {
@@ -561,10 +562,20 @@ export const api = {
     { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, overrides }) }
   ).then(handle),
 
-  runBacktest: async (symbol, strategyId, timeframe, datasetId) => fetch(
-    `${API_BASE}/api/backtest/run/${encodeURIComponent(symbol)}`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId, timeframe, ...(datasetId ? { datasetId } : {}) }) }
-  ).then(handle),
+  runBacktest: async (symbol, strategyId, timeframe, datasetId) => {
+    const payload = stripUndefinedDeep({
+      symbol: String(symbol || 'SPY').trim().toUpperCase(),
+      timeframe,
+      strategyId,
+      strategy: { type: strategyId || 'default_or_existing' },
+      ...(datasetId ? { datasetId } : {}),
+    });
+    assertNoUndefinedDeep(payload);
+    return fetch(
+      `${API_BASE}/api/backtest/run`,
+      { method: 'POST', headers: headers(), body: JSON.stringify(payload) }
+    ).then(handle);
+  },
   getBacktestResults: async (symbol) => fetch(
     `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
@@ -916,14 +927,21 @@ export const api = {
   },
 
   // ── Multi-Asset Analytics (Phase 13) ─────────────────────────────────────
-  getMultiAssetCorrelation: async ({ symbols = [], window = 20, timeframe = '1d', datasetId } = {}) => {
+  getMultiAssetCorrelation: async (options = {}) => {
+    const { symbols = [], window = 20, timeframe = '1d' } = options;
+    const datasetId = Object.prototype.hasOwnProperty.call(options, 'datasetId') ? options.datasetId : null;
+    if (datasetId === undefined) throw new Error('datasetId must not be undefined');
     const p = new URLSearchParams({ window: String(window), timeframe });
     if (symbols.length) p.set('symbols', symbols.join(','));
     if (datasetId) p.set('datasetId', datasetId);
     return fetch(`${API_BASE}/api/multi-asset/correlation?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  getMultiAssetBeta: async ({ symbol = 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d' } = {}) => {
+  getMultiAssetBeta: async (options = {}) => {
+    const { symbol = 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d' } = options;
+    const datasetId = Object.prototype.hasOwnProperty.call(options, 'datasetId') ? options.datasetId : null;
+    if (datasetId === undefined) throw new Error('datasetId must not be undefined');
     const p = new URLSearchParams({ symbol, benchmark, window: String(window), timeframe });
+    if (datasetId) p.set('datasetId', datasetId);
     return fetch(`${API_BASE}/api/multi-asset/beta?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMultiAssetSectorRotation: async ({ window = 20, timeframe = '1d' } = {}) => {
@@ -987,7 +1005,7 @@ export const api = {
   trainMLModelP1: async ({ symbol, timeframe = '1m', candles = [], xgbConfig = {}, datasetId, horizon = 20, datasetPath, promote = false } = {}) =>
     fetch(`${API_BASE}/api/ml/train`, {
       method: 'POST', headers: headers(),
-      body: JSON.stringify({ symbol, timeframe, candles, xgbConfig, horizon, datasetPath, promote, ...(datasetId ? { datasetId } : {}) }),
+      body: JSON.stringify(stripUndefinedDeep({ symbol, timeframe, candles, xgbConfig, horizon, datasetPath, promote, ...(datasetId ? { datasetId } : {}) })),
     }).then(handle),
   promoteMLModel: async (modelVersion) =>
     fetch(`${API_BASE}/api/ml/promote/${encodeURIComponent(modelVersion)}`, { method: 'POST', headers: headers() }).then(handle),
@@ -1039,16 +1057,22 @@ export const api = {
   getHistoricalDatasets: async () =>
     fetch(`${API_BASE}/api/historical/datasets`, { method: 'GET', headers: headers() }).then(handle),
 
-  getHistoricalDataset: async (datasetId) =>
-    fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}`, { method: 'GET', headers: headers() }).then(handle),
+  getHistoricalDataset: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}`, { method: 'GET', headers: headers() }).then(handle);
+  },
 
   deleteHistoricalDataset: async (datasetId) =>
     fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}`, { method: 'DELETE', headers: headers() }).then(handle),
 
-  downloadHistoricalData: async (params) =>
-    fetch(`${API_BASE}/api/historical/download`, {
-      method: 'POST', headers: headers(), body: JSON.stringify(params),
-    }).then(handle),
+  downloadHistoricalData: async (params) => {
+    const payload = stripUndefinedDeep(params || {});
+    assertNoUndefinedDeep(payload);
+    if (!Array.isArray(payload.symbols)) throw new Error('symbols must be an array');
+    return fetch(`${API_BASE}/api/historical/download`, {
+      method: 'POST', headers: headers(), body: JSON.stringify(payload),
+    }).then(handle);
+  },
 
   getHistoricalDatasetDiagnostics: async (datasetId) =>
     fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}/diagnostics`, { method: 'GET', headers: headers() }).then(handle),

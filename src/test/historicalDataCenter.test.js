@@ -7,8 +7,9 @@
  *  - fallback_demo rejection
  *  - selectedDatasetId propagation
  */
+import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { act } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 // ── API mock ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ const { useHistoricalDataStore } = await import('../store/historicalDataStore.js
 const { useMLStore }             = await import('../store/mlStore.js');
 const { useMacroStore }          = await import('../store/macroStore.js');
 const { useQuantLabStore }       = await import('../store/quantLabStore.js');
+const { DownloadForm, parseSymbols } = await import('../workspaces/HistoricalDataWorkspace.jsx');
 
 function resetHistStore() {
   useHistoricalDataStore.setState({
@@ -44,6 +46,60 @@ function resetHistStore() {
 beforeEach(() => {
   vi.clearAllMocks();
   resetHistStore();
+});
+
+
+// ── DownloadForm symbol parsing and payload ───────────────────────────────────
+
+describe('HistoricalDataWorkspace download symbol payload', () => {
+  it('parseSymbols("NFLX") returns ["NFLX"]', () => {
+    expect(parseSymbols('NFLX')).toEqual(['NFLX']);
+  });
+
+  it('parseSymbols("SPY, QQQ") returns ["SPY", "QQQ"]', () => {
+    expect(parseSymbols('SPY, QQQ')).toEqual(['SPY', 'QQQ']);
+  });
+
+  it('download payload contains a symbols array when Download is clicked with NFLX', () => {
+    const onDownload = vi.fn();
+    render(React.createElement(DownloadForm, {
+      providers: [{ id: 'yahoo', label: 'Yahoo Finance' }],
+      onDownload,
+      loading: false,
+      error: '',
+      result: null,
+      onClear: vi.fn(),
+    }));
+
+    fireEvent.change(screen.getByPlaceholderText('SPY, QQQ, IWM'), { target: { value: 'NFLX' } });
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'yahoo' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    expect(onDownload).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'yahoo',
+      symbols: ['NFLX'],
+      endDate: expect.any(String),
+    }));
+    expect(onDownload.mock.calls[0][0]).not.toHaveProperty('symbol');
+  });
+
+  it('missing symbol prevents API call and shows a validation message', () => {
+    const onDownload = vi.fn();
+    render(React.createElement(DownloadForm, {
+      providers: [{ id: 'yahoo', label: 'Yahoo Finance' }],
+      onDownload,
+      loading: false,
+      error: '',
+      result: null,
+      onClear: vi.fn(),
+    }));
+
+    fireEvent.change(screen.getByPlaceholderText('SPY, QQQ, IWM'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    expect(onDownload).not.toHaveBeenCalled();
+    expect(screen.getByText('At least one symbol is required.')).toBeInTheDocument();
+  });
 });
 
 // ── fetchProviders ────────────────────────────────────────────────────────────
@@ -108,7 +164,7 @@ describe('historicalDataStore.fetchDatasets', () => {
 
     await act(() => useHistoricalDataStore.getState().fetchDatasets());
 
-    expect(useHistoricalDataStore.getState().datasets).toEqual(datasets);
+    expect(useHistoricalDataStore.getState().datasets).toEqual([expect.objectContaining({ ...datasets[0], id: datasets[0].datasetId, rowsBySymbol: {}, files: {}, warnings: [] })]);
     expect(useHistoricalDataStore.getState().datasetsError).toBe('');
   });
 
