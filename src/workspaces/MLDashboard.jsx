@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMLStore } from '../store/mlStore.js';
 import { useWorkspaceStore } from '../store/workspaceStore.js';
+import { useHistoricalDataStore } from '../store/historicalDataStore.js';
 import MLSignalPanel from '../components/MLSignalPanel.jsx';
 import MLDiagnosticsPanel from '../components/MLDiagnosticsPanel.jsx';
 import ModelHealthCard from '../components/ModelHealthCard.jsx';
@@ -100,10 +101,18 @@ export default function MLDashboard() {
 
   // Listen for dataset selection from Historical Data workspace
   useEffect(() => {
+    // Bootstrap: workspace mounts AFTER the event fires when user navigates here
+    // from HistoricalData. Read the persisted selection from historicalDataStore.
+    const { selectedMlDatasetId: histId, selectedMlDataset: histDataset } =
+      useHistoricalDataStore.getState();
+    if (histId && !useMLStore.getState().pendingDatasetId) {
+      setPendingDatasetId(histId, histDataset);
+    }
+
     function onDatasetML(e) {
-      const { datasetId } = e.detail || {};
+      const { datasetId, dataset } = e.detail || {};
       if (datasetId) {
-        setPendingDatasetId(datasetId);
+        setPendingDatasetId(datasetId, dataset);
         setActiveTab('runs');
       }
     }
