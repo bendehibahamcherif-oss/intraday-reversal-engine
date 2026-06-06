@@ -6,3 +6,5 @@ dist
 *.log
 .vite
 server-deliverables/ml/registry/registry.json
+server-deliverables/ai/artifacts/
+server-deliverables/ai/registry/

@@ -561,9 +561,9 @@ export const api = {
     { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, overrides }) }
   ).then(handle),
 
-  runBacktest: async (symbol, strategyId, timeframe) => fetch(
+  runBacktest: async (symbol, strategyId, timeframe, datasetId) => fetch(
     `${API_BASE}/api/backtest/run/${encodeURIComponent(symbol)}`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId, timeframe }) }
+    { method: 'POST', headers: headers(), body: JSON.stringify({ strategyId, timeframe, ...(datasetId ? { datasetId } : {}) }) }
   ).then(handle),
   getBacktestResults: async (symbol) => fetch(
     `${API_BASE}/api/backtest/results/${encodeURIComponent(symbol)}`,
@@ -916,9 +916,10 @@ export const api = {
   },
 
   // ── Multi-Asset Analytics (Phase 13) ─────────────────────────────────────
-  getMultiAssetCorrelation: async ({ symbols = [], window = 20, timeframe = '1d' } = {}) => {
+  getMultiAssetCorrelation: async ({ symbols = [], window = 20, timeframe = '1d', datasetId } = {}) => {
     const p = new URLSearchParams({ window: String(window), timeframe });
     if (symbols.length) p.set('symbols', symbols.join(','));
+    if (datasetId) p.set('datasetId', datasetId);
     return fetch(`${API_BASE}/api/multi-asset/correlation?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMultiAssetBeta: async ({ symbol = 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d' } = {}) => {
@@ -983,8 +984,11 @@ export const api = {
     const p = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
     return fetch(`${API_BASE}/api/ml/models${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  trainMLModelP1: async ({ symbol, timeframe = '1m', horizon = 20, datasetPath, promote = false } = {}) =>
-    fetch(`${API_BASE}/api/ml/train`, { method: 'POST', headers: headers(), body: JSON.stringify({ symbol, timeframe, horizon, datasetPath, promote }) }).then(handle),
+  trainMLModelP1: async ({ symbol, timeframe = '1m', candles = [], xgbConfig = {}, datasetId, horizon = 20, datasetPath, promote = false } = {}) =>
+    fetch(`${API_BASE}/api/ml/train`, {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({ symbol, timeframe, candles, xgbConfig, horizon, datasetPath, promote, ...(datasetId ? { datasetId } : {}) }),
+    }).then(handle),
   promoteMLModel: async (modelVersion) =>
     fetch(`${API_BASE}/api/ml/promote/${encodeURIComponent(modelVersion)}`, { method: 'POST', headers: headers() }).then(handle),
   getMLMetrics: async () =>
@@ -1027,4 +1031,22 @@ export const api = {
 
   getMLModelCard: async () =>
     fetch(`${API_BASE}/api/ml/model-card`, { method: 'GET', headers: headers() }).then(handle),
+
+  // ── Historical Data Download Center ──────────────────────────────────────
+  getHistoricalProviders: async () =>
+    fetch(`${API_BASE}/api/historical/providers`, { method: 'GET', headers: headers() }).then(handle),
+
+  getHistoricalDatasets: async () =>
+    fetch(`${API_BASE}/api/historical/datasets`, { method: 'GET', headers: headers() }).then(handle),
+
+  getHistoricalDataset: async (datasetId) =>
+    fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}`, { method: 'GET', headers: headers() }).then(handle),
+
+  deleteHistoricalDataset: async (datasetId) =>
+    fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}`, { method: 'DELETE', headers: headers() }).then(handle),
+
+  downloadHistoricalData: async (params) =>
+    fetch(`${API_BASE}/api/historical/download`, {
+      method: 'POST', headers: headers(), body: JSON.stringify(params),
+    }).then(handle),
 };

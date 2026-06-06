@@ -18,6 +18,7 @@ export const useMacroStore = create((set, get) => ({
   correlation:        null,
   correlationLoading: false,
   correlationError:   '',
+  correlationDatasetId: null,
 
   // ── Rolling beta ──────────────────────────────────────────────────────────
   beta:        null,
@@ -52,11 +53,16 @@ export const useMacroStore = create((set, get) => ({
   clearErrors: () => set({ correlationError: '', betaError: '', sectorRotationError: '', volatilityError: '' }),
 
   // ── Data loaders ──────────────────────────────────────────────────────────
+  setCorrelationDatasetId: (datasetId) => set({ correlationDatasetId: datasetId }),
+  clearCorrelationDatasetId: () => set({ correlationDatasetId: null }),
+
   loadCorrelation: async () => {
-    const { symbols, window: w, timeframe } = get();
+    const { symbols, window: w, timeframe, correlationDatasetId } = get();
     set({ correlationLoading: true, correlationError: '' });
     try {
-      const data = await api.getMultiAssetCorrelation({ symbols, window: w, timeframe });
+      const params = { symbols, window: w, timeframe };
+      if (correlationDatasetId) params.datasetId = correlationDatasetId;
+      const data = await api.getMultiAssetCorrelation(params);
       set({ correlation: data, correlationLoading: false });
     } catch (e) {
       set({ correlationLoading: false, correlationError: errMsg(e) });

@@ -68,6 +68,9 @@ const initialState = {
   modelsLoading:   false,
   modelsError:     '',
 
+  // Historical dataset pending for next training run
+  pendingDatasetId: null,
+
   lastUpdated:     null,
 };
 
@@ -161,11 +164,14 @@ export const useMLStore = create((set, get) => ({
   },
 
   startTraining: async (opts = {}) => {
+    const { pendingDatasetId } = get();
     set({ trainingInProgress: true, trainingError: '' });
     try {
-      const data = await api.trainMLModelP1(opts);
+      const data = await api.trainMLModelP1({
+        ...opts,
+        ...(pendingDatasetId ? { datasetId: pendingDatasetId } : {}),
+      });
       set({ trainingInProgress: false, lastTrainingResult: data });
-      // Refresh runs after training
       get().fetchTrainingRuns();
       return data;
     } catch (err) {
@@ -173,6 +179,9 @@ export const useMLStore = create((set, get) => ({
       throw err;
     }
   },
+
+  setPendingDatasetId: (datasetId) => set({ pendingDatasetId: datasetId }),
+  clearPendingDatasetId: () => set({ pendingDatasetId: null }),
 
   promoteModel: async (modelVersion) => {
     try {

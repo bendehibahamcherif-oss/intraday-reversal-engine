@@ -26,6 +26,7 @@ import OMSWorkspace from './workspaces/OMSWorkspace.jsx';
 import InstitutionalWorkspace from './workspaces/InstitutionalWorkspace.jsx';
 import OpsWorkspace from './workspaces/OpsWorkspace.jsx';
 import MLDashboard from './workspaces/MLDashboard.jsx';
+import HistoricalDataWorkspace from './workspaces/HistoricalDataWorkspace.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useMarketStore } from './store/marketStore';
@@ -78,6 +79,7 @@ function WorkspaceRenderer({ workspace, marketData }) {
     case 'Institutional':   return <InstitutionalWorkspace />;
     case 'Ops':             return <OpsWorkspace />;
     case 'MLEngine':        return <MLDashboard />;
+    case 'HistoricalData':  return <HistoricalDataWorkspace />;
     case 'Risk':
     default:                return <RiskWorkspace marketData={marketData} />;
   }
