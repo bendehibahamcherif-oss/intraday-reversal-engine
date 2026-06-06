@@ -121,14 +121,26 @@ class ResilientWebSocket {
 
   onMessage(cb) {
     this.listeners.push(cb);
+    return () => { this.listeners = this.listeners.filter((listener) => listener !== cb); };
   }
 
   onConnect(cb) {
     this._connectCallbacks.push(cb);
+    return () => { this._connectCallbacks = this._connectCallbacks.filter((listener) => listener !== cb); };
   }
 
   onDisconnect(cb) {
     this._disconnectCallbacks.push(cb);
+    return () => { this._disconnectCallbacks = this._disconnectCallbacks.filter((listener) => listener !== cb); };
+  }
+
+  close() {
+    this.stopHeartbeat();
+    if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.close();
+    }
+    this.connected = false;
   }
 }
 

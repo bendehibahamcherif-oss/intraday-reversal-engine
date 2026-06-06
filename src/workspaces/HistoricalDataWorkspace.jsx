@@ -506,7 +506,7 @@ export default function HistoricalDataWorkspace() {
     store.downloadData(params).catch(() => {}); // error shown in form
   }
 
-  function handleUseForML(dataset) {
+  async function handleUseForML(dataset) {
     if (process.env.NODE_ENV !== 'production') {
       console.log('[HistoricalDataWorkspace] useDatasetForMl', {
         action: 'useDatasetForMl',
@@ -515,23 +515,23 @@ export default function HistoricalDataWorkspace() {
         selectedMlDatasetId: getDatasetId(dataset),
       });
     }
-    const result = store.useDatasetForMl(dataset);
+    const result = await store.useDatasetForMl(dataset);
     if (!result.ok) return notify(result.error, true);
-    window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId: result.datasetId, dataset } }));
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId: result.datasetId, dataset: result.dataset || dataset } }));
     notify(`Dataset "${result.datasetId}" sent to ML Engine`);
   }
 
-  function handleUseForBacktest(dataset) {
-    const result = store.useDatasetForBacktest(dataset);
+  async function handleUseForBacktest(dataset) {
+    const result = await store.useDatasetForBacktest(dataset);
     if (!result.ok) return notify(result.error, true);
-    window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId: result.datasetId, dataset } }));
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId: result.datasetId, dataset: result.dataset || dataset } }));
     notify(`Dataset "${result.datasetId}" sent to Backtesting`);
   }
 
-  function handleUseForCorrelation(dataset) {
-    const result = store.useDatasetForCorrelation(dataset);
+  async function handleUseForCorrelation(dataset) {
+    const result = await store.useDatasetForCorrelation(dataset);
     if (!result.ok) return notify(result.error, true);
-    window.dispatchEvent(new CustomEvent('reversal:use-dataset-correlation', { detail: { datasetId: result.datasetId, dataset } }));
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-correlation', { detail: { datasetId: result.datasetId, dataset: result.dataset || dataset } }));
     notify(`Dataset "${result.datasetId}" sent to Correlation`);
   }
 

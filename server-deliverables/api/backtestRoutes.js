@@ -60,6 +60,8 @@ router.post(['/run', '/run/:symbol'], (req, res) => {
   }));
 });
 
+router.get('/runs', (req, res) => res.json({ ok: true, runs: [] }));
+router.get('/runs/:runId', (req, res) => res.status(404).json({ ok: false, status: 'run_not_found', message: 'Backtest run not found.', runId: req.params.runId }));
 router.get('/results/:symbol', (req, res) => res.json({ ok: true, results: [] }));
 router.get('/results/:symbol/:id', (req, res) => res.status(404).json({ ok: false, status: 'result_not_found', message: 'Backtest result not found.' }));
 router.delete('/results/:symbol', (req, res) => res.json({ ok: true, deleted: true }));

@@ -133,6 +133,18 @@ function inferFromChampionArtifact(champion, featureVector) {
   return { signal, probability: probabilities[classIndex], confidence: probabilities[classIndex], probabilities, classIndex, modelVersion: champion.modelId };
 }
 
+// ── GET /api/ml/dependencies ──────────────────────────────────────────────────
+router.get('/dependencies', (req, res) => {
+  res.json({
+    ok: true,
+    status: 'ready_with_optional_missing',
+    ready: true,
+    required: { node: true },
+    optional: { pythonWorker: workerPool.getPoolStatus?.() || null },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ── GET /api/ml/health ────────────────────────────────────────────────────────
 router.get('/health', async (req, res) => {
   try {

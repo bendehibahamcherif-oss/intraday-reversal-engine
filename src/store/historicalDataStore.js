@@ -1,10 +1,21 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { api } from '../api.js';
 import { assertDatasetId, getDatasetId, normalizeDataset } from '../utils/datasets.js';
 
 const errMsg = (e) => (e instanceof Error ? e.message : String(e));
 
-export const useHistoricalDataStore = create((set, get) => ({
+const safeHistoricalStorage = {
+  getItem: (name) => { try { return localStorage.getItem(name); } catch { return null; } },
+  setItem: (name, value) => { try { localStorage.setItem(name, value); } catch {} },
+  removeItem: (name) => { try { localStorage.removeItem(name); } catch {} },
+};
+
+const normalizePersistedDataset = (dataset) => dataset ? normalizeDataset(dataset) : null;
+
+export const useHistoricalDataStore = create(
+  persist(
+    (set, get) => ({
   // Providers
   providers: [],
   providersLoading: false,
@@ -121,7 +132,12 @@ export const useHistoricalDataStore = create((set, get) => ({
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedMlDatasetId: asserted.datasetId, selectedMlDataset: normalized, datasetsError: '' });
-    return { ok: true, datasetId: asserted.datasetId, message: `Dataset "${asserted.datasetId}" sent to ML Engine` };
+    api.useHistoricalDatasetForMl?.(asserted.datasetId)
+      ?.then((response) => {
+        if (response?.dataset) set({ selectedMlDataset: normalizeDataset(response.dataset), datasetsError: '' });
+      })
+      .catch((e) => set({ datasetsError: errMsg(e) }));
+    return { ok: true, datasetId: asserted.datasetId, dataset: normalized, message: `Dataset "${asserted.datasetId}" sent to ML Engine` };
   },
 
   useDatasetForBacktest: (dataset) => {
@@ -129,7 +145,12 @@ export const useHistoricalDataStore = create((set, get) => ({
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedBacktestDatasetId: asserted.datasetId, selectedBacktestDataset: normalized, datasetsError: '' });
-    return { ok: true, datasetId: asserted.datasetId, message: `Dataset "${asserted.datasetId}" sent to Backtesting` };
+    api.useHistoricalDatasetForBacktest?.(asserted.datasetId)
+      ?.then((response) => {
+        if (response?.dataset) set({ selectedBacktestDataset: normalizeDataset(response.dataset), datasetsError: '' });
+      })
+      .catch((e) => set({ datasetsError: errMsg(e) }));
+    return { ok: true, datasetId: asserted.datasetId, dataset: normalized, message: `Dataset "${asserted.datasetId}" sent to Backtesting` };
   },
 
   useDatasetForCorrelation: (dataset) => {
@@ -137,8 +158,41 @@ export const useHistoricalDataStore = create((set, get) => ({
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedCorrelationDatasetId: asserted.datasetId, selectedCorrelationDataset: normalized, datasetsError: '' });
-    return { ok: true, datasetId: asserted.datasetId, message: `Dataset "${asserted.datasetId}" sent to Correlation` };
+    api.useHistoricalDatasetForCorrelation?.(asserted.datasetId)
+      ?.then((response) => {
+        if (response?.dataset) set({ selectedCorrelationDataset: normalizeDataset(response.dataset), datasetsError: '' });
+      })
+      .catch((e) => set({ datasetsError: errMsg(e) }));
+    return { ok: true, datasetId: asserted.datasetId, dataset: normalized, message: `Dataset "${asserted.datasetId}" sent to Correlation` };
   },
 
   clearDownloadResult: () => set({ downloadResult: null, downloadError: '' }),
-}));
+}),
+    {
+      name: 'reversal-historical-selection-v2',
+      version: 2,
+      storage: createJSONStorage(() => safeHistoricalStorage),
+      partialize: (state) => ({
+        selectedDatasetId: state.selectedDatasetId || null,
+        selectedDataset: normalizePersistedDataset(state.selectedDataset),
+        selectedMlDatasetId: state.selectedMlDatasetId || null,
+        selectedMlDataset: normalizePersistedDataset(state.selectedMlDataset),
+        selectedBacktestDatasetId: state.selectedBacktestDatasetId || null,
+        selectedBacktestDataset: normalizePersistedDataset(state.selectedBacktestDataset),
+        selectedCorrelationDatasetId: state.selectedCorrelationDatasetId || null,
+        selectedCorrelationDataset: normalizePersistedDataset(state.selectedCorrelationDataset),
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        selectedDatasetId: persistedState?.selectedDatasetId || null,
+        selectedDataset: normalizePersistedDataset(persistedState?.selectedDataset),
+        selectedMlDatasetId: persistedState?.selectedMlDatasetId || null,
+        selectedMlDataset: normalizePersistedDataset(persistedState?.selectedMlDataset),
+        selectedBacktestDatasetId: persistedState?.selectedBacktestDatasetId || null,
+        selectedBacktestDataset: normalizePersistedDataset(persistedState?.selectedBacktestDataset),
+        selectedCorrelationDatasetId: persistedState?.selectedCorrelationDatasetId || null,
+        selectedCorrelationDataset: normalizePersistedDataset(persistedState?.selectedCorrelationDataset),
+      }),
+    }
+  )
+);
