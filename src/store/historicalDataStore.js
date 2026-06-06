@@ -30,6 +30,11 @@ export const useHistoricalDataStore = create((set, get) => ({
   selectedCorrelationDatasetId: null,
   selectedCorrelationDataset: null,
 
+  // Diagnostics for selected dataset
+  diagnostics: null,
+  diagnosticsLoading: false,
+  diagnosticsError: '',
+
   // ── Actions ──────────────────────────────────────────────────────────────
 
   fetchProviders: async () => {
@@ -81,8 +86,10 @@ export const useHistoricalDataStore = create((set, get) => ({
 
   selectDataset: async (datasetId) => {
     const local = get().datasets.find((d) => getDatasetId(d) === datasetId) || null;
-    set({ selectedDatasetId: datasetId, selectedDataset: local });
+    set({ selectedDatasetId: datasetId, selectedDataset: local, diagnostics: null, diagnosticsError: '' });
     if (!datasetId) return;
+    // Fetch diagnostics and full dataset record concurrently
+    get().fetchDiagnostics(datasetId);
     try {
       const data = await api.getHistoricalDataset(datasetId);
       const full = normalizeDataset(data.dataset || local);
@@ -96,7 +103,18 @@ export const useHistoricalDataStore = create((set, get) => ({
     }
   },
 
-  clearSelection: () => set({ selectedDatasetId: null, selectedDataset: null }),
+  clearSelection: () => set({ selectedDatasetId: null, selectedDataset: null, diagnostics: null, diagnosticsError: '' }),
+
+  fetchDiagnostics: async (datasetId) => {
+    if (!datasetId) return;
+    set({ diagnosticsLoading: true, diagnosticsError: '' });
+    try {
+      const data = await api.getHistoricalDatasetDiagnostics(datasetId);
+      set({ diagnostics: data, diagnosticsLoading: false });
+    } catch (e) {
+      set({ diagnosticsLoading: false, diagnosticsError: errMsg(e) });
+    }
+  },
 
   useDatasetForMl: (dataset) => {
     const asserted = assertDatasetId(dataset);

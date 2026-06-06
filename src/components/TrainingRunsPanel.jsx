@@ -35,11 +35,79 @@ function MetricChip({ label, value, highlight }) {
  *   onPromote  function(version) — called when user clicks Promote
  *   compact    bool (default false)
  */
+const STATUS_LABELS = {
+  dataset_missing:      'No dataset found. Select a historical dataset first.',
+  dataset_not_found:    'Selected dataset was not found in the backend registry. Re-download it.',
+  dataset_file_missing: 'Dataset file is missing on the server. Re-download the dataset.',
+  dataset_file_empty:   'Dataset file is empty (0 bytes). Re-download the dataset.',
+  not_enough_data:      'Not enough data rows to train. Download a longer date range.',
+  invalid_dataset_id:   'Invalid dataset ID format.',
+  training_failed:      'Training process failed.',
+};
+
+function TrainingStatusBanner({ lastResult, pendingDatasetId, onClear }) {
+  if (!lastResult && !pendingDatasetId) return null;
+  const isError = lastResult && lastResult.ok === false;
+  const isSuccess = lastResult && lastResult.ok === true;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+      {pendingDatasetId && (
+        <div style={{
+          padding: '6px 10px',
+          background: 'rgba(96,165,250,.10)',
+          border: '1px solid #2563eb',
+          borderRadius: 4,
+          fontSize: 11,
+          color: '#93c5fd',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}>
+          <span>Dataset queued: <strong style={{ fontFamily: 'monospace' }}>{pendingDatasetId}</strong></span>
+          <button onClick={onClear} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 11 }}>✕</button>
+        </div>
+      )}
+      {isError && (
+        <div style={{
+          padding: '6px 10px',
+          background: 'rgba(239,68,68,.10)',
+          border: '1px solid #ef4444',
+          borderRadius: 4,
+          fontSize: 11,
+          color: '#fca5a5',
+        }}>
+          <strong>{lastResult.status || 'error'}</strong>
+          {': '}
+          {STATUS_LABELS[lastResult.status] || lastResult.message || 'Training failed.'}
+          {lastResult.datasetId && <span style={{ color: '#6b7280', marginLeft: 6 }}>({lastResult.datasetId})</span>}
+        </div>
+      )}
+      {isSuccess && (
+        <div style={{
+          padding: '6px 10px',
+          background: 'rgba(34,197,94,.10)',
+          border: '1px solid #22c55e',
+          borderRadius: 4,
+          fontSize: 11,
+          color: '#86efac',
+        }}>
+          Training complete · model <strong>{lastResult.modelId || '—'}</strong>
+          {lastResult.promoted && ' · promoted to champion'}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TrainingRunsPanel({ onPromote, compact = false }) {
   const runs    = useMLStore((s) => s.trainingRuns);
   const loading = useMLStore((s) => s.trainingLoading);
   const error   = useMLStore((s) => s.trainingError);
-  const trainingInProgress = useMLStore((s) => s.trainingInProgress);
+  const trainingInProgress  = useMLStore((s) => s.trainingInProgress);
+  const lastTrainingResult  = useMLStore((s) => s.lastTrainingResult);
+  const pendingDatasetId    = useMLStore((s) => s.pendingDatasetId);
+  const clearPendingDataset = useMLStore((s) => s.clearPendingDatasetId);
   const fetchRuns   = useMLStore((s) => s.fetchTrainingRuns);
   const startTrain  = useMLStore((s) => s.startTraining);
 
@@ -51,10 +119,17 @@ export default function TrainingRunsPanel({ onPromote, compact = false }) {
   };
 
   if (loading) return <div style={{ color: MUTED, padding: 20, textAlign: 'center', fontSize: 13 }}>Loading runs…</div>;
-  if (error)   return <div style={{ color: AMBER, fontSize: 12, padding: 10 }}>{error}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <TrainingStatusBanner
+        lastResult={lastTrainingResult}
+        pendingDatasetId={pendingDatasetId}
+        onClear={clearPendingDataset}
+      />
+
+      {error && <div style={{ color: AMBER, fontSize: 12, padding: '4px 8px', background: 'rgba(245,158,11,.08)', borderRadius: 4 }}>{error}</div>}
+
       {/* Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: 1 }}>

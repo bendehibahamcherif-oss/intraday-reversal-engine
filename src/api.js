@@ -1073,4 +1073,7 @@ export const api = {
       method: 'POST', headers: headers(), body: JSON.stringify(payload),
     }).then(handle);
   },
+
+  getHistoricalDatasetDiagnostics: async (datasetId) =>
+    fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}/diagnostics`, { method: 'GET', headers: headers() }).then(handle),
 };

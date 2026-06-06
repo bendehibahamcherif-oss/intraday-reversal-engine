@@ -42,20 +42,40 @@ function resolveDatasetPath(datasetPath) {
   return DEFAULT_DATASET_PATHS.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
-function resolveHistoricalDataset(datasetId) {
-  if (!datasetId) return { datasetId: null, dataset: null, datasetPath: null };
-  const normalizedId = String(datasetId).trim();
-  const dataset = historicalRegistry.get(normalizedId);
-  if (!dataset) {
-    return { ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId: normalizedId };
+/**
+ * Resolve the file path from a historical dataset registry record.
+ * Accepts multiple field shapes (files.csv, files.parquet, filePath, path).
+ * Returns { resolvedPath, candidatePaths, issue } where issue is null on success.
+ */
+function resolveDatasetFile(dataset) {
+  const candidatePaths = [];
+
+  const rawCandidates = [
+    dataset.files && dataset.files.csv,
+    dataset.files && dataset.files.parquet,
+    dataset.filePath,
+    dataset.path,
+  ].filter(Boolean);
+
+  for (const raw of rawCandidates) {
+    const abs = path.isAbsolute(raw) ? raw : path.resolve(REPO_ROOT, raw);
+    candidatePaths.push(abs);
   }
-  const csvPath = dataset.files?.csv || '';
-  const parquetPath = dataset.files?.parquet || '';
-  const usablePath = csvPath && fs.existsSync(csvPath) ? csvPath : (parquetPath && fs.existsSync(parquetPath) ? parquetPath : null);
-  if (!usablePath) {
-    return { ok: false, status: 'dataset_file_missing', message: 'Historical dataset exists but no usable CSV/Parquet file was found.', datasetId: normalizedId };
+
+  if (candidatePaths.length === 0) {
+    return { resolvedPath: null, candidatePaths: [], issue: 'dataset_file_missing' };
   }
-  return { ok: true, datasetId: dataset.datasetId || normalizedId, dataset, datasetPath: usablePath };
+
+  for (const abs of candidatePaths) {
+    if (!fs.existsSync(abs)) continue;
+    const stat = fs.statSync(abs);
+    if (stat.size === 0) {
+      return { resolvedPath: abs, candidatePaths, issue: 'dataset_file_empty' };
+    }
+    return { resolvedPath: abs, candidatePaths, issue: null };
+  }
+
+  return { resolvedPath: null, candidatePaths, issue: 'dataset_file_missing' };
 }
 
 function validateRequest(body = {}) {
@@ -127,25 +147,100 @@ function spawnTraining({ datasetPath, symbol, timeframe, horizon, costBps }) {
 }
 
 async function trainModel(body = {}) {
+  // ── Dev debug log ─────────────────────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[trainingService] POST /api/ml/train received:', JSON.stringify({
+      route: 'POST /api/ml/train',
+      receivedBody: {
+        symbol:      body.symbol,
+        timeframe:   body.timeframe,
+        horizon:     body.horizon,
+        datasetId:   body.datasetId,
+        datasetPath: body.datasetPath,
+        promote:     body.promote,
+        candles:     Array.isArray(body.candles) ? `Array(${body.candles.length})` : body.candles,
+      },
+    }));
+  }
+
+  // ── datasetId flow ────────────────────────────────────────────────────────
+  // When datasetId is provided, resolve it here with precise error codes.
+  // This overrides any datasetPath that was injected by the route handler.
+  if (body.datasetId) {
+    const datasetId = String(body.datasetId).trim();
+
+    // Validate datasetId format
+    if (!/^[a-zA-Z0-9_-]{1,200}$/.test(datasetId)) {
+      return {
+        ok: false,
+        status: 'invalid_dataset_id',
+        message: `datasetId '${datasetId}' contains invalid characters.`,
+        datasetId,
+      };
+    }
+
+    let histRegistry;
+    try {
+      histRegistry = require('../historical/historicalDatasetRegistry');
+    } catch (e) {
+      return { ok: false, status: 'dataset_not_found', message: 'Historical dataset registry is not available.', datasetId };
+    }
+
+    const allDatasets = histRegistry.list();
+    const dataset = allDatasets.find((d) => d.datasetId === datasetId || d.id === datasetId) || null;
+
+    if (!dataset) {
+      return {
+        ok: false,
+        status: 'dataset_not_found',
+        message: `Historical dataset '${datasetId}' was not found in the backend registry.`,
+        datasetId,
+        availableDatasetIds: allDatasets.map((d) => d.datasetId || d.id).filter(Boolean),
+      };
+    }
+
+    const { resolvedPath, candidatePaths, issue } = resolveDatasetFile(dataset);
+
+    if (issue === 'dataset_file_missing') {
+      return {
+        ok: false,
+        status: 'dataset_file_missing',
+        message: `Historical dataset '${datasetId}' exists in the registry but its data file does not exist on this server.`,
+        datasetId,
+        candidatePaths,
+        resolvedPaths: candidatePaths,
+      };
+    }
+
+    if (issue === 'dataset_file_empty') {
+      return {
+        ok: false,
+        status: 'dataset_file_empty',
+        message: `Historical dataset '${datasetId}' file exists but is empty (0 bytes).`,
+        datasetId,
+        path: resolvedPath,
+      };
+    }
+
+    // File is valid — use it as datasetPath
+    body = { ...body, datasetPath: resolvedPath };
+  }
+
   const request = validateRequest(body);
   if (request.error) return { ok: false, status: 'invalid_request', message: request.error };
-  let datasetPath = resolveDatasetPath(request.datasetPath);
-  let datasetId = request.datasetId || null;
-  if (request.datasetId) {
-    const resolvedDataset = resolveHistoricalDataset(request.datasetId);
-    if (!resolvedDataset.ok) return resolvedDataset;
-    datasetPath = resolvedDataset.datasetPath;
-    datasetId = resolvedDataset.datasetId;
-  }
+
+  const datasetPath = resolveDatasetPath(request.datasetPath);
+  const datasetId = body.datasetId || null;
   if (!datasetPath) {
     return {
       ok: false,
       status: 'dataset_missing',
-      message: 'No dataset snapshot found. Generate or upload a dataset before training.',
+      message: 'No dataset snapshot found. Generate or upload a dataset before training, or select a historical dataset from the Historical Data workspace.',
       expectedPaths: publicExpectedPaths(),
       ...(datasetId ? { datasetId } : {}),
     };
   }
+
   const result = await spawnTraining({ ...request, datasetPath });
   if (!result.ok) {
     return {
@@ -156,6 +251,7 @@ async function trainModel(body = {}) {
       ...(datasetId ? { datasetId } : {}),
     };
   }
+
   const manifest = result.manifest || {};
   let registered = registry.registerModel({
     modelId: result.modelId,
@@ -186,4 +282,4 @@ async function trainModel(body = {}) {
   };
 }
 
-module.exports = { trainModel, validateRequest, resolveDatasetPath, resolveHistoricalDataset, publicExpectedPaths, DEFAULT_DATASET_PATHS };
+module.exports = { trainModel, validateRequest, resolveDatasetPath, resolveDatasetFile, publicExpectedPaths, DEFAULT_DATASET_PATHS };

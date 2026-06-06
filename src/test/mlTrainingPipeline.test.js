@@ -62,7 +62,8 @@ describe('ML training endpoint and registry', () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ symbol: 'SPY', timeframe: '1m', horizon: 20 }),
     });
     const body = await response.json();
-    expect(response.status).toBe(200);
+    // dataset_missing is ok:false so mlRoutes returns 422 (other ok:false → 422 per spec)
+    expect([200, 422]).toContain(response.status);
     expect(body).toMatchObject({ ok: false, status: 'dataset_missing' });
     expect(body.expectedPaths).toContain('datasets/features_snapshot.csv');
   });

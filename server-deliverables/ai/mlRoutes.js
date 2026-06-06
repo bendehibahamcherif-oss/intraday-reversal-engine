@@ -296,14 +296,23 @@ router.post('/infer/:symbol', async (req, res) => {
 // ── POST /api/ml/train ────────────────────────────────────────────────────────
 router.post('/train', async (req, res) => {
   try {
-    const body = { ...(req.body || {}) };
+    const body = req.body || {};
 
     const result = await trainingService.trainModel(body);
-    const statusCode = ['invalid_request'].includes(result.status) ? 400 : (['dataset_not_found', 'dataset_file_missing'].includes(result.status) ? 404 : 200);
-    return res.status(statusCode).type('application/json').json({
-      ...result,
-      ...(body.datasetId && !result.datasetId ? { datasetId: body.datasetId } : {}),
-    });
+
+    const STATUS_HTTP = {
+      invalid_request:      400,
+      invalid_dataset_id:   400,
+      dataset_not_found:    404,
+      dataset_file_missing: 400,
+      dataset_file_empty:   400,
+    };
+    const statusCode = result.ok ? 200 : (STATUS_HTTP[result.status] || 422);
+    const responseBody = body.datasetId && !result.datasetId
+      ? { ...result, datasetId: body.datasetId }
+      : result;
+
+    return res.status(statusCode).type('application/json').json(responseBody);
   } catch (err) {
     return res.status(500).type('application/json').json({
       ok: false,
