@@ -56,7 +56,44 @@ function useIsMobile() {
   return isMobile;
 }
 
+function WorkspaceCrashFallback({ workspace, onReset }) {
+  return (
+    <div style={{ height: '100%', overflow: 'auto', background: 'var(--t-bg-0)', color: 'var(--t-text)', fontFamily: 'var(--t-font-ui)' }}>
+      <div style={{ maxWidth: 560, margin: '40px auto', background: '#0d0d1a', border: '1px solid #1f2937', borderRadius: 10, padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span style={{ color: '#ef4444', fontSize: 18 }}>⚠</span>
+          <strong style={{ fontSize: 15 }}>This workspace hit an error</strong>
+        </div>
+        <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 14px' }}>
+          The “{workspace}” workspace failed to render. The rest of the terminal is still
+          running — switch workspaces from the sidebar, or retry.
+        </p>
+        <button
+          onClick={onReset}
+          style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
+          ↺ Retry workspace
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WorkspaceRenderer({ workspace, marketData }) {
+  // Scoped boundary: a crash in one workspace shows an inline fallback instead of
+  // blanking the whole terminal shell. key={workspace} remounts (and clears the
+  // error) whenever the user navigates to a different workspace.
+  return (
+    <ErrorBoundary
+      key={workspace}
+      fallback={({ reset }) => <WorkspaceCrashFallback workspace={workspace} onReset={reset} />}
+    >
+      <WorkspaceSwitch workspace={workspace} marketData={marketData} />
+    </ErrorBoundary>
+  );
+}
+
+function WorkspaceSwitch({ workspace, marketData }) {
   switch (workspace) {
     case 'Macro':           return <MacroWorkspace marketData={marketData} />;
     case 'Portfolio':       return <PortfolioWorkspace />;

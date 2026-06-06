@@ -12,7 +12,8 @@
     "frontend:build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "platform:smoke": "node scripts/platform-smoke.js"
+    "platform:smoke": "node scripts/platform-smoke.js",
+    "frontend:smoke": "node scripts/frontend-functional-smoke.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
