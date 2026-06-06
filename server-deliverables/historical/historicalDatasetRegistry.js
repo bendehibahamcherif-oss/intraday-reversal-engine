@@ -124,8 +124,26 @@ function generateDatasetId({ symbols, timeframe, startDate, endDate, session, pr
  * list — returns all dataset records sorted by createdAt descending.
  * @returns {Object[]}
  */
+function normalizeDataset(dataset) {
+  if (!dataset || typeof dataset !== 'object') return null;
+  const datasetId = dataset.datasetId || dataset.id;
+  if (!datasetId) return null;
+  const files = dataset.files && typeof dataset.files === 'object' ? dataset.files : {};
+  return {
+    ...dataset,
+    datasetId,
+    id: dataset.id || datasetId,
+    symbols: Array.isArray(dataset.symbols) ? dataset.symbols.map((s) => String(s).trim().toUpperCase()).filter(Boolean) : [],
+    rowCount: Number.isFinite(Number(dataset.rowCount)) ? Number(dataset.rowCount) : 0,
+    rowsBySymbol: dataset.rowsBySymbol && typeof dataset.rowsBySymbol === 'object' ? dataset.rowsBySymbol : {},
+    files: { csv: files.csv || null, parquet: files.parquet || null, json: files.json || null },
+    schema: dataset.schema || 'HistoricalCandle.v1',
+    warnings: Array.isArray(dataset.warnings) ? dataset.warnings : [],
+  };
+}
+
 function list() {
-  const datasets = _load();
+  const datasets = _load().map(normalizeDataset).filter(Boolean);
   return datasets.slice().sort((a, b) => {
     const ta = a.createdAt || '';
     const tb = b.createdAt || '';
@@ -143,7 +161,7 @@ function list() {
 function get(datasetId) {
   if (!datasetId || !DATASET_ID_RE.test(datasetId)) return null;
   const datasets = _load();
-  return datasets.find(d => d.datasetId === datasetId) || null;
+  return datasets.map(normalizeDataset).filter(Boolean).find(d => d.datasetId === datasetId || d.id === datasetId) || null;
 }
 
 /**
@@ -154,19 +172,20 @@ function get(datasetId) {
  * @returns {Object} The saved record (with updatedAt stamped).
  */
 function register(record) {
-  if (!record || !record.datasetId) {
+  const normalizedRecord = normalizeDataset(record);
+  if (!normalizedRecord || !normalizedRecord.datasetId) {
     throw new Error('record.datasetId is required');
   }
-  if (!DATASET_ID_RE.test(record.datasetId)) {
-    throw new Error(`Invalid datasetId: "${record.datasetId}"`);
+  if (!DATASET_ID_RE.test(normalizedRecord.datasetId)) {
+    throw new Error(`Invalid datasetId: "${normalizedRecord.datasetId}"`);
   }
 
-  const datasets   = _load();
+  const datasets   = _load().map(normalizeDataset).filter(Boolean);
   const now        = new Date().toISOString();
-  const saved      = { ...record, updatedAt: now };
+  const saved      = { ...normalizedRecord, updatedAt: now };
   if (!saved.createdAt) saved.createdAt = now;
 
-  const idx = datasets.findIndex(d => d.datasetId === record.datasetId);
+  const idx = datasets.findIndex(d => d.datasetId === normalizedRecord.datasetId || d.id === normalizedRecord.datasetId);
   if (idx >= 0) {
     datasets[idx] = saved;
   } else {
@@ -189,7 +208,7 @@ function remove(datasetId) {
   }
 
   const datasets = _load();
-  const idx      = datasets.findIndex(d => d.datasetId === datasetId);
+  const idx      = datasets.map(normalizeDataset).findIndex(d => d && (d.datasetId === datasetId || d.id === datasetId));
 
   if (idx < 0) {
     return { ok: true, deleted: false, filesRemoved: [] };
@@ -224,9 +243,13 @@ module.exports = {
   REGISTRY_FILE,
   DATASET_ID_RE,
   generateDatasetId,
+  normalizeDataset,
   list,
+  listDatasets: list,
   get,
+  getDataset: get,
   register,
+  saveDataset: register,
   remove,
   safePath,
   _load,

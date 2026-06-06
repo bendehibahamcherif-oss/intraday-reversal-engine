@@ -19,6 +19,7 @@ const router = Router();
 
 const { downloadHistoricalData, getProviders } = require('../historical/historicalDataService');
 const registry = require('../historical/historicalDatasetRegistry');
+const { jsonSafe } = require('./jsonSafety');
 
 // ── Error code → HTTP status mapping ────────────────────────────────────────
 
@@ -51,9 +52,9 @@ function errorStatusFor(code) {
 router.get('/providers', (_req, res) => {
   try {
     const providerList = getProviders();
-    res.json({ ok: true, providers: providerList, defaultProvider: 'yahoo' });
+    jsonSafe(res, 200, { ok: true, providers: providerList, defaultProvider: 'yahoo' });
   } catch (err) {
-    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 
@@ -62,9 +63,9 @@ router.get('/providers', (_req, res) => {
 router.get('/datasets', (_req, res) => {
   try {
     const datasets = registry.list();
-    res.json({ ok: true, datasets });
+    jsonSafe(res, 200, { ok: true, datasets });
   } catch (err) {
-    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 
@@ -75,11 +76,11 @@ router.get('/datasets/:datasetId', (req, res) => {
     const { datasetId } = req.params;
     const dataset = registry.get(datasetId);
     if (!dataset) {
-      return res.status(404).json({ ok: false, error: { code: 'DATASET_NOT_FOUND', message: `Dataset '${datasetId}' not found.` } });
+      return jsonSafe(res, 404, { ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId });
     }
-    res.json({ ok: true, dataset });
+    jsonSafe(res, 200, { ok: true, dataset });
   } catch (err) {
-    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 
@@ -89,12 +90,12 @@ router.delete('/datasets/:datasetId', (req, res) => {
   try {
     const { datasetId } = req.params;
     const existed = registry.remove(datasetId);
-    if (!existed) {
-      return res.status(404).json({ ok: false, error: { code: 'DATASET_NOT_FOUND', message: `Dataset '${datasetId}' not found.` } });
+    if (!existed?.deleted) {
+      return jsonSafe(res, 404, { ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId });
     }
-    res.json({ ok: true, deleted: true, datasetId });
+    jsonSafe(res, 200, { ok: true, deleted: true, datasetId });
   } catch (err) {
-    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 
@@ -105,14 +106,14 @@ router.post('/download', async (req, res) => {
     const result = await downloadHistoricalData(req.body || {});
 
     if (result.ok) {
-      return res.status(200).json(result);
+      return jsonSafe(res, 200, result);
     }
 
     const code       = result.error?.code || result.status || 'UNKNOWN_ERROR';
     const statusCode = errorStatusFor(code);
-    return res.status(statusCode).json(result);
+    return jsonSafe(res, statusCode, result);
   } catch (err) {
-    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 
@@ -123,14 +124,14 @@ router.get('/jobs/:jobId', (req, res) => {
     const { jobId } = req.params;
     // First version is fully synchronous — no async job tracking needed.
     // Return a stub response so clients get a valid 200 rather than 404.
-    res.json({
+    jsonSafe(res, 200, {
       ok:      true,
       jobId,
       status:  'completed',
       message: 'Synchronous download — no async job tracking.',
     });
   } catch (err) {
-    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+    jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
 });
 

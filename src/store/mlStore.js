@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
+import { getDatasetId, normalizeDataset } from '../utils/datasets.js';
 
 /**
  * mlStore — comprehensive ML Signal Engine state.
@@ -70,6 +71,8 @@ const initialState = {
 
   // Historical dataset pending for next training run
   pendingDatasetId: null,
+  selectedMlDatasetId: null,
+  selectedMlDataset: null,
 
   lastUpdated:     null,
 };
@@ -180,8 +183,12 @@ export const useMLStore = create((set, get) => ({
     }
   },
 
-  setPendingDatasetId: (datasetId) => set({ pendingDatasetId: datasetId }),
-  clearPendingDatasetId: () => set({ pendingDatasetId: null }),
+  setPendingDatasetId: (datasetId, dataset = null) => {
+    const id = datasetId || getDatasetId(dataset);
+    if (!id) return set({ trainingError: 'Dataset ID missing. Reload dataset registry.' });
+    set({ pendingDatasetId: id, selectedMlDatasetId: id, selectedMlDataset: dataset ? normalizeDataset(dataset) : get().selectedMlDataset });
+  },
+  clearPendingDatasetId: () => set({ pendingDatasetId: null, selectedMlDatasetId: null, selectedMlDataset: null }),
 
   promoteModel: async (modelVersion) => {
     try {

@@ -372,6 +372,7 @@ export default function MacroWorkspace() {
     beta, betaLoading, betaError,
     sectorRotation, sectorRotationLoading, sectorRotationError,
     volatility, volatilityLoading, volatilityError,
+    correlationDatasetId,
     setBenchmark, setSelectedAsset,
     loadBeta, refreshAll, clearErrors,
   } = store;
@@ -381,9 +382,9 @@ export default function MacroWorkspace() {
   // Listen for dataset selection from Historical Data workspace
   useEffect(() => {
     function onDatasetCorrelation(e) {
-      const { datasetId } = e.detail || {};
+      const { datasetId, dataset } = e.detail || {};
       if (datasetId) {
-        store.setCorrelationDatasetId(datasetId);
+        store.setCorrelationDatasetId(datasetId, dataset);
         store.loadCorrelation();
       }
     }
@@ -402,6 +403,7 @@ export default function MacroWorkspace() {
         <span style={{ background: VIOLET + '22', color: VIOLET, border: `1px solid ${VIOLET}55`, borderRadius: 4, fontSize: 10, padding: '2px 7px', fontWeight: 700 }}>
           Phase 13
         </span>
+        {correlationDatasetId && <span style={{ color: MUTED, fontSize: 12 }}>Dataset: <strong>{correlationDatasetId}</strong></span>}
         <button
           onClick={refreshAll}
           style={{ marginLeft: 'auto', background: BLUE, color: '#fff', border: 'none', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
