@@ -1049,4 +1049,7 @@ export const api = {
     fetch(`${API_BASE}/api/historical/download`, {
       method: 'POST', headers: headers(), body: JSON.stringify(params),
     }).then(handle),
+
+  getHistoricalDatasetDiagnostics: async (datasetId) =>
+    fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}/diagnostics`, { method: 'GET', headers: headers() }).then(handle),
 };

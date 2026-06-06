@@ -165,12 +165,18 @@ export const useMLStore = create((set, get) => ({
 
   startTraining: async (opts = {}) => {
     const { pendingDatasetId } = get();
-    set({ trainingInProgress: true, trainingError: '' });
+    set({ trainingInProgress: true, trainingError: '', lastTrainingResult: null });
     try {
       const data = await api.trainMLModelP1({
         ...opts,
         ...(pendingDatasetId ? { datasetId: pendingDatasetId } : {}),
       });
+      // Backend may return HTTP 200 with ok:false (dataset_missing, not_enough_data, etc.)
+      if (data && data.ok === false) {
+        const errMsg = data.message || data.status || 'Training failed';
+        set({ trainingInProgress: false, trainingError: errMsg, lastTrainingResult: data });
+        return data;
+      }
       set({ trainingInProgress: false, lastTrainingResult: data });
       get().fetchTrainingRuns();
       return data;

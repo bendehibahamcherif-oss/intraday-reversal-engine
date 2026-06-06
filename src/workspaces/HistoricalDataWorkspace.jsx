@@ -190,7 +190,13 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
             <span style={S.tag}>{ds.purpose}</span>
             {ds.rowCount != null && <span style={S.tag}>{ds.rowCount} rows</span>}
             {ds.status && (
-              <span style={S.chip(ds.status === 'ready' ? '#2a7' : '#a72')}>{ds.status}</span>
+              <span style={S.chip(
+                ds.status === 'ready' ? '#2a7' :
+                ds.status === 'file_missing' ? '#a44' : '#a72'
+              )}>{ds.status}</span>
+            )}
+            {ds.fileExists === false && ds.status !== 'file_missing' && (
+              <span style={S.chip('#a44')}>file missing</span>
             )}
           </div>
         </div>
@@ -362,7 +368,7 @@ function DownloadForm({ providers, onDownload, loading, error, result, onClear }
 }
 
 // ── Dataset detail / use panel ─────────────────────────────────────────────────
-function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelation }) {
+function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, onUseForBacktest, onUseForCorrelation }) {
   if (!dataset) {
     return (
       <div style={{ padding: 12, color: 'var(--t-text-3)', fontSize: 11 }}>
@@ -371,10 +377,33 @@ function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelat
     );
   }
 
+  const fileMissing = diagnostics
+    ? !diagnostics.fileExists
+    : dataset.status === 'file_missing' || dataset.fileExists === false;
+
   return (
     <div style={{ padding: 12 }}>
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{dataset.datasetId}</div>
+
+        {fileMissing && (
+          <div style={{
+            marginBottom: 8,
+            padding: '6px 8px',
+            background: 'rgba(180,40,40,.12)',
+            border: '1px solid rgba(180,40,40,.4)',
+            borderRadius: 3,
+            fontSize: 11,
+            color: 'var(--t-red, #f77)',
+          }}>
+            Dataset file missing on server. Re-download this dataset before using it.
+          </div>
+        )}
+
+        {diagnosticsLoading && (
+          <div style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 6 }}>Checking file…</div>
+        )}
+
         <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%' }}>
           <tbody>
             {[
@@ -385,7 +414,11 @@ function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelat
               ['Session',   dataset.session],
               ['Purpose',   dataset.purpose],
               ['Rows',      dataset.rowCount != null ? String(dataset.rowCount) : '—'],
-              ['Status',    dataset.status || '—'],
+              ['File',      diagnostics
+                ? (diagnostics.fileExists
+                    ? `✓ exists (${diagnostics.fileSizeBytes != null ? Math.round(diagnostics.fileSizeBytes / 1024) + ' KB' : 'ok'})`
+                    : '✗ missing')
+                : (dataset.status || '—')],
             ].map(([k, v]) => (
               <tr key={k}>
                 <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap' }}>{k}</td>
@@ -400,17 +433,23 @@ function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelat
         <div style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Use in
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <button style={S.btn(true)} onClick={() => onUseForML(dataset.datasetId)}>
-            Use for ML Training
-          </button>
-          <button style={S.btn(false)} onClick={() => onUseForBacktest(dataset.datasetId)}>
-            Use for Backtesting
-          </button>
-          <button style={S.btn(false)} onClick={() => onUseForCorrelation(dataset.datasetId)}>
-            Use for Correlation
-          </button>
-        </div>
+        {fileMissing ? (
+          <div style={{ fontSize: 11, color: 'var(--t-red, #f77)', padding: '4px 0' }}>
+            Dataset file missing on server. Re-download dataset to use it.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button style={S.btn(true)} onClick={() => onUseForML(dataset.datasetId)}>
+              Use for ML Training
+            </button>
+            <button style={S.btn(false)} onClick={() => onUseForBacktest(dataset.datasetId)}>
+              Use for Backtesting
+            </button>
+            <button style={S.btn(false)} onClick={() => onUseForCorrelation(dataset.datasetId)}>
+              Use for Correlation
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -448,8 +487,14 @@ export default function HistoricalDataWorkspace() {
   }
 
   function handleUseForML(datasetId) {
-    // Navigate to ML Engine workspace with the dataset pre-selected
-    // We dispatch a custom event that MLDashboard listens for
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[HistoricalDataWorkspace] useDatasetForMl', {
+        action: 'useDatasetForMl',
+        datasetId,
+        dataset: store.selectedDataset,
+        selectedMlDatasetId: datasetId,
+      });
+    }
     window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId } }));
     notify(`Dataset "${datasetId}" sent to ML Engine.`);
   }
@@ -535,6 +580,8 @@ export default function HistoricalDataWorkspace() {
           {activeTab === 'detail' && (
             <DatasetDetail
               dataset={store.selectedDataset}
+              diagnostics={store.diagnostics}
+              diagnosticsLoading={store.diagnosticsLoading}
               onUseForML={handleUseForML}
               onUseForBacktest={handleUseForBacktest}
               onUseForCorrelation={handleUseForCorrelation}

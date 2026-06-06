@@ -296,40 +296,31 @@ router.post('/infer/:symbol', async (req, res) => {
 // ── POST /api/ml/train ────────────────────────────────────────────────────────
 router.post('/train', async (req, res) => {
   try {
-    const body = { ...(req.body || {}) };
+    const body = req.body || {};
 
-    // If datasetId is provided, resolve the CSV path and inject it as datasetPath
-    if (body.datasetId) {
-      const histRegistry = require('../historical/historicalDatasetRegistry');
-      const dataset = histRegistry.get(body.datasetId);
-
-      if (!dataset) {
-        return res.status(400).type('application/json').json({
-          ok: false,
-          status: 'invalid_request',
-          error: { code: 'DATASET_NOT_FOUND', message: `Historical dataset '${body.datasetId}' not found in registry.` },
-        });
-      }
-
-      const csvPath = dataset.files && dataset.files.csv;
-      if (!csvPath || !fs.existsSync(csvPath)) {
-        return res.status(400).type('application/json').json({
-          ok: false,
-          status: 'invalid_request',
-          error: { code: 'DATASET_NOT_FOUND', message: `Dataset CSV file not found for datasetId '${body.datasetId}'.` },
-        });
-      }
-
-      // Pass the resolved path to the training service
-      body.datasetPath = csvPath;
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[mlRoutes] POST /api/ml/train', JSON.stringify({
+        datasetId: body.datasetId,
+        symbol: body.symbol,
+        timeframe: body.timeframe,
+        horizon: body.horizon,
+        hasDatasetPath: Boolean(body.datasetPath),
+        promote: body.promote,
+      }));
     }
 
     const result = await trainingService.trainModel(body);
-    const statusCode = result.status === 'invalid_request' ? 400 : 200;
-    return res.status(statusCode).type('application/json').json({
-      ...result,
-      ...(body.datasetId ? { datasetId: body.datasetId } : {}),
-    });
+
+    const STATUS_HTTP = {
+      invalid_request:    400,
+      invalid_dataset_id: 400,
+      dataset_not_found:  404,
+      dataset_file_missing: 400,
+      dataset_file_empty: 400,
+    };
+    const statusCode = result.ok ? 200 : (STATUS_HTTP[result.status] || 422);
+
+    return res.status(statusCode).type('application/json').json(result);
   } catch (err) {
     return res.status(500).type('application/json').json({
       ok: false,

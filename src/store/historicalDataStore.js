@@ -23,6 +23,11 @@ export const useHistoricalDataStore = create((set, get) => ({
   selectedDatasetId: null,
   selectedDataset: null,
 
+  // Diagnostics for selected dataset
+  diagnostics: null,
+  diagnosticsLoading: false,
+  diagnosticsError: '',
+
   // ── Actions ──────────────────────────────────────────────────────────────
 
   fetchProviders: async () => {
@@ -74,10 +79,23 @@ export const useHistoricalDataStore = create((set, get) => ({
 
   selectDataset: (datasetId) => {
     const dataset = get().datasets.find((d) => d.datasetId === datasetId) || null;
-    set({ selectedDatasetId: datasetId, selectedDataset: dataset });
+    set({ selectedDatasetId: datasetId, selectedDataset: dataset, diagnostics: null, diagnosticsError: '' });
+    // Fetch diagnostics immediately so we know if the file is usable
+    get().fetchDiagnostics(datasetId);
   },
 
-  clearSelection: () => set({ selectedDatasetId: null, selectedDataset: null }),
+  clearSelection: () => set({ selectedDatasetId: null, selectedDataset: null, diagnostics: null, diagnosticsError: '' }),
+
+  fetchDiagnostics: async (datasetId) => {
+    if (!datasetId) return;
+    set({ diagnosticsLoading: true, diagnosticsError: '' });
+    try {
+      const data = await api.getHistoricalDatasetDiagnostics(datasetId);
+      set({ diagnostics: data, diagnosticsLoading: false });
+    } catch (e) {
+      set({ diagnosticsLoading: false, diagnosticsError: errMsg(e) });
+    }
+  },
 
   clearDownloadResult: () => set({ downloadResult: null, downloadError: '' }),
 }));

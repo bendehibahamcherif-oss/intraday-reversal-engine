@@ -17,8 +17,23 @@
 const { Router } = require('express');
 const router = Router();
 
+const fs = require('fs');
+const path = require('path');
+
 const { downloadHistoricalData, getProviders } = require('../historical/historicalDataService');
 const registry = require('../historical/historicalDatasetRegistry');
+const { resolveDatasetFile } = require('../ai/trainingService');
+
+// Annotate a registry record with live file-existence info
+function annotateDataset(ds) {
+  const { resolvedPath, candidatePaths, issue } = resolveDatasetFile(ds);
+  const fileExists = issue === null;
+  return {
+    ...ds,
+    fileExists,
+    status: fileExists ? (ds.status || 'ready') : 'file_missing',
+  };
+}
 
 // ── Error code → HTTP status mapping ────────────────────────────────────────
 
@@ -60,7 +75,7 @@ router.get('/providers', (_req, res) => {
 
 router.get('/datasets', (_req, res) => {
   try {
-    const datasets = registry.list();
+    const datasets = registry.list().map(annotateDataset);
     res.json({ ok: true, datasets });
   } catch (err) {
     res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
@@ -76,7 +91,54 @@ router.get('/datasets/:datasetId', (req, res) => {
     if (!dataset) {
       return res.status(404).json({ ok: false, error: { code: 'DATASET_NOT_FOUND', message: `Dataset '${datasetId}' not found.` } });
     }
-    res.json({ ok: true, dataset });
+    res.json({ ok: true, dataset: annotateDataset(dataset) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
+  }
+});
+
+// ── GET /datasets/:datasetId/diagnostics ─────────────────────────────────────
+
+router.get('/datasets/:datasetId/diagnostics', (req, res) => {
+  try {
+    const { datasetId } = req.params;
+    const dataset = registry.get(datasetId);
+
+    if (!dataset) {
+      const all = registry.list();
+      return res.status(404).json({
+        ok: true,
+        datasetId,
+        registryFound: false,
+        fileExists: false,
+        usableForMl: false,
+        issues: ['dataset_not_found'],
+        availableDatasetIds: all.map((d) => d.datasetId).filter(Boolean),
+      });
+    }
+
+    const { resolvedPath, candidatePaths, issue } = resolveDatasetFile(dataset);
+    const fileExists = issue === null;
+    let fileSizeBytes = null;
+
+    if (fileExists && resolvedPath) {
+      try { fileSizeBytes = fs.statSync(resolvedPath).size; } catch {}
+    }
+
+    const issues = issue ? [issue] : [];
+
+    res.json({
+      ok: true,
+      datasetId,
+      registryFound: true,
+      dataset,
+      candidatePaths,
+      resolvedPaths: resolvedPath ? [resolvedPath] : [],
+      fileExists,
+      fileSizeBytes,
+      usableForMl: fileExists,
+      issues,
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
   }
