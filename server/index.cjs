@@ -21,6 +21,7 @@ const opsRoutes             = require('../server-deliverables/api15/opsRoutes');
 const multiAssetRoutes      = require('../server-deliverables/api/multiAssetRoutes');
 const institutionalRoutes   = require('../server-deliverables/api/institutionalRoutes');
 const backtestRoutes        = require('../server-deliverables/api/backtestRoutes');
+const { apiNotFound, apiErrorHandler, jsonSafe } = require('../server-deliverables/api/jsonSafety');
 
 // Phase 9B: ML routes (worker-pool inference)
 const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
@@ -137,16 +138,19 @@ async function start() {
 
   app.post('/api/market/tick', async (req, res) => {
     if (!MARKET_FEED_KEY || !MARKET_FEED_SECRET) {
-      return res.status(503).json({ success: false, error: 'Live market feed not configured' });
+      return jsonSafe(res, 503, { success: false, ok: false, status: 'provider_not_configured', error: 'Live market feed not configured' });
     }
 
     try {
       const out = await marketDataAdapter.ingestTick('manual', req.body || {});
-      res.json({ success: true, out });
+      jsonSafe(res, 200, { success: true, ok: true, out });
     } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
+      jsonSafe(res, 500, { success: false, ok: false, status: 'internal_error', error: err.message });
     }
   });
+
+  app.use('/api', apiNotFound);
+  app.use(apiErrorHandler);
 
   server.listen(PORT, () => {
     console.log(`Runtime backend listening on ${PORT}`);

@@ -1,0 +1,64 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-06T19:24:33.496Z",
+  "total": 11,
+  "passed": 11,
+  "failed": 0,
+  "results": [
+    {
+      "name": "no stale ML champion endpoint remains in production source",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "canonical ML lifecycle endpoints are present",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "historical use-for client endpoints are present",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "every implemented desktop workspace is mobile accessible",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "every implemented workspace has a component or safe placeholder key",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "datasetId undefined is stripped and asserted",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "training/backtest/correlation payloads include selected dataset guards",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Macro renders invalid beta/correlation as em dash, not NaN",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "historical selection store is versioned and persisted safely",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "workspace shell has scoped error boundary",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "websocket is capped, resumable, and listener cleanup is available",
+      "ok": true,
+      "detail": "ok"
+    }
+  ]
+}

@@ -261,20 +261,26 @@ def _run_pipeline_impl(
         lgbm_model = _train_lightgbm(X_train, y_train, X_val, y_val)
 
     # --- 4c. Logistic Regression baseline ---
+    # Baseline is diagnostic only: failure must not block champion training.
     logger.info("Training LogisticRegression baseline.")
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
-    X_test_scaled = scaler.transform(X_test)
+    scaler = None
+    lr_model = None
+    X_test_scaled = None
+    try:
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
+        X_test_scaled = scaler.transform(X_test)
 
-    lr_model = LogisticRegression(
-        multi_class="multinomial",
-        solver="lbfgs",
-        max_iter=1000,
-        random_state=SEED,
-        C=1.0,
-    )
-    lr_model.fit(X_train_scaled, y_train)
+        lr_model = LogisticRegression(
+            solver="lbfgs",
+            max_iter=1000,
+            random_state=SEED,
+            C=1.0,
+        )
+        lr_model.fit(X_train_scaled, y_train)
+    except Exception as exc:  # pragma: no cover - dependency/version guard
+        logger.warning("LogisticRegression baseline failed; continuing with champion: %s", exc)
 
     # ------------------------------------------------------------------
     # 5. Calibrate XGBoost champion on validation set
@@ -311,10 +317,12 @@ def _run_pipeline_impl(
         )
 
     # Baseline test metrics
-    lr_test_proba = lr_model.predict_proba(X_test_scaled)
-    lr_test_metrics = compute_all_metrics(
-        y_test, lr_test_proba, split_label="test_baseline"
-    )
+    lr_test_metrics = None
+    if lr_model is not None and X_test_scaled is not None:
+        lr_test_proba = lr_model.predict_proba(X_test_scaled)
+        lr_test_metrics = compute_all_metrics(
+            y_test, lr_test_proba, split_label="test_baseline"
+        )
 
     # ------------------------------------------------------------------
     # 7. Save artefacts
@@ -336,9 +344,11 @@ def _run_pipeline_impl(
         lgbm_model.save_model(lgbm_path)
 
     # Baseline (joblib pickle)
-    baseline_path = os.path.join(output_dir, "baseline.pkl")
-    with open(baseline_path, "wb") as fh:
-        pickle.dump({"model": lr_model, "scaler": scaler}, fh, protocol=5)
+    baseline_path = None
+    if lr_model is not None and scaler is not None:
+        baseline_path = os.path.join(output_dir, "baseline.pkl")
+        with open(baseline_path, "wb") as fh:
+            pickle.dump({"model": lr_model, "scaler": scaler}, fh, protocol=5)
 
     # Metrics JSON
     metrics_payload = {

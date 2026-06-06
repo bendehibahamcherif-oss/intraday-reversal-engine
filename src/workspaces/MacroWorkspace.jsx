@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useMacroStore } from '../store/macroStore';
+import { useHistoricalDataStore } from '../store/historicalDataStore.js';
 
 const BG      = '#050505';
 const SURFACE = '#0d0d1a';
@@ -31,13 +32,19 @@ function fmtN(v, d = 2) {
 
 // ── Correlation cell color ─────────────────────────────────────────────────────
 // -1 → red, 0 → surface, +1 → green
+function finiteNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 function corrCellStyle(v, isDiag) {
   if (isDiag) return { background: '#15803d', color: '#fff', fontWeight: 800 };
-  if (v == null) return { background: SURFACE, color: MUTED };
+  const value = finiteNumber(v);
+  if (value == null) return { background: SURFACE, color: MUTED };
   // Blend: 0→gray, +1→green, -1→red
   let bg, fg;
-  if (v >= 0) {
-    const t = v;
+  if (value >= 0) {
+    const t = Math.min(1, Math.max(0, value));
     const r = Math.round(13 + (21 - 13) * (1 - t));
     const g = Math.round(13 + (197 - 13) * t);
     const b = Math.round(26 + (94 - 26) * t);
@@ -49,7 +56,7 @@ function corrCellStyle(v, isDiag) {
     bg = `rgba(34,197,94,${(t * 0.45).toFixed(2)})`;
     fg = t > 0.55 ? '#fff' : TEXT;
   } else {
-    const t = -v;
+    const t = Math.min(1, Math.max(0, -value));
     bg = `rgba(239,68,68,${(t * 0.45).toFixed(2)})`;
     fg = t > 0.55 ? '#fff' : TEXT;
   }
@@ -88,10 +95,11 @@ function CorrelationMatrix({ correlation, loading, error }) {
               <th style={{ ...hStyle, textAlign: 'right', paddingRight: 6 }}>{symbols[ri]}</th>
               {row.map((v, ci) => {
                 const isDiag = ri === ci;
-                const cs = corrCellStyle(v, isDiag);
+                const finiteValue = finiteNumber(v);
+                const cs = corrCellStyle(finiteValue, isDiag);
                 return (
-                  <td key={ci} title={`${symbols[ri]} / ${symbols[ci]}: ${v}`} style={{ ...cellStyle, ...cs }}>
-                    {isDiag ? '1.00' : (v != null ? Number(v).toFixed(2) : '—')}
+                  <td key={ci} title={`${symbols[ri]} / ${symbols[ci]}: ${finiteValue ?? 'not enough data'}`} style={{ ...cellStyle, ...cs }}>
+                    {isDiag ? '1.00' : (finiteValue != null ? finiteValue.toFixed(2) : '—')}
                   </td>
                 );
               })}
@@ -119,8 +127,8 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
   if (loading) return <div style={{ color: MUTED, fontSize: 12 }}>Computing beta…</div>;
   if (error)   return <div style={{ color: RED, fontSize: 12 }}>{error}</div>;
 
-  const betaVal = beta?.beta;
-  const r2Val   = beta?.r2;
+  const betaVal = finiteNumber(beta?.beta);
+  const r2Val   = finiteNumber(beta?.r2);
 
   let betaColor = TEXT;
   let betaLabel = '—';
@@ -381,6 +389,13 @@ export default function MacroWorkspace() {
 
   // Listen for dataset selection from Historical Data workspace
   useEffect(() => {
+    const { selectedCorrelationDatasetId: histId, selectedCorrelationDataset: histDataset } =
+      useHistoricalDataStore.getState();
+    if (histId && !useMacroStore.getState().correlationDatasetId) {
+      store.setCorrelationDatasetId(histId, histDataset);
+      store.refreshAll();
+    }
+
     function onDatasetCorrelation(e) {
       const { datasetId, dataset } = e.detail || {};
       if (datasetId) {

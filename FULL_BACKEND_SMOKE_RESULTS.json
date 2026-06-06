@@ -1,0 +1,290 @@
+{
+  "ok": true,
+  "generatedAt": "2026-06-06T19:24:34.532Z",
+  "baseUrl": "http://127.0.0.1:4121",
+  "total": 40,
+  "passed": 40,
+  "failed": 0,
+  "results": [
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/dependencies",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/health",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/model",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/model-runs",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/predictions",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/feature-importance",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/drift",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/ml/model-card",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/ml/infer/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/historical/providers",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/historical/datasets",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/historical/use-for-ml",
+      "ok": true,
+      "status": 400,
+      "json": true
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/historical/use-for-backtest",
+      "ok": true,
+      "status": 400,
+      "json": true
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/historical/use-for-correlation",
+      "ok": true,
+      "status": 400,
+      "json": true
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/backtest/run",
+      "ok": true,
+      "status": 400,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/backtest/runs",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/macro/correlation",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/macro/beta",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/macro/sector-rotation",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/macro/volatility-heatmap",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/providers/health",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/providers/credentials",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/providers/active",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feed/status",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feeds/tick/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feeds/candle/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/feeds/orderbook/SPY",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/summary",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/positions",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/pnl",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/exposure",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/drawdown",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/portfolio/history",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/summary",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/limits",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/var",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/drawdown",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/exposure",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/risk/alerts",
+      "ok": true,
+      "status": 200,
+      "json": true
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/definitely-missing-smoke-route",
+      "ok": true,
+      "status": 404,
+      "json": true
+    }
+  ]
+}

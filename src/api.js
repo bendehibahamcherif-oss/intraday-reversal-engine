@@ -1070,4 +1070,25 @@ export const api = {
 
   getHistoricalDatasetDiagnostics: async (datasetId) =>
     fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}/diagnostics`, { method: 'GET', headers: headers() }).then(handle),
+
+  useHistoricalDatasetForMl: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/use-for-ml`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ datasetId }),
+    }).then(handle);
+  },
+
+  useHistoricalDatasetForBacktest: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/use-for-backtest`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ datasetId }),
+    }).then(handle);
+  },
+
+  useHistoricalDatasetForCorrelation: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/use-for-correlation`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ datasetId }),
+    }).then(handle);
+  },
 };
