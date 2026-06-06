@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "totalWorkspaceCount": 33,
+  "mobileAccessibleCount": 33,
+  "mobilePrimaryCount": 4,
+  "mobileMoreCount": 29,
+  "mobileMissingWorkspaces": [],
+  "unimplementedWorkspaces": [],
+  "invalidWorkspaceMappings": [],
+  "missingComponents": [],
+  "duplicateIds": []
+}
