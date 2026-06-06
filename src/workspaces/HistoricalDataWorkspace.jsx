@@ -7,6 +7,13 @@ const SESSIONS    = ['RTH', 'EXTENDED', 'ALL'];
 const PURPOSES    = ['ml', 'backtest', 'correlation', 'general'];
 const FORMATS     = ['csv', 'json'];
 
+export function parseSymbols(value) {
+  return String(value || '')
+    .split(',')
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter(Boolean);
+}
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S = {
   root: {
@@ -200,7 +207,7 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
 }
 
 // ── Download form ─────────────────────────────────────────────────────────────
-function DownloadForm({ providers, onDownload, loading, error, result, onClear }) {
+export function DownloadForm({ providers, onDownload, loading, error, result, onClear }) {
   const [form, setForm] = useState({
     provider:   'auto',
     symbols:    'SPY',
@@ -212,8 +219,12 @@ function DownloadForm({ providers, onDownload, loading, error, result, onClear }
     formats:    ['csv'],
     forceRefresh: false,
   });
+  const [localError, setLocalError] = useState('');
 
-  function setField(k, v) { setForm((f) => ({ ...f, [k]: v })); }
+  function setField(k, v) {
+    setLocalError('');
+    setForm((f) => ({ ...f, [k]: v }));
+  }
 
   function toggleFormat(fmt) {
     setForm((f) => {
@@ -226,21 +237,24 @@ function DownloadForm({ providers, onDownload, loading, error, result, onClear }
   function handleSubmit(e) {
     e.preventDefault();
     onClear();
-    const symbols = form.symbols
-      .split(/[,\s]+/)
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
-    onDownload({
+    const symbols = parseSymbols(form.symbols);
+    if (symbols.length === 0) {
+      setLocalError('At least one symbol is required.');
+      return;
+    }
+    const payload = {
       provider:     form.provider,
       symbols,
       timeframe:    form.timeframe,
       startDate:    form.startDate,
-      endDate:      form.endDate,
+      endDate:      form.endDate || today(),
       session:      form.session,
       purpose:      form.purpose,
       outputFormat: form.formats,
       forceRefresh: form.forceRefresh,
-    });
+    };
+    if (import.meta.env.DEV) console.debug('historical download payload', payload);
+    onDownload(payload);
   }
 
   const providerOptions = [
@@ -253,7 +267,7 @@ function DownloadForm({ providers, onDownload, loading, error, result, onClear }
 
   return (
     <form onSubmit={handleSubmit} style={{ padding: 12 }}>
-      {error && <div style={S.error}>{error}</div>}
+      {(localError || error) && <div style={S.error}>{localError || error}</div>}
       {result && result.ok && (
         <div style={S.success}>
           Downloaded {result.totalRows} rows → {result.datasetId}
@@ -279,7 +293,6 @@ function DownloadForm({ providers, onDownload, loading, error, result, onClear }
           value={form.symbols}
           onChange={(e) => setField('symbols', e.target.value)}
           placeholder="SPY, QQQ, IWM"
-          required
         />
       </div>
 

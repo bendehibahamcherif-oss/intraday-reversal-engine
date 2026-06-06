@@ -12,11 +12,23 @@ const path   = require('path');
 const fs     = require('fs');
 const crypto = require('crypto');
 
-const { PROVIDER_CAPS, SUPPORTED_TIMEFRAMES, SUPPORTED_SESSIONS, SUPPORTED_PURPOSES, getProviders } = require('./providerCapabilities');
+const { PROVIDER_CAPABILITIES: PROVIDER_CAPS, getProviders } = require('./providerCapabilities');
+const SUPPORTED_TIMEFRAMES = new Set(['1m', '5m', '15m', '30m', '1h', '1d']);
+const SUPPORTED_SESSIONS = new Set(['RTH', 'EXTENDED', 'ALL']);
+const SUPPORTED_PURPOSES = new Set(['ml', 'backtest', 'correlation', 'general']);
 const registry      = require('./historicalDatasetRegistry');
 const canonicalSchema = require('./canonicalSchema');
 
 const MAX_SYMBOLS = 20;
+
+const SYMBOL_REQUIRED_RESPONSE = {
+  ok: false,
+  status: 'symbol_required',
+  message: 'At least one symbol is required.',
+  expected: {
+    symbols: ['SPY', 'QQQ'],
+  },
+};
 
 const providers = {
   yahoo:        require('./providers/yahooHistoricalProvider'),
@@ -52,6 +64,32 @@ function resolveAutoProvider() {
  * Returns null when the provider needs no key.
  * Returns undefined when the key is required but absent.
  */
+function normalizeHistoricalSymbols({ symbols, symbol } = {}) {
+  const rawSymbols = Array.isArray(symbols)
+    ? symbols
+    : typeof symbols === 'string'
+      ? symbols.split(',')
+      : [];
+
+  const normalized = rawSymbols
+    .map((value) => typeof value === 'string' ? value.trim().toUpperCase() : '')
+    .filter(Boolean);
+
+  if (normalized.length === 0 && typeof symbol === 'string') {
+    const legacySymbol = symbol.trim().toUpperCase();
+    if (legacySymbol) return [legacySymbol];
+  }
+
+  return normalized;
+}
+
+function symbolRequiredResponse() {
+  return {
+    ...SYMBOL_REQUIRED_RESPONSE,
+    expected: { ...SYMBOL_REQUIRED_RESPONSE.expected },
+  };
+}
+
 function resolveApiKey(providerName) {
   switch (providerName) {
     case 'polygon':
@@ -77,6 +115,7 @@ function resolveApiKey(providerName) {
  * @param {object} opts
  * @param {string}   opts.provider       Provider id or 'auto'
  * @param {string[]} opts.symbols        Array of ticker symbols
+ * @param {string}   [opts.symbol]       Legacy single ticker symbol
  * @param {string}   opts.timeframe      e.g. '1d', '1h', '5m'
  * @param {string}   opts.startDate      ISO date string
  * @param {string}   opts.endDate        ISO date string
@@ -89,6 +128,7 @@ function resolveApiKey(providerName) {
 async function downloadHistoricalData({
   provider,
   symbols,
+  symbol,
   timeframe,
   startDate,
   endDate,
@@ -99,17 +139,14 @@ async function downloadHistoricalData({
 }) {
   // ── Validation ──────────────────────────────────────────────────────────────
 
-  // symbols: non-empty array of strings, max 20
-  if (!Array.isArray(symbols) || symbols.length === 0) {
-    return { ok: false, error: { code: 'INVALID_SYMBOLS', message: 'symbols must be a non-empty array.' } };
+  // symbols: canonical symbols[] with legacy symbol string compatibility
+  const normalizedSymbols = normalizeHistoricalSymbols({ symbols, symbol });
+  if (normalizedSymbols.length === 0) {
+    return symbolRequiredResponse();
   }
-  if (symbols.length > MAX_SYMBOLS) {
-    return { ok: false, error: { code: 'TOO_MANY_SYMBOLS', message: `Maximum ${MAX_SYMBOLS} symbols per request; got ${symbols.length}.` } };
+  if (normalizedSymbols.length > MAX_SYMBOLS) {
+    return { ok: false, error: { code: 'TOO_MANY_SYMBOLS', message: `Maximum ${MAX_SYMBOLS} symbols per request; got ${normalizedSymbols.length}.` } };
   }
-  if (!symbols.every((s) => typeof s === 'string' && s.trim().length > 0)) {
-    return { ok: false, error: { code: 'INVALID_SYMBOLS', message: 'All symbols must be non-empty strings.' } };
-  }
-  const normalizedSymbols = symbols.map((s) => s.trim().toUpperCase());
 
   // timeframe
   if (!timeframe || !SUPPORTED_TIMEFRAMES.has(timeframe)) {
@@ -203,7 +240,7 @@ async function downloadHistoricalData({
   const cap = PROVIDER_CAPS[provider];
   const apiKey = resolveApiKey(provider);
 
-  if (cap && cap.requiresKey && !apiKey) {
+  if (cap && (cap.requiresKey || cap.requiresCredentials) && !apiKey) {
     return {
       ok: false,
       error: {
@@ -360,4 +397,4 @@ async function downloadHistoricalData({
   };
 }
 
-module.exports = { downloadHistoricalData, getProviders, MAX_SYMBOLS };
+module.exports = { downloadHistoricalData, getProviders, MAX_SYMBOLS, normalizeHistoricalSymbols, SYMBOL_REQUIRED_RESPONSE };
