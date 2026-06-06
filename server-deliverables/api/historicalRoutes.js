@@ -25,6 +25,7 @@ const registry = require('../historical/historicalDatasetRegistry');
 const VALIDATION_CODES = new Set([
   'DEMO_NOT_ALLOWED',
   'INVALID_SYMBOLS',
+  'symbol_required',
   'INVALID_TIMEFRAME',
   'INVALID_DATE_RANGE',
   'INVALID_SESSION',
@@ -107,7 +108,7 @@ router.post('/download', async (req, res) => {
       return res.status(200).json(result);
     }
 
-    const code       = result.error?.code || 'UNKNOWN_ERROR';
+    const code       = result.error?.code || result.status || 'UNKNOWN_ERROR';
     const statusCode = errorStatusFor(code);
     return res.status(statusCode).json(result);
   } catch (err) {
