@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAILabStore } from '../store/aiLabStore.js';
 import { useMLSignalStore } from '../store/mlSignalStore.js';
+import { useHistoricalDataStore } from '../store/historicalDataStore.js';
 import MLSignalPanel from '../components/MLSignalPanel.jsx';
 import MLDiagnosticsPanel from '../components/MLDiagnosticsPanel.jsx';
 
@@ -341,6 +342,14 @@ export default function AILabWorkspace() {
   useEffect(() => { s.refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // Bootstrap: workspace mounts AFTER the event fires when user navigates here
+    // from HistoricalData. Read the persisted selection from historicalDataStore.
+    const { selectedMlDatasetId: histId, selectedMlDataset: histDataset } =
+      useHistoricalDataStore.getState();
+    if (histId && !useAILabStore.getState().selectedMlDatasetId) {
+      s.setSelectedDataset(histId, histDataset);
+    }
+
     function onDatasetMl(e) {
       const { datasetId, dataset } = e.detail || {};
       if (datasetId) s.setSelectedDataset(datasetId, dataset);
@@ -476,7 +485,15 @@ export default function AILabWorkspace() {
           </button>
         </div>
 
-        {s.selectedMlDatasetId && <div style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>Selected dataset: <strong>{s.selectedMlDatasetId}</strong></div>}
+        {s.selectedMlDatasetId
+          ? <div style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>
+              Selected dataset: <strong>{s.selectedMlDatasetId}</strong>
+              {s.selectedMlDataset?.rowCount ? ` · ${s.selectedMlDataset.rowCount} rows` : ''}
+            </div>
+          : <div style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>
+              No historical dataset selected. Go to Historical Data and click "Use for ML Training".
+            </div>
+        }
         {s.trainError && <div style={{ color: RED, fontSize: 12, marginTop: 8 }}>{s.trainError}</div>}
 
         {s.trainingJob && (
