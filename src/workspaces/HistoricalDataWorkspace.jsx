@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useHistoricalDataStore } from '../store/historicalDataStore.js';
+import { getDatasetId } from '../utils/datasets.js';
 
 // ── Constants (mirrors backend canonicalSchema) ───────────────────────────────
 const TIMEFRAMES  = ['1m', '5m', '15m', '30m', '1h', '1d'];
@@ -11,7 +12,8 @@ export function parseSymbols(value) {
   return String(value || '')
     .split(',')
     .map((symbol) => symbol.trim().toUpperCase())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((symbol, index, arr) => arr.indexOf(symbol) === index);
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -175,15 +177,15 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
     <div style={{ overflow: 'auto', flex: 1 }}>
       {datasets.map((ds) => (
         <div
-          key={ds.datasetId}
-          style={S.datasetRow(ds.datasetId === selectedDatasetId)}
-          onClick={() => onSelect(ds.datasetId)}
+          key={getDatasetId(ds)}
+          style={S.datasetRow(getDatasetId(ds) === selectedDatasetId)}
+          onClick={() => onSelect(getDatasetId(ds))}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700, fontSize: 11 }}>{ds.datasetId}</span>
+            <span style={{ fontWeight: 700, fontSize: 11 }}>{getDatasetId(ds)}</span>
             <button
               style={{ ...S.btn(false), padding: '1px 6px', fontSize: 10 }}
-              onClick={(e) => { e.stopPropagation(); onDelete(ds.datasetId); }}
+              onClick={(e) => { e.stopPropagation(); onDelete(getDatasetId(ds)); }}
               title="Remove dataset"
             >✕</button>
           </div>
@@ -270,7 +272,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
       {(localError || error) && <div style={S.error}>{localError || error}</div>}
       {result && result.ok && (
         <div style={S.success}>
-          Downloaded {result.totalRows} rows → {result.datasetId}
+          Downloaded {result.dataset?.rowCount ?? result.rowCount ?? result.totalRows ?? 0} rows → {result.dataset?.datasetId || result.datasetId}
         </div>
       )}
       {result && !result.ok && !error && (
@@ -387,11 +389,12 @@ function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelat
   return (
     <div style={{ padding: 12 }}>
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{dataset.datasetId}</div>
+        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{getDatasetId(dataset)}</div>
         <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%' }}>
           <tbody>
             {[
-              ['Symbols',   (dataset.symbols || []).join(', ')],
+              ['Dataset ID', getDatasetId(dataset)],
+              ['Symbols',   (dataset.symbols || []).join(', ') || '—'],
               ['Timeframe', dataset.timeframe],
               ['Range',     `${dataset.startDate} → ${dataset.endDate}`],
               ['Provider',  dataset.provider],
@@ -399,6 +402,9 @@ function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelat
               ['Purpose',   dataset.purpose],
               ['Rows',      dataset.rowCount != null ? String(dataset.rowCount) : '—'],
               ['Status',    dataset.status || '—'],
+              ['CSV File',   dataset.files?.csv || '—'],
+              ['Rows By Symbol', Object.keys(dataset.rowsBySymbol || {}).length ? Object.entries(dataset.rowsBySymbol).map(([k, v]) => `${k}: ${v}`).join(', ') : '—'],
+              ['Warnings',   (dataset.warnings || []).join(', ') || '—'],
             ].map(([k, v]) => (
               <tr key={k}>
                 <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap' }}>{k}</td>
@@ -414,13 +420,13 @@ function DatasetDetail({ dataset, onUseForML, onUseForBacktest, onUseForCorrelat
           Use in
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <button style={S.btn(true)} onClick={() => onUseForML(dataset.datasetId)}>
+          <button style={S.btn(true)} onClick={() => onUseForML(dataset)}>
             Use for ML Training
           </button>
-          <button style={S.btn(false)} onClick={() => onUseForBacktest(dataset.datasetId)}>
+          <button style={S.btn(false)} onClick={() => onUseForBacktest(dataset)}>
             Use for Backtesting
           </button>
-          <button style={S.btn(false)} onClick={() => onUseForCorrelation(dataset.datasetId)}>
+          <button style={S.btn(false)} onClick={() => onUseForCorrelation(dataset)}>
             Use for Correlation
           </button>
         </div>
@@ -460,21 +466,25 @@ export default function HistoricalDataWorkspace() {
     store.downloadData(params).catch(() => {}); // error shown in form
   }
 
-  function handleUseForML(datasetId) {
-    // Navigate to ML Engine workspace with the dataset pre-selected
-    // We dispatch a custom event that MLDashboard listens for
-    window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId } }));
-    notify(`Dataset "${datasetId}" sent to ML Engine.`);
+  function handleUseForML(dataset) {
+    const result = store.useDatasetForMl(dataset);
+    if (!result.ok) return notify(result.error, true);
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId: result.datasetId, dataset } }));
+    notify(`Dataset "${result.datasetId}" sent to ML Engine`);
   }
 
-  function handleUseForBacktest(datasetId) {
-    window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId } }));
-    notify(`Dataset "${datasetId}" sent to Quant Lab.`);
+  function handleUseForBacktest(dataset) {
+    const result = store.useDatasetForBacktest(dataset);
+    if (!result.ok) return notify(result.error, true);
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId: result.datasetId, dataset } }));
+    notify(`Dataset "${result.datasetId}" sent to Backtesting`);
   }
 
-  function handleUseForCorrelation(datasetId) {
-    window.dispatchEvent(new CustomEvent('reversal:use-dataset-correlation', { detail: { datasetId } }));
-    notify(`Dataset "${datasetId}" sent to Live Markets correlation.`);
+  function handleUseForCorrelation(dataset) {
+    const result = store.useDatasetForCorrelation(dataset);
+    if (!result.ok) return notify(result.error, true);
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-correlation', { detail: { datasetId: result.datasetId, dataset } }));
+    notify(`Dataset "${result.datasetId}" sent to Correlation`);
   }
 
   const tabs = [

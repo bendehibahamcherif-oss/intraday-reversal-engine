@@ -164,7 +164,7 @@ describe('historicalDataStore.fetchDatasets', () => {
 
     await act(() => useHistoricalDataStore.getState().fetchDatasets());
 
-    expect(useHistoricalDataStore.getState().datasets).toEqual(datasets);
+    expect(useHistoricalDataStore.getState().datasets).toEqual([expect.objectContaining({ ...datasets[0], id: datasets[0].datasetId, rowsBySymbol: {}, files: {}, warnings: [] })]);
     expect(useHistoricalDataStore.getState().datasetsError).toBe('');
   });
 

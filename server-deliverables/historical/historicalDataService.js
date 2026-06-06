@@ -73,7 +73,8 @@ function normalizeHistoricalSymbols({ symbols, symbol } = {}) {
 
   const normalized = rawSymbols
     .map((value) => typeof value === 'string' ? value.trim().toUpperCase() : '')
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((value, index, arr) => arr.indexOf(value) === index);
 
   if (normalized.length === 0 && typeof symbol === 'string') {
     const legacySymbol = symbol.trim().toUpperCase();
@@ -225,10 +226,13 @@ async function downloadHistoricalData({
         startDate:   cached.startDate,
         endDate:     cached.endDate,
         session:     cached.session,
+        purpose:     cached.purpose,
         rowCount:    cached.rowCount,
         rowsBySymbol: cached.rowsBySymbol || {},
         files:       cached.files,
-        datasetId,
+        datasetId:   cached.datasetId || datasetId,
+        id:          cached.id || cached.datasetId || datasetId,
+        dataset:     cached,
         warnings:    cached.warnings || [],
         cached:      true,
       };
@@ -327,7 +331,7 @@ async function downloadHistoricalData({
 
   const baseName = `${symbolsStr}_${safeTimeframe}_${safeSession}_${safeStartDate}_${safeEndDate}`;
 
-  const files = { csv: null, json: null };
+  const files = { csv: null, parquet: null, json: null };
 
   if (outputFormat.includes('csv')) {
     const csvPath = path.join(purposeDir, `${baseName}.csv`);
@@ -357,6 +361,7 @@ async function downloadHistoricalData({
 
   const record = {
     datasetId,
+    id: datasetId,
     jobId,
     status:       'ready',
     provider,
@@ -370,12 +375,13 @@ async function downloadHistoricalData({
     rowCount,
     rowsBySymbol,
     files,
+    schema: 'HistoricalCandle.v1',
     dataHash,
     warnings:     allWarnings,
     createdAt:    new Date().toISOString(),
   };
 
-  registry.register(record);
+  const savedDataset = registry.register(record);
 
   // ── Return ───────────────────────────────────────────────────────────────────
 
@@ -389,10 +395,13 @@ async function downloadHistoricalData({
     startDate,
     endDate,
     session,
+    purpose,
     rowCount,
     rowsBySymbol,
     files,
     datasetId,
+    id: datasetId,
+    dataset: savedDataset,
     warnings:    allWarnings,
   };
 }

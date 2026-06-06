@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const registry = require('./modelRegistry');
+const historicalRegistry = require('../historical/historicalDatasetRegistry');
 
 const AI_DIR = __dirname;
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -41,6 +42,22 @@ function resolveDatasetPath(datasetPath) {
   return DEFAULT_DATASET_PATHS.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
+function resolveHistoricalDataset(datasetId) {
+  if (!datasetId) return { datasetId: null, dataset: null, datasetPath: null };
+  const normalizedId = String(datasetId).trim();
+  const dataset = historicalRegistry.get(normalizedId);
+  if (!dataset) {
+    return { ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId: normalizedId };
+  }
+  const csvPath = dataset.files?.csv || '';
+  const parquetPath = dataset.files?.parquet || '';
+  const usablePath = csvPath && fs.existsSync(csvPath) ? csvPath : (parquetPath && fs.existsSync(parquetPath) ? parquetPath : null);
+  if (!usablePath) {
+    return { ok: false, status: 'dataset_file_missing', message: 'Historical dataset exists but no usable CSV/Parquet file was found.', datasetId: normalizedId };
+  }
+  return { ok: true, datasetId: dataset.datasetId || normalizedId, dataset, datasetPath: usablePath };
+}
+
 function validateRequest(body = {}) {
   const symbol = String(body.symbol || 'SPY').trim().toUpperCase();
   const timeframe = String(body.timeframe || '1m').trim();
@@ -49,7 +66,7 @@ function validateRequest(body = {}) {
   if (!VALID_TIMEFRAMES.has(timeframe)) return { error: `Invalid timeframe: ${timeframe}` };
   if (!Number.isInteger(horizon) || horizon < 1 || horizon > 500) return { error: 'horizon must be an integer between 1 and 500' };
   if (body.datasetPath && typeof body.datasetPath !== 'string') return { error: 'datasetPath must be a string when provided' };
-  return { symbol, timeframe, horizon, datasetPath: body.datasetPath || '', promote: body.promote === true, costBps: Number(body.costBps ?? body.estimatedRoundtripCostBps ?? 0) || 0 };
+  return { symbol, timeframe, horizon, datasetPath: body.datasetPath || '', datasetId: body.datasetId ? String(body.datasetId).trim() : '', promote: body.promote === true, costBps: Number(body.costBps ?? body.estimatedRoundtripCostBps ?? 0) || 0 };
 }
 
 function parseLastJson(stdout) {
@@ -112,13 +129,21 @@ function spawnTraining({ datasetPath, symbol, timeframe, horizon, costBps }) {
 async function trainModel(body = {}) {
   const request = validateRequest(body);
   if (request.error) return { ok: false, status: 'invalid_request', message: request.error };
-  const datasetPath = resolveDatasetPath(request.datasetPath);
+  let datasetPath = resolveDatasetPath(request.datasetPath);
+  let datasetId = request.datasetId || null;
+  if (request.datasetId) {
+    const resolvedDataset = resolveHistoricalDataset(request.datasetId);
+    if (!resolvedDataset.ok) return resolvedDataset;
+    datasetPath = resolvedDataset.datasetPath;
+    datasetId = resolvedDataset.datasetId;
+  }
   if (!datasetPath) {
     return {
       ok: false,
       status: 'dataset_missing',
       message: 'No dataset snapshot found. Generate or upload a dataset before training.',
       expectedPaths: publicExpectedPaths(),
+      ...(datasetId ? { datasetId } : {}),
     };
   }
   const result = await spawnTraining({ ...request, datasetPath });
@@ -128,6 +153,7 @@ async function trainModel(body = {}) {
       status: result.status || 'training_failed',
       message: result.message || 'Training failed',
       details: result.details || {},
+      ...(datasetId ? { datasetId } : {}),
     };
   }
   const manifest = result.manifest || {};
@@ -156,7 +182,8 @@ async function trainModel(body = {}) {
     artifactPath: registered.artifactPath,
     metrics: result.metrics,
     promoted,
+    ...(datasetId ? { datasetId } : {}),
   };
 }
 
-module.exports = { trainModel, validateRequest, resolveDatasetPath, publicExpectedPaths, DEFAULT_DATASET_PATHS };
+module.exports = { trainModel, validateRequest, resolveDatasetPath, resolveHistoricalDataset, publicExpectedPaths, DEFAULT_DATASET_PATHS };

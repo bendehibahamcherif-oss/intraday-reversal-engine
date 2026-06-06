@@ -20,6 +20,7 @@ const metrics               = require('../server-deliverables/observability/metr
 const opsRoutes             = require('../server-deliverables/api15/opsRoutes');
 const multiAssetRoutes      = require('../server-deliverables/api/multiAssetRoutes');
 const institutionalRoutes   = require('../server-deliverables/api/institutionalRoutes');
+const backtestRoutes        = require('../server-deliverables/api/backtestRoutes');
 
 // Phase 9B: ML routes (worker-pool inference)
 const mlRoutes              = require('../server-deliverables/ai/mlRoutes');
@@ -110,6 +111,7 @@ async function start() {
   // ── Phase 13: multi-asset analysis ────────────────────────────────────────
   app.use('/api/multi-asset', multiAssetRoutes);
   app.use('/api/macro',       multiAssetRoutes);
+  app.use('/api/backtest',    backtestRoutes);
 
   // ── Phase 13: institutional sizing + scenario analysis ────────────────────
   app.use('/api/institutional', institutionalRoutes);

@@ -298,37 +298,11 @@ router.post('/train', async (req, res) => {
   try {
     const body = { ...(req.body || {}) };
 
-    // If datasetId is provided, resolve the CSV path and inject it as datasetPath
-    if (body.datasetId) {
-      const histRegistry = require('../historical/historicalDatasetRegistry');
-      const dataset = histRegistry.get(body.datasetId);
-
-      if (!dataset) {
-        return res.status(400).type('application/json').json({
-          ok: false,
-          status: 'invalid_request',
-          error: { code: 'DATASET_NOT_FOUND', message: `Historical dataset '${body.datasetId}' not found in registry.` },
-        });
-      }
-
-      const csvPath = dataset.files && dataset.files.csv;
-      if (!csvPath || !fs.existsSync(csvPath)) {
-        return res.status(400).type('application/json').json({
-          ok: false,
-          status: 'invalid_request',
-          error: { code: 'DATASET_NOT_FOUND', message: `Dataset CSV file not found for datasetId '${body.datasetId}'.` },
-        });
-      }
-
-      // Pass the resolved path to the training service
-      body.datasetPath = csvPath;
-    }
-
     const result = await trainingService.trainModel(body);
-    const statusCode = result.status === 'invalid_request' ? 400 : 200;
+    const statusCode = ['invalid_request'].includes(result.status) ? 400 : (['dataset_not_found', 'dataset_file_missing'].includes(result.status) ? 404 : 200);
     return res.status(statusCode).type('application/json').json({
       ...result,
-      ...(body.datasetId ? { datasetId: body.datasetId } : {}),
+      ...(body.datasetId && !result.datasetId ? { datasetId: body.datasetId } : {}),
     });
   } catch (err) {
     return res.status(500).type('application/json').json({

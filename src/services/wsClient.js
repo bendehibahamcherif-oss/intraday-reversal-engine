@@ -15,6 +15,10 @@ class ResilientWebSocket {
   }
 
   connect() {
+    if (typeof WebSocket === 'undefined') {
+      this.connected = false;
+      return;
+    }
     this.ws = new WebSocket(this.url);
 
     this.ws.onopen = () => {
@@ -42,6 +46,7 @@ class ResilientWebSocket {
       console.log('[wsClient] disconnected, scheduling reconnect', { reconnectCount: this.reconnectCount, attempt: this.reconnectAttempts });
       this._disconnectCallbacks.forEach((cb) => { try { cb(this.reconnectCount); } catch (e) { /* ignore */ } });
       setTimeout(() => {
+        if (typeof WebSocket === 'undefined') return;
         this.reconnectAttempts += 1;
         this.connect();
       }, Math.min(5000, 1000 * this.reconnectAttempts));

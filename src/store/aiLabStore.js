@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
+import { getDatasetId, normalizeDataset } from '../utils/datasets.js';
 
 const toList = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -36,6 +37,8 @@ export const useAILabStore = create((set, get) => ({
   trainingJob:     null,
   trainLoading:    false,
   trainError:      '',
+  selectedMlDatasetId: null,
+  selectedMlDataset: null,
 
   // ── Phase 9: Model Registry ───────────────────────────────────────────────
   modelRegistry:    [],
@@ -76,6 +79,11 @@ export const useAILabStore = create((set, get) => ({
   clearError:   () => set({ error: '', analyticsError: '', trainError: '', registryError: '', championError: '', inferenceError: '', driftError: '', importanceError: '', comparisonError: '' }),
   setTrainConfig: (cfg) => set((s) => ({ trainConfig: { ...s.trainConfig, ...cfg } })),
   setSelectedChallengerModelId: (id) => set({ selectedChallengerModelId: id || null }),
+  setSelectedDataset: (datasetId, dataset = null) => {
+    const id = datasetId || getDatasetId(dataset);
+    if (!id) return set({ trainError: 'Dataset ID missing. Reload dataset registry.' });
+    set({ selectedMlDatasetId: id, selectedMlDataset: dataset ? normalizeDataset(dataset) : get().selectedMlDataset, trainError: '' });
+  },
 
   // ── Existing actions ──────────────────────────────────────────────────────
   loadCurrentRegime: async () => {
@@ -219,7 +227,7 @@ export const useAILabStore = create((set, get) => ({
 
   // ── Phase 9 actions ───────────────────────────────────────────────────────
   trainModel: async () => {
-    const { symbol, horizon, limit, trainConfig } = get();
+    const { symbol, horizon, limit, trainConfig, selectedMlDatasetId } = get();
     set({ trainLoading: true, trainError: '', trainingJob: null });
     try {
       const payload = await api.trainMLModel(symbol, {
@@ -228,6 +236,7 @@ export const useAILabStore = create((set, get) => ({
         nEstimators:   trainConfig.nEstimators,
         maxDepth:      trainConfig.maxDepth,
         learningRate:  trainConfig.learningRate,
+        ...(selectedMlDatasetId ? { datasetId: selectedMlDatasetId } : {}),
       });
       set({ trainLoading: false, trainingJob: payload?.job ?? payload?.result ?? payload ?? {}, lastUpdated: new Date().toISOString() });
       await get().loadModelRegistry();
