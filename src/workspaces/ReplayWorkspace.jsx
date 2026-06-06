@@ -38,6 +38,25 @@ function ReplayChart() {
     zoom,
   ]);
 
+  // Guard: with no candles loaded, Math.min/max(...[]) yields ±Infinity which
+  // propagates NaN into every SVG coordinate. Render a clean empty state instead.
+  if (!Array.isArray(visibleData) || visibleData.length === 0) {
+    return (
+      <div
+        style={{
+          background: '#050505',
+          border: '1px solid #1f1f1f',
+          borderRadius: 16,
+          padding: 16,
+          color: '#6b7280',
+          fontSize: 13,
+        }}
+      >
+        No replay data loaded yet.{timeframeStatus ? ` ${timeframeStatus}` : ''}
+      </div>
+    );
+  }
+
   const highs = visibleData.map((c) => c.high);
   const lows = visibleData.map((c) => c.low);
   const volumes = visibleData.map((c) => c.volume);

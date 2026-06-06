@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-06-06T18:18:15.440Z",
+  "total": 13,
+  "passed": 13,
+  "failed": 0,
+  "ok": true,
+  "checks": [
+    {
+      "name": "promote uses /api/ml/promote/:modelId",
+      "ok": true,
+      "detail": "POST /api/ml/promote/:modelId"
+    },
+    {
+      "name": "no dead /api/ai model lifecycle routes remain",
+      "ok": true,
+      "detail": "none"
+    },
+    {
+      "name": "feature-importance uses /api/ml/feature-importance",
+      "ok": true,
+      "detail": "GET /api/ml/feature-importance"
+    },
+    {
+      "name": "compareMLModels does not call a dead endpoint",
+      "ok": true,
+      "detail": "fails fast"
+    },
+    {
+      "name": "backtest run is POST /api/backtest/run",
+      "ok": true,
+      "detail": "POST /api/backtest/run"
+    },
+    {
+      "name": "stripUndefinedDeep removes undefined datasetId",
+      "ok": true,
+      "detail": "{\"symbol\":\"SPY\",\"nested\":{\"b\":1}}"
+    },
+    {
+      "name": "runBacktest omits datasetId when none selected",
+      "ok": true,
+      "detail": "conditional"
+    },
+    {
+      "name": "AILab fmtN guards non-finite values",
+      "ok": true,
+      "detail": "Number.isFinite guard present"
+    },
+    {
+      "name": "Replay chart guards empty candle array",
+      "ok": true,
+      "detail": "empty-array guard present"
+    },
+    {
+      "name": "ErrorBoundary supports a scoped fallback prop",
+      "ok": true,
+      "detail": "fallback supported"
+    },
+    {
+      "name": "WorkspaceRenderer wraps workspaces in a scoped boundary",
+      "ok": true,
+      "detail": "scoped boundary present"
+    },
+    {
+      "name": "wsClient caps reconnect attempts",
+      "ok": true,
+      "detail": "bounded + resumable"
+    },
+    {
+      "name": "corrupt localStorage does not crash (api.getUser guards JSON.parse)",
+      "ok": true,
+      "detail": "guarded"
+    }
+  ]
+}

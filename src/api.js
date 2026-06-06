@@ -450,16 +450,13 @@ export const api = {
     const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
     return fetch(`${API_BASE}/api/ml/model-runs${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  getMLModel: async (modelId) => fetch(
-    `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}`,
-    { method: 'GET', headers: headers() }
-  ).then(handle),
   getChampionModel: async (symbol) => {
     const qs = symbol ? `?symbol=${encodeURIComponent(String(symbol).toUpperCase())}` : '';
     return fetch(`${API_BASE}/api/ml/model${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
+  // Promote a trained model to champion. Canonical backend route: POST /api/ml/promote/:modelId
   setChampionModel: async (modelId) => fetch(
-    `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/champion`,
+    `${API_BASE}/api/ml/promote/${encodeURIComponent(modelId)}`,
     { method: 'POST', headers: headers() }
   ).then(handle),
   runMLInference: async (symbol, config = {}) => {
@@ -476,14 +473,11 @@ export const api = {
     const qs = p.toString() ? `?${p}` : '';
     return fetch(`${API_BASE}/api/ml/drift${qs}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  getMLFeatureImportance: async (modelId) => fetch(
-    `${API_BASE}/api/ai/models/${encodeURIComponent(modelId)}/importance`,
-    { method: 'GET', headers: headers() }
-  ).then(handle),
-  compareMLModels: async (championId, challengerId) => fetch(
-    `${API_BASE}/api/ai/models/compare`,
-    { method: 'POST', headers: headers(), body: JSON.stringify({ championId, challengerId }) }
-  ).then(handle),
+  // Model comparison has no backend route; fail fast with a clear message instead of
+  // calling a dead endpoint (avoids a misleading "Endpoint not available" 404 in the UI).
+  compareMLModels: async () => {
+    throw new Error('Model comparison is not available on this backend.');
+  },
 
   getSavedStrategies: async (symbol) => strategyLabFetch(
     `/api/strategy-lab/strategies/${encodeURIComponent(symbol)}`,

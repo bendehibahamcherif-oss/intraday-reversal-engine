@@ -44,6 +44,14 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    // Scoped boundaries (e.g. a single workspace) may supply a compact inline
+    // fallback so a child crash does not blank the entire terminal shell.
+    if (this.props.fallback) {
+      return typeof this.props.fallback === 'function'
+        ? this.props.fallback({ error: this.state.error, reset: this._reset })
+        : this.props.fallback;
+    }
+
     const msg   = this.state.error?.message || 'Unknown error';
     const stack = this.state.componentStack;
     const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;

@@ -6,6 +6,8 @@ class ResilientWebSocket {
     this.connected = false;
     this.reconnectAttempts = 0;
     this.reconnectCount = 0;
+    this.maxReconnectAttempts = 12;
+    this.unavailable = false;
     this.heartbeatInterval = null;
     this.subscriptions = new Set();
     this._connectCallbacks = [];
@@ -24,6 +26,7 @@ class ResilientWebSocket {
     this.ws.onopen = () => {
       this.connected = true;
       this.reconnectAttempts = 0;
+      this.unavailable = false;
       this.startHeartbeat();
       this.resubscribe();
       console.log('[wsClient] connected', { reconnectCount: this.reconnectCount });
@@ -45,12 +48,26 @@ class ResilientWebSocket {
       this.stopHeartbeat();
       console.log('[wsClient] disconnected, scheduling reconnect', { reconnectCount: this.reconnectCount, attempt: this.reconnectAttempts });
       this._disconnectCallbacks.forEach((cb) => { try { cb(this.reconnectCount); } catch (e) { /* ignore */ } });
+      // Stop retrying after a bounded number of attempts so an unavailable WS does
+      // not spin forever. The app continues on REST fallback; reconnectNow() resumes.
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        this.unavailable = true;
+        console.warn('[wsClient] reconnect limit reached — staying on REST fallback', { attempts: this.reconnectAttempts });
+        return;
+      }
       setTimeout(() => {
         if (typeof WebSocket === 'undefined') return;
         this.reconnectAttempts += 1;
         this.connect();
       }, Math.min(5000, 1000 * this.reconnectAttempts));
     };
+  }
+
+  // Manually resume after the reconnect limit was reached (e.g. user clicks retry).
+  reconnectNow() {
+    this.reconnectAttempts = 0;
+    this.unavailable = false;
+    if (!this.connected) this.connect();
   }
 
   startHeartbeat() {
