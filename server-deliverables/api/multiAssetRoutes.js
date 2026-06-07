@@ -180,7 +180,7 @@ router.get('/sector-rotation', async (req, res) => {
 });
 
 // GET /api/multi-asset/volatility?symbols=SPY,QQQ,IWM&window=20&timeframe=1d
-router.get('/volatility', async (req, res) => {
+async function handleVolatility(req, res) {
   try {
     const symbols   = parseSymbols(req.query.symbols);
     const window    = parseWindow(req.query.window);
@@ -192,8 +192,10 @@ router.get('/volatility', async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, status: 'error', error: err.message, message: err.message });
   }
-});
+}
 
+router.get('/volatility', handleVolatility);
+router.get('/volatility-heatmap', handleVolatility);
 
 router.use((req, res) => {
   res.status(404).type('application/json').json({

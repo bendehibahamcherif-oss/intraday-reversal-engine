@@ -18,8 +18,12 @@ const apiMock = vi.hoisted(() => ({
     getHistoricalProviders:  vi.fn(),
     getHistoricalDatasets:   vi.fn(),
     getHistoricalDataset:    vi.fn(),
+    getHistoricalDatasetDiagnostics: vi.fn(),
     deleteHistoricalDataset: vi.fn(),
     downloadHistoricalData:  vi.fn(),
+    useHistoricalDatasetForMl: vi.fn(),
+    useHistoricalDatasetForBacktest: vi.fn(),
+    useHistoricalDatasetForCorrelation: vi.fn(),
     getMultiAssetCorrelation: vi.fn(),
     trainMLModelP1:          vi.fn(),
     runBacktest:             vi.fn(),
@@ -33,6 +37,7 @@ const { useMLStore }             = await import('../store/mlStore.js');
 const { useMacroStore }          = await import('../store/macroStore.js');
 const { useQuantLabStore }       = await import('../store/quantLabStore.js');
 const { DownloadForm, parseSymbols } = await import('../workspaces/HistoricalDataWorkspace.jsx');
+const { default: HistoricalDataWorkspace } = await import('../workspaces/HistoricalDataWorkspace.jsx');
 
 function resetHistStore() {
   useHistoricalDataStore.setState({
@@ -40,6 +45,7 @@ function resetHistStore() {
     datasets: [], datasetsLoading: false, datasetsError: '',
     downloadLoading: false, downloadError: '', downloadResult: null,
     selectedDatasetId: null, selectedDataset: null,
+    diagnostics: null, diagnosticsLoading: false, diagnosticsError: '',
   });
 }
 
@@ -175,6 +181,17 @@ describe('historicalDataStore.fetchDatasets', () => {
 
     expect(useHistoricalDataStore.getState().datasets).toEqual([]);
   });
+
+  it('renders a safe datasets message instead of raw server status text', async () => {
+    apiMock.api.getHistoricalProviders.mockResolvedValue({ ok: true, providers: [] });
+    apiMock.api.getHistoricalDatasets.mockRejectedValue(new Error('Request failed with status 500: Internal Server Error'));
+
+    render(React.createElement(HistoricalDataWorkspace));
+
+    expect(await screen.findByText('Unable to load historical datasets.')).toBeInTheDocument();
+    expect(screen.queryByText(/500|Internal Server Error|Request failed with status/)).not.toBeInTheDocument();
+  });
+
 });
 
 // ── downloadData ──────────────────────────────────────────────────────────────

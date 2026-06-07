@@ -1,290 +1,229 @@
-/**
- * Deterministic API mock catalog.
- *
- * Every route the production UI may call is covered here so tests run
- * without a real backend. Unknown routes are recorded and the test suite
- * will fail when uncovered routes are accessed.
- */
-import { Page, Route, Request } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 
-// ── Response helpers ──────────────────────────────────────────────────────────
+const E2E_MOCK_HEADER = 'x-e2e-api-mock';
+const BAD_URL_TOKENS = /(?:undefined|null|NaN)/i;
 
-function ok(body: object = {}) {
-  return { status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, ...body }) };
+const iso = '2026-01-02T14:30:00.000Z';
+const symbolFromPath = (path: string) => decodeURIComponent(path.split('/').filter(Boolean).pop() || 'SPY').toUpperCase();
+const candles = Array.from({ length: 30 }, (_, index) => {
+  const close = 470 + index * 0.25;
+  return {
+    time: new Date(Date.UTC(2026, 0, 2, 14, index)).toISOString(),
+    timestamp: Date.UTC(2026, 0, 2, 14, index),
+    open: close - 0.1,
+    high: close + 0.4,
+    low: close - 0.5,
+    close,
+    volume: 1000 + index * 25,
+  };
+});
+
+function json(body: unknown, status = 200) {
+  return { status, contentType: 'application/json; charset=utf-8', headers: { [E2E_MOCK_HEADER]: 'true' }, body: JSON.stringify(body) };
 }
 
-function empty(extra: object = {}) {
-  return ok({ data: null, ...extra });
+function chartPayload(path: string) {
+  const symbol = symbolFromPath(path);
+  return {
+    ok: true,
+    symbol,
+    timeframe: '1m',
+    status: 'rest_fallback',
+    source: 'e2e_mock',
+    candles,
+    overlays: { vwap: candles.map((c) => ({ time: c.time, value: c.close - 0.05 })) },
+    indicators: { ema9: candles.map((c) => ({ time: c.time, value: c.close - 0.03 })) },
+    orderflow: { delta: 0, imbalance: [] },
+  };
 }
 
-// ── Catalog ───────────────────────────────────────────────────────────────────
+function cvd(path: string) {
+  return { ok: true, symbol: symbolFromPath(path), status: 'rest_fallback', series: candles.map((c, i) => ({ time: c.time, timestamp: c.timestamp, value: i * 125 - 300 })) };
+}
 
-type RouteEntry = {
-  pattern: RegExp;
-  method?: string;
-  response: (url: string) => { status: number; contentType: string; body: string };
+function volumeProfile(path: string) {
+  const symbol = symbolFromPath(path);
+  return {
+    ok: true,
+    symbol,
+    status: 'rest_fallback',
+    bins: Array.from({ length: 12 }, (_, i) => ({ price: 468 + i * 0.5, volume: 520 + i * 40, buyVolume: 260 + i * 20, sellVolume: 260 + i * 20 })),
+    levels: Array.from({ length: 12 }, (_, i) => ({ price: 468 + i * 0.5, volume: 520 + i * 40 })),
+    poc: 471,
+    valueAreaHigh: 473,
+    valueAreaLow: 469,
+  };
+}
+
+const tick = (path: string) => ({ ok: true, status: 'rest_fallback', delayed: true, symbol: symbolFromPath(path), tick: { symbol: symbolFromPath(path), price: 472.25, bid: 472.2, ask: 472.3, size: 100, timestamp: iso } });
+const candle = (path: string) => ({ ok: true, status: 'rest_fallback', delayed: true, symbol: symbolFromPath(path), candle: candles.at(-1), candles: candles.slice(-5) });
+const orderbook = (path: string) => ({ ok: true, status: 'rest_fallback', delayed: true, symbol: symbolFromPath(path), orderbook: { bids: [[472.2, 100], [472.1, 120]], asks: [[472.3, 95], [472.4, 110]], timestamp: iso } });
+
+const providersHealth = { ok: true, status: 'available', providers: [], statuses: [], enabledByProvider: {}, providerOrder: [], activeProviders: [], health: [] };
+const credentials = { ok: true, credentials: [], providers: [], configured: {}, status: 'empty' };
+const historicalDataset = {
+  datasetId: 'e2e-dataset',
+  id: 'e2e-dataset',
+  symbols: ['SPY'],
+  timeframe: '1d',
+  startDate: '2025-01-02',
+  endDate: '2025-12-31',
+  provider: 'e2e_mock',
+  session: 'RTH',
+  purpose: 'general',
+  rowCount: 480,
+  rowsBySymbol: { SPY: 480 },
+  files: { csv: '/data/historical/e2e-dataset.csv' },
+  fileStatus: 'ready',
+  fileExists: true,
+  status: 'ready',
+  warnings: [],
 };
 
-const CATALOG: RouteEntry[] = [
-  // ── Auth ────────────────────────────────────────────────────────────────────
-  { pattern: /\/auth\/login$/,   method: 'POST', response: () => ok({ token: 'e2e-token', user: { id: '1', email: 'e2e@test.local', name: 'E2E User' } }) },
-  { pattern: /\/auth\/register$/, method: 'POST', response: () => ok({ token: 'e2e-token', user: { id: '1', email: 'e2e@test.local', name: 'E2E User' } }) },
-  { pattern: /\/auth\/me$/,       response: () => ok({ user: { id: '1', email: 'e2e@test.local', name: 'E2E User' } }) },
-  { pattern: /\/auth\/check$/,    response: () => ok({ authenticated: true }) },
-
-  // ── Admin / settings ────────────────────────────────────────────────────────
-  { pattern: /\/admin\/users/, response: () => ok({ users: [] }) },
-  { pattern: /\/settings\//,   response: () => ok({ value: null }) },
-  { pattern: /\/intelligence\/events/, response: () => ok({ events: [] }) },
-
-  // ── Alerts ──────────────────────────────────────────────────────────────────
-  { pattern: /\/api\/alerts\/diagnostics/, response: () => ok({ diagnostics: {}, workerAlive: true }) },
-  { pattern: /\/api\/alerts\/history/,     response: () => ok({ history: [], count: 0 }) },
-  { pattern: /\/api\/alerts$/,             response: () => ok({ alerts: [], count: 0 }) },
-  { pattern: /\/api\/alerts\?/,            response: () => ok({ alerts: [], count: 0 }) },
-  { pattern: /\/api\/alerts\/[^/]+\/disable/, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/alerts\/[^/]+\/enable/,  method: 'POST', response: () => ok() },
-  { pattern: /\/api\/alerts\/[^/]+$/,         response: () => ok({ alert: null }) },
-
-  // ── Chart data ──────────────────────────────────────────────────────────────
-  { pattern: /\/api\/chart\/candles\//,    response: () => ok({ candles: [], symbol: 'SPY', timeframe: '1m' }) },
-  { pattern: /\/api\/chart\/payload\//,    response: () => ok({ candles: [], symbol: 'SPY' }) },
-  { pattern: /\/api\/chart\/overlays\//,   response: () => ok({ overlays: [] }) },
-  { pattern: /\/api\/chart\/indicators\//, response: () => ok({ indicators: [] }) },
-  { pattern: /\/api\/chart\/orderflow\//,  response: () => ok({ orderflow: null }) },
-  { pattern: /\/api\/chart\/footprint\//,  response: () => ok({ footprint: null }) },
-  { pattern: /\/api\/chart\/cvd\//,        response: () => ok({ cvd: [] }) },
-
-  // ── Yahoo chart ─────────────────────────────────────────────────────────────
-  { pattern: /\/yahoo\/chart\//,           response: () => ok({ chart: { result: [] } }) },
-
-  // ── Feed / providers ────────────────────────────────────────────────────────
-  { pattern: /\/api\/feed\/status$/,           response: () => ok({ status: 'idle', source: 'yahoo', runtimeStatus: 'delayed', activeProviders: ['yahoo'] }) },
-  { pattern: /\/api\/feeds\/tick\//,           response: () => ok({ tick: null, symbol: 'SPY' }) },
-  { pattern: /\/api\/feeds\/candle\//,         response: () => ok({ candle: null, symbol: 'SPY' }) },
-  { pattern: /\/api\/feeds\/orderbook\//,      response: () => ok({ bids: [], asks: [], symbol: 'SPY' }) },
-  { pattern: /\/api\/providers\/health$/,      response: () => ok({ providers: [] }) },
-  { pattern: /\/api\/providers\/credentials$/, response: () => ok({ credentials: {} }) },
-  { pattern: /\/api\/providers\/credentials\//,response: () => ok({ status: 'not_configured' }) },
-  { pattern: /\/api\/providers\/active$/,      response: () => ok({ activeProviders: ['yahoo'], providerOrder: ['yahoo'] }) },
-
-  // ── Market runtime ──────────────────────────────────────────────────────────
-  { pattern: /\/api\/runtime\/health$/,      response: () => ok({ status: 'healthy' }) },
-
-  // ── Historical data ──────────────────────────────────────────────────────────
-  { pattern: /\/api\/historical\/providers$/, response: () => ok({ providers: [{ id: 'yahoo', label: 'Yahoo Finance', available: true }] }) },
-  { pattern: /\/api\/historical\/datasets\/[^/]+\/diagnostics/, response: (url) => {
-    const id = url.match(/\/datasets\/([^/]+)\/diagnostics/)?.[1] || 'unknown';
-    return ok({ datasetId: id, registryFound: true, fileExists: true, usableForMl: true, issues: [] });
-  }},
-  { pattern: /\/api\/historical\/datasets\/[^/?]+$/, response: (url) => {
-    const id = url.match(/\/datasets\/([^/?]+)/)?.[1] || 'unknown';
-    return ok({ dataset: { datasetId: id, symbols: ['SPY'], rowCount: 251, status: 'ready', fileExists: true } });
-  }},
-  { pattern: /\/api\/historical\/datasets/, response: () => ok({ datasets: [] }) },
-  { pattern: /\/api\/historical\/download/, method: 'POST', response: () => ok({ datasetId: 'hist_SPY_1d_RTH_e2e', status: 'ready', rowCount: 251 }) },
-
-  // ── ML lifecycle (canonical /api/ml/*) ──────────────────────────────────────
-  { pattern: /\/api\/ml\/health$/, response: () => ok({ status: 'healthy', workerAlive: true, workerStatus: 'idle', model: null }) },
-  { pattern: /\/api\/ml\/model\b/, response: () => ok({ champion: null, challengers: [], status: 'no_model', models: [] }) },
-  { pattern: /\/api\/ml\/model-runs/, response: () => ok({ runs: [], activeJobs: [], count: 0 }) },
-  { pattern: /\/api\/ml\/predictions/, response: () => ok({ predictions: [], count: 0, total: 0 }) },
-  { pattern: /\/api\/ml\/feature-importance/, response: () => ok({ features: [], modelVersion: null, ok: true }) },
-  { pattern: /\/api\/ml\/drift$/, response: () => ok({ drift: { psi: {}, status: 'not_enough_data', features: [], detectedAt: null } }) },
-  { pattern: /\/api\/ml\/model-card/, response: () => ok({ card: null, status: 'no_model' }) },
-  { pattern: /\/api\/ml\/metrics$/, response: () => ok({ workerStatus: 'idle', workerAlive: false, totalRequests: 0, errors: 0, restarts: 0, pendingCount: 0 }) },
-  { pattern: /\/api\/ml\/worker\/status/, response: () => ok({ status: 'idle', alive: false }) },
-  { pattern: /\/api\/ml\/models/, response: () => ok({ models: [], champion: null, status: 'no_model' }) },
-  { pattern: /\/api\/ml\/dependencies/, response: () => ok({ dependencies: [], allMet: true }) },
-
-  // ML features & labels (used by mlSignalStore and AILab)
-  { pattern: /\/api\/ml\/features\/[^/?]+/, response: (url) => {
-    const sym = url.match(/\/features\/([^/?]+)/)?.[1]?.toUpperCase() || 'SPY';
-    return ok({ symbol: sym, features: [], rows: [], count: 0, status: 'ready', message: 'No feature rows in e2e mock.' });
-  }},
-  { pattern: /\/api\/ml\/labels\/[^/?]+/, response: (url) => {
-    const sym = url.match(/\/labels\/([^/?]+)/)?.[1]?.toUpperCase() || 'SPY';
-    return ok({ symbol: sym, labels: [], rows: [], count: 0, status: 'ready', message: 'No label rows in e2e mock.' });
-  }},
-  { pattern: /\/api\/ml\/signal\/[^/?]+/, response: (url) => {
-    const sym = url.match(/\/signal\/([^/?]+)/)?.[1]?.toUpperCase() || 'SPY';
-    return ok({ signal: null, symbol: sym, status: 'no_signal' });
-  }},
-  { pattern: /\/api\/ml\/infer\/[^/?]+/, method: 'POST', response: (url) => {
-    const sym = url.match(/\/infer\/([^/?]+)/)?.[1]?.toUpperCase() || 'SPY';
-    return ok({ inference: null, status: 'no_champion', message: 'No champion model.', symbol: sym });
-  }},
-  { pattern: /\/api\/ml\/train$/, method: 'POST', response: () => ok({ status: 'queued', jobId: 'e2e-job-1' }) },
-  { pattern: /\/api\/ml\/promote\//, method: 'POST', response: () => ok({ status: 'promoted', modelId: 'e2e-model-1' }) },
-
-  // ── AI Lab legacy analytics routes ──────────────────────────────────────────
-  { pattern: /\/api\/ai\/features\/save\//, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/ai\/features\/record\//, response: () => ok({ record: null }) },
-  { pattern: /\/api\/ai\/features\/record\//, method: 'DELETE', response: () => ok() },
-  { pattern: /\/api\/ai\/features\/[^/?]+\?/, response: (url) => {
-    const sym = url.match(/\/features\/([^/?]+)/)?.[1]?.toUpperCase() || 'SPY';
-    return ok({ symbol: sym, features: [], rows: [], count: 0 });
-  }},
-  { pattern: /\/api\/ai\/features\/[^/?]+$/, response: () => ok({ features: [] }) },
-  { pattern: /\/api\/ai\/labels\/record\//, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/ai\/labels\/symbol\//, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/ai\/labels\/[^/?]+\?/, response: (url) => {
-    const sym = url.match(/\/labels\/([^/?]+)/)?.[1]?.toUpperCase() || 'SPY';
-    return ok({ symbol: sym, labels: [], rows: [], count: 0 });
-  }},
-  { pattern: /\/api\/ai\/labels\/[^/?]+$/, method: 'DELETE', response: () => ok() },
-  { pattern: /\/api\/ai\/regime\//, response: () => ok({ regime: null, symbol: 'SPY' }) },
-  { pattern: /\/api\/ai\/analytics\/analyze\//, method: 'POST', response: () => ok({ status: 'done' }) },
-  { pattern: /\/api\/ai\/analytics\/features\//, response: () => ok({ features: [] }) },
-  { pattern: /\/api\/ai\/analytics\/regimes\//, response: () => ok({ regimes: [] }) },
-  { pattern: /\/api\/ai\/analytics\/[^/?]+$/, response: () => ok({ analytics: null }) },
-  { pattern: /\/api\/ai\/analytics\/[^/?]+/, method: 'DELETE', response: () => ok() },
-
-  // ── Backtest ─────────────────────────────────────────────────────────────────
-  { pattern: /\/api\/backtest\/run$/, method: 'POST', response: () => ok({ status: 'completed', results: [], metrics: null, resultId: 'e2e-bt-1' }) },
-  { pattern: /\/api\/backtest\/results\/[^/]+\/[^/]+\/report/, response: () => ok({ report: null }) },
-  { pattern: /\/api\/backtest\/results\/[^/]+\/[^/?]+$/, response: () => ok({ result: null }) },
-  { pattern: /\/api\/backtest\/results\/[^/?]+$/, response: () => ok({ results: [], count: 0 }) },
-  { pattern: /\/api\/backtest\/monte-carlo\//, response: () => ok({ paths: [], summary: null }) },
-  { pattern: /\/api\/backtest\/walk-forward\//, response: () => ok({ windows: [], summary: null }) },
-
-  // ── Multi-asset / Macro ──────────────────────────────────────────────────────
-  { pattern: /\/api\/multi-asset\/correlation/, response: () => ok({ correlation: null, matrix: {}, symbols: [], window: 20 }) },
-  { pattern: /\/api\/multi-asset\/beta/,         response: () => ok({ beta: null, r2: null, symbol: 'QQQ', benchmark: 'SPY', window: 20 }) },
-  { pattern: /\/api\/multi-asset\/sector-rotation/, response: () => ok({ rotation: [], summary: null }) },
-  { pattern: /\/api\/multi-asset\/volatility/,   response: () => ok({ volatility: {}, symbols: [] }) },
-
-  // ── Portfolio / Risk ─────────────────────────────────────────────────────────
-  { pattern: /\/api\/portfolio\/positions/,   response: () => ok({ positions: [], count: 0 }) },
-  { pattern: /\/api\/portfolio\/pnl/,         response: () => ok({ pnl: 0, unrealized: 0, realized: 0 }) },
-  { pattern: /\/api\/portfolio\/summary/,     response: () => ok({ equity: 100000, positions: 0 }) },
-  { pattern: /\/api\/portfolio\/history/,     response: () => ok({ history: [] }) },
-  { pattern: /\/api\/portfolio\/exposure/,    response: () => ok({ exposure: 0, gross: 0, net: 0 }) },
-  { pattern: /\/api\/portfolio\/var/,         response: () => ok({ var: null, es: null, confidence: 0.95 }) },
-  { pattern: /\/api\/portfolio\/drawdown/,    response: () => ok({ current: 0, max: 0, series: [] }) },
-  { pattern: /\/api\/portfolio\/stress-test/, response: () => ok({ scenarios: [] }) },
-  { pattern: /\/api\/risk\/alerts/,           response: () => ok({ alerts: [], killSwitchActive: false }) },
-  { pattern: /\/api\/risk\/var/,              response: () => ok({ var: null, es: null }) },
-  { pattern: /\/api\/risk\/summary/,          response: () => ok({ summary: null }) },
-  { pattern: /\/api\/risk\/exposure/,         response: () => ok({ exposure: 0 }) },
-  { pattern: /\/api\/risk\/drawdown/,         response: () => ok({ current: 0, max: 0 }) },
-  { pattern: /\/api\/risk\/limits/,           response: () => ok({ limits: [] }) },
-  { pattern: /\/api\/paper\/risk\/status/,    response: () => ok({ killSwitchActive: false }) },
-  { pattern: /\/api\/paper\/risk\/kill-switch/, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/paper\/reset/,           method: 'POST', response: () => ok() },
-
-  // ── Execution ────────────────────────────────────────────────────────────────
-  { pattern: /\/api\/execution\/orders/,       response: () => ok({ orders: [], count: 0 }) },
-  { pattern: /\/api\/execution\/fills/,        response: () => ok({ fills: [], count: 0 }) },
-  { pattern: /\/api\/execution\/analytics/,    response: () => ok({ analytics: null }) },
-  { pattern: /\/api\/execution\/risk-check/,   response: () => ok({ allowed: true }) },
-  { pattern: /\/api\/execution\/order$/,       method: 'POST', response: () => ok({ orderId: 'e2e-order-1', status: 'pending' }) },
-  { pattern: /\/api\/execution\/order\/[^/]+/, response: () => ok({ order: null }) },
-
-  // ── OMS ──────────────────────────────────────────────────────────────────────
-  { pattern: /\/api\/oms\/reconciliation/,    response: () => ok({ reconciliation: null }) },
-  { pattern: /\/api\/oms\/stats/,             response: () => ok({ stats: {} }) },
-  { pattern: /\/api\/oms\/orders$/,           response: () => ok({ orders: [], count: 0 }) },
-  { pattern: /\/api\/oms\/orders\?/,          response: () => ok({ orders: [], count: 0 }) },
-  { pattern: /\/api\/oms\/orders\/[^/]+\/events/, response: () => ok({ events: [] }) },
-  { pattern: /\/api\/oms\/orders\/[^/?]+$/,   response: () => ok({ order: null }) },
-
-  // ── Quant / Strategy ─────────────────────────────────────────────────────────
-  { pattern: /\/api\/quant\/extract\//,   method: 'POST', response: () => ok({ features: [] }) },
-  { pattern: /\/api\/quant\/features\//,  response: () => ok({ features: [] }) },
-  { pattern: /\/api\/quant\/history\/snapshot\//, response: () => ok({ snapshot: null }) },
-  { pattern: /\/api\/quant\/history\//,   response: () => ok({ history: [] }) },
-  { pattern: /\/api\/quant\/pipeline\//,  response: () => ok({ pipeline: null }) },
-  { pattern: /\/api\/analytics\/compare\//, response: () => ok({ comparison: null }) },
-  { pattern: /\/api\/analytics\/latest\//,  response: () => ok({ latest: null }) },
-  { pattern: /\/api\/analytics\/trend\//,   response: () => ok({ trend: [] }) },
-  { pattern: /\/api\/alpha\/analyze\//,     response: () => ok({ analysis: null }) },
-  { pattern: /\/api\/alpha\/signals\//,     response: () => ok({ signals: [] }) },
-  { pattern: /\/api\/patterns\/analyze\//,  response: () => ok({ patterns: [] }) },
-  { pattern: /\/api\/patterns\/signals\//,  response: () => ok({ signals: [] }) },
-  { pattern: /\/api\/reversals\/detect\//,  response: () => ok({ reversals: [] }) },
-  { pattern: /\/api\/reversals\/points\//,  response: () => ok({ points: [] }) },
-  { pattern: /\/api\/reversals\/strategy\//,response: () => ok({ strategy: null }) },
-  { pattern: /\/api\/reversals\/save-strategy\//, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/validation\/strategy\//, method: 'POST', response: () => ok({ valid: true }) },
-  { pattern: /\/api\/validation\/results\/[^/]+\/[^/?]+$/, response: () => ok({ result: null }) },
-  { pattern: /\/api\/validation\/results\/[^/?]+$/, response: () => ok({ results: [] }) },
-  { pattern: /\/api\/strategies\/generate\//, method: 'POST', response: () => ok({ strategies: [] }) },
-  { pattern: /\/api\/strategies\/candidates\//, response: () => ok({ candidates: [] }) },
-  { pattern: /\/api\/templates\/strategies\/[^/?]+\/create-rule-set/, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/templates\/strategies\/[^/?]+$/, response: () => ok({ template: null }) },
-  { pattern: /\/api\/templates\/strategies/, response: () => ok({ templates: [] }) },
-  { pattern: /\/api\/rules\/sets\//,       response: () => ok({ sets: [] }) },
-  { pattern: /\/api\/rules\/set\/[^/]+$/,  response: () => ok({ rules: [] }) },
-  { pattern: /\/api\/rules\/evaluate\//,   method: 'POST', response: () => ok({ result: null }) },
-  { pattern: /\/api\/rules\/convert\//,    method: 'POST', response: () => ok() },
-
-  // ── Quality / volume profile ──────────────────────────────────────────────
-  { pattern: /\/api\/quality\/scores?\//,       response: () => ok({ score: null }) },
-  { pattern: /\/api\/volume-profile\//,         response: () => ok({ profile: null }) },
-
-  // ── Replay ───────────────────────────────────────────────────────────────────
-  { pattern: /\/api\/replay-legacy\/candles\//, response: () => ok({ candles: [], timeframeStatus: '' }) },
-  { pattern: /\/api\/replay\/start$/,  method: 'POST', response: () => ok() },
-  { pattern: /\/api\/replay\/stop$/,   method: 'POST', response: () => ok() },
-  { pattern: /\/api\/replay\/pause$/,  method: 'POST', response: () => ok() },
-  { pattern: /\/api\/replay\/resume$/, method: 'POST', response: () => ok() },
-
-  // ── Institutional ────────────────────────────────────────────────────────────
-  { pattern: /\/api\/institutional\/analysis/, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/institutional\/scenarios/, method: 'POST', response: () => ok() },
-  { pattern: /\/api\/institutional\/audit/, response: () => ok({ entries: [] }) },
-
-  // ── Ops ───────────────────────────────────────────────────────────────────────
-  { pattern: /\/api\/ops\/status/, response: () => ok({ status: 'healthy', components: [] }) },
-];
-
-// ── Installer ─────────────────────────────────────────────────────────────────
-
-/**
- * Install all route mocks and a catch-all for any unregistered /api/* request.
- * Unregistered routes are fulfilled with a safe 200 but also appended to the
- * returned `unmocked` array so tests can assert coverage.
- */
-export async function setupApiMocks(page: Page): Promise<{ unmocked: string[] }> {
-  const unmocked: string[] = [];
-
-  // Install specific route handlers (first match wins in Playwright).
-  for (const entry of CATALOG) {
-    await page.route(
-      (url) => entry.pattern.test(url.href) && (!entry.method || entry.method === 'GET'),
-      (route: Route) => {
-        const r = entry.response(route.request().url());
-        route.fulfill(r);
-      },
-    );
-    // POST / DELETE variants
-    if (entry.method && entry.method !== 'GET') {
-      await page.route(
-        (url) => entry.pattern.test(url.href),
-        (route: Route) => {
-          if (route.request().method() === entry.method) {
-            const r = entry.response(route.request().url());
-            route.fulfill(r);
-          } else {
-            route.continue();
-          }
-        },
-      );
-    }
-  }
-
-  // Catch-all: any remaining /api/* or non-HTML request that was not matched.
-  await page.route(
-    (url) => url.href.includes('/api/') && !url.href.includes('localhost:4173'),
-    (route: Route) => {
-      const url = route.request().url();
-      const path = url.replace(/^https?:\/\/[^/]+/, '');
-      unmocked.push(`${route.request().method()} ${path}`);
-      // Return a safe empty response so the app does not crash on unmatched routes.
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, status: 'empty' }) });
+function mlSignal(path: string) {
+  const symbol = symbolFromPath(path);
+  return {
+    ok: true,
+    status: 'no_model',
+    symbol,
+    timeframe: '1m',
+    class: 'NEUTRAL',
+    confidence: 0.34,
+    probability: 0.34,
+    probabilities: { LONG: 0.33, NEUTRAL: 0.34, SHORT: 0.33 },
+    provisional: false,
+    modelVersion: null,
+    asOf: iso,
+    diagnostics: {
+      driftStatus: 'not_enough_data',
+      inferenceLatencyMs: 0,
+      featureComputeMs: 0,
+      missingFeatureCount: 0,
+      mode: 'e2e_mock',
     },
-  );
+  };
+}
 
-  return { unmocked };
+const alertDiagnostics = {
+  ok: true,
+  status: 'empty',
+  running: false,
+  evaluationCount: 0,
+  triggerCount: 0,
+  activeAlerts: 0,
+  totalAlerts: 0,
+  symbolsTracked: [],
+  evalIntervalMs: 15000,
+  lastEvaluationAt: null,
+};
+
+function alertsBody(path: string, method: string) {
+  if (method === 'GET' && path === '/api/alerts') return { ok: true, status: 'empty', alerts: [] };
+  if (method === 'GET' && path === '/api/alerts/diagnostics') return alertDiagnostics;
+  if (method === 'GET' && path === '/api/alerts/history') return { ok: true, status: 'empty', history: [] };
+  if (method === 'POST' && path === '/api/alerts') return { ok: true, status: 'created', alert: { id: 'e2e-alert', enabled: true, createdAt: iso } };
+  if (method === 'GET' && /^\/api\/alerts\/[^/]+$/.test(path)) return { ok: true, status: 'not_found', alert: null };
+  if (method === 'PUT' && /^\/api\/alerts\/[^/]+$/.test(path)) return { ok: true, status: 'updated', alert: { id: symbolFromPath(path), updatedAt: iso } };
+  if (method === 'DELETE' && /^\/api\/alerts\/[^/]+$/.test(path)) return { ok: true, status: 'deleted' };
+  if (method === 'POST' && /^\/api\/alerts\/[^/]+\/(enable|disable)$/.test(path)) return { ok: true, status: path.endsWith('/enable') ? 'enabled' : 'disabled' };
+  return null;
+}
+
+function mlBody(path: string, method: string) {
+  if (path === '/api/ml/dependencies') return { ok: true, status: 'available', dependencies: { xgboost: false, sklearn: false }, unavailable: ['xgboost'], mode: 'e2e_mock' };
+  if (path === '/api/ml/model') return { ok: true, champion: null, challengers: [], model: null, status: 'no_model' };
+  if (path === '/api/ml/model-runs' || path === '/api/ml/models') return { ok: true, runs: [], models: [], status: 'empty' };
+  if (path === '/api/ml/predictions') return { ok: true, predictions: [], status: 'empty' };
+  if (path === '/api/ml/feature-importance') return { ok: true, features: [], importance: [], status: 'no_model' };
+  if (path === '/api/ml/drift') return { ok: true, drift: { status: 'not_enough_data', psi: {}, features: [], lastComputedAt: null } };
+  if (path === '/api/ml/model-card') return { ok: true, modelCard: null, champion: null, status: 'no_model' };
+  if (path === '/api/ml/metrics') return { ok: true, metrics: {}, status: 'empty' };
+  if (path === '/api/ml/worker/status') return { ok: true, status: 'available', worker: { available: false, mode: 'e2e_mock' } };
+  if (path === '/api/ml/health') return { ok: true, status: 'available', worker: { available: false, mode: 'e2e_mock' } };
+  if (method === 'GET' && /^\/api\/ml\/signal\/[^/]+$/.test(path)) return mlSignal(path);
+  if (method === 'POST' && path === '/api/ml/train') return { ok: false, status: 'training_unavailable', message: 'E2E mock accepted the request but does not train models.' };
+  if (method === 'POST' && /^\/api\/ml\/infer\/[^/]+$/.test(path)) return { ok: false, status: 'no_champion_model', message: 'No champion model available. Train and promote a model first.' };
+  if (method === 'POST' && /^\/api\/ml\/promote\/[^/]+$/.test(path)) return { ok: false, status: 'model_required', message: 'Select a trained model before promotion.' };
+  return null;
+}
+
+function mockedApiBody(path: string, method: string) {
+  if (BAD_URL_TOKENS.test(path)) return { body: { ok: false, error: { code: 'BAD_E2E_REQUEST', message: 'Invalid generated API path' } }, status: 400, known: true };
+  if (path === '/api/auth/me') return { body: { ok: true, user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } }, known: true };
+  if (method === 'GET' && /^\/api\/chart\/payload\/[^/]+$/.test(path)) return { body: chartPayload(path), known: true };
+  if (method === 'GET' && /^\/api\/chart\/cvd\/[^/]+$/.test(path)) return { body: cvd(path), known: true };
+  if (method === 'GET' && /^\/api\/volume-profile\/[^/]+$/.test(path)) return { body: volumeProfile(path), known: true };
+  if (method === 'GET' && /^\/api\/feeds\/tick\/[^/]+$/.test(path)) return { body: tick(path), known: true };
+  if (method === 'GET' && /^\/api\/feeds\/candle\/[^/]+$/.test(path)) return { body: candle(path), known: true };
+  if (method === 'GET' && /^\/api\/feeds\/orderbook\/[^/]+$/.test(path)) return { body: orderbook(path), known: true };
+  if (method === 'GET' && (path === '/api/feed/status' || path === '/api/feeds/status' || /^\/api\/feeds\/status\/[^/]+$/.test(path))) return { body: { ok: true, status: 'rest_fallback', feeds: [], sources: [], active: false }, known: true };
+  if (method === 'GET' && path === '/api/providers/health') return { body: providersHealth, known: true };
+  if (method === 'GET' && path === '/api/providers/credentials') return { body: credentials, known: true };
+  if (method === 'GET' && path === '/api/providers/active') return { body: { ok: true, activeProviders: [], providerOrder: [], symbols: [] }, known: true };
+  if (method === 'GET' && path === '/api/historical/providers') return { body: { ok: true, providers: [], status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/historical/datasets') return { body: { ok: true, datasets: [historicalDataset], files: [], status: 'ready' }, known: true };
+  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+\/diagnostics$/.test(path)) return { body: { ok: true, datasetId: historicalDataset.datasetId, fileExists: true, fileSizeBytes: 491520, status: 'ready', issues: [] }, known: true };
+  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, dataset: historicalDataset }, known: true };
+  if (method === 'POST' && path === '/api/historical/download') return { body: { ok: true, dataset: historicalDataset, datasetId: historicalDataset.datasetId, rowCount: historicalDataset.rowCount, totalRows: historicalDataset.rowCount, status: 'ready' }, known: true };
+  if (method === 'DELETE' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, status: 'deleted' }, known: true };
+  if (method === 'POST' && /^\/api\/historical\/use-for-(ml|backtest|correlation)$/.test(path)) return { body: { ok: true, dataset: historicalDataset, datasetId: historicalDataset.datasetId, status: 'selected' }, known: true };
+  if (path.startsWith('/api/ml/')) { const body = mlBody(path, method); if (body) return { body, known: true }; }
+  if (path === '/api/alerts' || path.startsWith('/api/alerts/')) { const body = alertsBody(path, method); if (body) return { body, known: true }; }
+  if (method === 'POST' && path === '/api/backtest/run') return { body: { ok: true, status: 'accepted', result: null, rows: [], message: 'E2E mock accepted backtest request without simulating profitability.' }, known: true };
+  if (method === 'GET' && path === '/api/backtest/runs') return { body: { ok: true, runs: [], rows: [], status: 'empty' }, known: true };
+  if (method === 'GET' && (path === '/api/macro/beta' || path === '/api/multi-asset/beta')) return { body: { ok: true, beta: null, r2: null, status: 'not_enough_data' }, known: true };
+  if (method === 'GET' && (path === '/api/macro/correlation' || path === '/api/multi-asset/correlation')) return { body: { ok: true, matrix: [], correlations: [], status: 'not_enough_data' }, known: true };
+  if (method === 'GET' && (path === '/api/macro/sector-rotation' || path === '/api/multi-asset/sector-rotation')) return { body: { ok: true, sectors: [], rotation: [], status: 'not_enough_data' }, known: true };
+  if (method === 'GET' && (path === '/api/macro/volatility-heatmap' || path === '/api/multi-asset/volatility')) return { body: { ok: true, heatmap: [], volatility: [], status: 'not_enough_data' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/summary') return { body: { ok: true, summary: { equity: 0, cash: 0, realizedPnl: 0, unrealizedPnl: 0 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/positions') return { body: { ok: true, positions: [], status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/pnl') return { body: { ok: true, pnl: { realized: 0, unrealized: 0, total: 0 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/exposure') return { body: { ok: true, exposure: { gross: 0, net: 0, bySymbol: [] }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/drawdown') return { body: { ok: true, drawdown: { current: 0, max: 0 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/history') return { body: { ok: true, history: [], status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/portfolio/var') return { body: { ok: true, var: { value: 0, confidence: 0.95 }, status: 'empty' }, known: true };
+  if (method === 'POST' && path === '/api/portfolio/stress-test') return { body: { ok: true, results: [], status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/risk/summary') return { body: { ok: true, risk: { status: 'empty', score: 0 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/risk/limits') return { body: { ok: true, limits: [], status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/risk/var') return { body: { ok: true, var: { value: 0, confidence: 0.95 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/risk/drawdown') return { body: { ok: true, drawdown: { current: 0, max: 0 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/risk/exposure') return { body: { ok: true, exposure: { gross: 0, net: 0 }, status: 'empty' }, known: true };
+  if (method === 'GET' && path === '/api/risk/alerts') return { body: { ok: true, alerts: [], status: 'empty' }, known: true };
+
+  // Additional implemented workspaces crawled by e2e; safe empty states, not success simulation.
+  if (method === 'GET' && /^\/api\/(execution|oms|ops|institutional|rules|strategy-lab|paper|market)\b/.test(path)) return { body: { ok: true, status: 'empty', rows: [], items: [], data: [], orders: [], events: [], stats: {}, audit: [] }, known: true };
+  if (method !== 'GET' && /^\/api\/(execution|oms|ops|institutional|rules|strategy-lab|paper|market|feeds|providers)\b/.test(path)) return { body: { ok: true, status: 'accepted', rows: [], items: [] }, known: true };
+  if (method === 'GET' && /^\/api\/chart\/(candles|indicators|overlays|orderflow|footprint)\/[^/]+$/.test(path)) return { body: { ok: true, status: 'rest_fallback', candles, data: [], rows: [], indicators: {}, overlays: {}, orderflow: {} }, known: true };
+  return { body: { ok: false, error: { code: 'UNMOCKED_E2E_API_ROUTE', message: `No deterministic e2e API mock for ${method} ${path}` } }, status: 501, known: false };
+}
+
+export function isKnownE2eMockedApiRequest(method: string, requestUrl: string) {
+  try {
+    const url = new URL(requestUrl);
+    return mockedApiBody(url.pathname, method.toUpperCase()).known;
+  } catch {
+    return false;
+  }
+}
+
+export function isE2eMockedResponse(headers: Record<string, string | undefined>) {
+  return headers[E2E_MOCK_HEADER] === 'true';
+}
+
+export async function installApiMocks(page: Page) {
+  await page.route('**/auth/**', async (route: Route) => {
+    const url = new URL(route.request().url());
+    const invalid = BAD_URL_TOKENS.test(url.pathname);
+    if (invalid) return route.fulfill(json({ ok: false, error: { code: 'BAD_E2E_AUTH_REQUEST', message: 'Invalid generated auth path' } }, 400));
+    if (url.pathname === '/auth/me' || url.pathname === '/auth/check') return route.fulfill(json({ ok: true, user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } }));
+    if (url.pathname === '/auth/login' || url.pathname === '/auth/register') return route.fulfill(json({ ok: true, token: 'e2e-token', user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } }));
+    return route.fulfill(json({ ok: true }));
+  });
+
+  await page.route('**/api/**', async (route: Route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const mock = mockedApiBody(url.pathname, request.method().toUpperCase());
+    return route.fulfill(json(mock.body, mock.status ?? 200));
+  });
 }

@@ -16,7 +16,9 @@
     "frontend:smoke": "node scripts/frontend-functional-smoke.js",
     "mobile:smoke": "node scripts/mobile-navigation-smoke.js",
     "e2e": "playwright test",
-    "e2e:headed": "playwright test --headed"
+    "e2e:headed": "playwright test --headed",
+    "e2e:install": "playwright install --with-deps chromium",
+    "production:readiness": "node scripts/run-production-readiness.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -36,6 +38,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.1",
     "jsdom": "^29.1.1",
+    "playwright": "^1.56.1",
     "vite": "^5.4.10",
     "vitest": "^4.1.7"
   }

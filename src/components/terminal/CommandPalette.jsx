@@ -4,23 +4,9 @@ import { useWorkspaceStore } from '../../store/workspaceStore.js';
 import { useActiveSymbolStore } from '../../store/activeSymbolStore.js';
 import { useChartStore } from '../../store/chartStore.js';
 import { useTerminalLayoutStore } from '../../store/terminalLayoutStore.js';
+import { getDesktopWorkspaces } from '../../config/workspaces.js';
 
-const WORKSPACES = [
-  { id: 'ChartOrderflow',  label: 'Chart / Orderflow' },
-  { id: 'Risk',            label: 'Dashboard / Risk' },
-  { id: 'Macro',           label: 'Live Markets / Macro' },
-  { id: 'Execution',       label: 'Quant Signals' },
-  { id: 'Portfolio',       label: 'Portfolio' },
-  { id: 'LiveData',        label: 'Live Data' },
-  { id: 'Alerts',          label: 'Alerts' },
-  { id: 'MLEngine',        label: 'ML Engine' },
-  { id: 'AILab',           label: 'AI Lab' },
-  { id: 'QuantLab',        label: 'Quant Lab' },
-  { id: 'StrategyLab',     label: 'Strategy Lab' },
-  { id: 'StrategyBuilder', label: 'Strategy Builder' },
-  { id: 'PaperTrading',    label: 'Paper Trading' },
-  { id: 'Replay',          label: 'Replay' },
-];
+const WORKSPACES = getDesktopWorkspaces();
 
 const TIMEFRAMES = ['1m', '5m', '15m', '1h', '4h', '1d'];
 const QUICK_SYMBOLS = ['SPY', 'QQQ', 'BTC-USD', 'ETH-USD', 'EURUSD=X', 'GLD', 'TLT'];
@@ -63,8 +49,9 @@ export default function CommandPalette() {
       id: `ws:${w.id}`,
       group: 'WORKSPACE',
       label: `Open ${w.label}`,
+      searchText: `Open ${w.label} ${(w.aliases ?? []).join(' ')}`,
       hint: w.id,
-      action: () => { setWorkspace(w.id); close(); },
+      action: () => { if (w.implemented) setWorkspace(w.id); close(); },
     })),
     ...QUICK_SYMBOLS.map((s) => ({
       id: `sym:${s}`,
@@ -111,7 +98,7 @@ export default function CommandPalette() {
   ], [setWorkspace, setSymbol, setTimeframe, refreshChart, resetLayout, setPreset, close]);
 
   const filtered = useMemo(() => {
-    return commands.filter((cmd) => fuzzyMatch(query, cmd.label)).slice(0, 20);
+    return commands.filter((cmd) => fuzzyMatch(query, cmd.searchText ?? cmd.label)).slice(0, 20);
   }, [commands, query]);
 
   // Group filtered results

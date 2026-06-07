@@ -19,7 +19,7 @@ beforeEach(() => {
     fullscreenPanel: null,
     panelSizes: { left: 15, center: 55, right: 20, bottom: 10 },
   });
-  useWorkspaceStore.setState({ workspace: 'Risk' });
+  useWorkspaceStore.setState({ workspace: 'ChartOrderflow' });
 });
 
 // ── Command Palette ────────────────────────────────────────────────────────
@@ -139,8 +139,8 @@ describe('terminalLayoutStore', () => {
 // ── Workspace switching ────────────────────────────────────────────────────
 
 describe('workspace switching', () => {
-  it('workspaceStore starts on Risk', () => {
-    expect(useWorkspaceStore.getState().workspace).toBe('Risk');
+  it('workspaceStore starts on ChartOrderflow', () => {
+    expect(useWorkspaceStore.getState().workspace).toBe('ChartOrderflow');
   });
 
   it('setWorkspace changes workspace', () => {

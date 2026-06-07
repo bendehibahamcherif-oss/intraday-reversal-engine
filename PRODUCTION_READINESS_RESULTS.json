@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-06-07T00:28:12.963Z",
+  "ok": false,
+  "results": [
+    {
+      "name": "static-api-scanner",
+      "command": "node scripts/static-api-scanner.js",
+      "startedAt": "2026-06-07T00:28:11.166Z",
+      "finishedAt": "2026-06-07T00:28:11.353Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "Static API scanner passed (145 files).\n",
+      "stderr": ""
+    },
+    {
+      "name": "detect-menu-duplicates",
+      "command": "node scripts/detect-menu-duplicates.js",
+      "startedAt": "2026-06-07T00:28:11.358Z",
+      "finishedAt": "2026-06-07T00:28:11.518Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "Menu duplicate detector passed (33 workspaces).\n",
+      "stderr": ""
+    },
+    {
+      "name": "frontend-smoke",
+      "command": "npm run frontend:smoke",
+      "startedAt": "2026-06-07T00:28:11.519Z",
+      "finishedAt": "2026-06-07T00:28:12.004Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 frontend:smoke\n> node scripts/frontend-functional-smoke.js\n\n✓ promote uses /api/ml/promote/:modelId\n✓ no dead /api/ai model lifecycle routes remain\n✓ feature-importance uses /api/ml/feature-importance\n✓ compareMLModels does not call a dead endpoint\n✓ backtest run is POST /api/backtest/run\n✓ stripUndefinedDeep removes undefined datasetId\n✓ runBacktest omits datasetId when none selected\n✓ AILab fmtN guards non-finite values\n✓ Replay chart guards empty candle array\n✓ ErrorBoundary supports a scoped fallback prop\n✓ WorkspaceRenderer wraps workspaces in a scoped boundary\n✓ wsClient caps reconnect attempts\n✓ corrupt localStorage does not crash (api.getUser guards JSON.parse)\n\n13/13 checks passed → FRONTEND_FUNCTIONAL_SMOKE_RESULTS.json\n",
+      "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+    },
+    {
+      "name": "playwright-desktop-journey",
+      "command": "npx playwright test tests/e2e/production-user-journey.spec.ts",
+      "startedAt": "2026-06-07T00:28:12.006Z",
+      "finishedAt": "2026-06-07T00:28:12.963Z",
+      "status": 1,
+      "ok": false,
+      "stdout": "",
+      "stderr": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\nnpm error code E403\nnpm error 403 403 Forbidden - GET https://registry.npmjs.org/playwright\nnpm error 403 In most cases, you or one of your dependencies are requesting\nnpm error 403 a package version that is forbidden by your security policy, or\nnpm error 403 on a server you do not have access to.\nnpm error A complete log of this run can be found in: /root/.npm/_logs/2026-06-07T00_28_12_209Z-debug-0.log\n"
+    }
+  ]
+}

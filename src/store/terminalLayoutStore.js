@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 const DEFAULT_STATE = {
   leftVisible: true,
@@ -9,6 +9,12 @@ const DEFAULT_STATE = {
   layoutPreset: 'default',
   panelSizes: { left: 15, center: 55, right: 20, bottom: 10 },
   fullscreenPanel: null,
+};
+
+const safeJsonStorage = {
+  getItem: (name) => { try { return localStorage.getItem(name); } catch { return null; } },
+  setItem: (name, value) => { try { localStorage.setItem(name, value); } catch {} },
+  removeItem: (name) => { try { localStorage.removeItem(name); } catch {} },
 };
 
 const PRESETS = {
@@ -86,6 +92,18 @@ export const useTerminalLayoutStore = create(
     }),
     {
       name: 'reversal-terminal-layout',
+      version: 2,
+      storage: createJSONStorage(() => safeJsonStorage),
+      merge: (persistedState, currentState) => {
+        const next = { ...currentState, ...(persistedState && typeof persistedState === 'object' ? persistedState : {}) };
+        const preset = PRESETS[next.layoutPreset] ? next.layoutPreset : DEFAULT_STATE.layoutPreset;
+        return {
+          ...next,
+          layoutPreset: preset,
+          panelSizes: { ...DEFAULT_STATE.panelSizes, ...(next.panelSizes && typeof next.panelSizes === 'object' ? next.panelSizes : {}) },
+          fullscreenPanel: null,
+        };
+      },
       partialize: (state) => ({
         leftVisible: state.leftVisible,
         rightVisible: state.rightVisible,

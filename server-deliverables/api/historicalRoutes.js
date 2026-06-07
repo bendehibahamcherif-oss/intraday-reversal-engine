@@ -177,6 +177,27 @@ router.post('/download', async (req, res) => {
   }
 });
 
+
+function resolveUseDataset(req, res, purpose) {
+  const datasetId = req.body?.datasetId || req.body?.id;
+  if (!datasetId) {
+    return jsonSafe(res, 400, { ok: false, status: 'dataset_missing', message: 'datasetId is required.', purpose });
+  }
+  const dataset = registry.get(datasetId);
+  if (!dataset) {
+    return jsonSafe(res, 404, { ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId, purpose });
+  }
+  const annotated = annotateDataset(dataset);
+  if (!annotated.fileExists) {
+    return jsonSafe(res, 409, { ok: false, status: 'dataset_file_missing', message: 'Historical dataset file is missing.', datasetId, purpose, dataset: annotated });
+  }
+  return jsonSafe(res, 200, { ok: true, status: 'selected', purpose, datasetId, dataset: annotated });
+}
+
+router.post('/use-for-ml', (req, res) => resolveUseDataset(req, res, 'ml'));
+router.post('/use-for-backtest', (req, res) => resolveUseDataset(req, res, 'backtest'));
+router.post('/use-for-correlation', (req, res) => resolveUseDataset(req, res, 'correlation'));
+
 // ── GET /jobs/:jobId ─────────────────────────────────────────────────────────
 
 router.get('/jobs/:jobId', (req, res) => {

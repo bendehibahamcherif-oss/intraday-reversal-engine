@@ -9,24 +9,8 @@ import TerminalStatusBar from './components/terminal/TerminalStatusBar.jsx';
 import CommandPalette from './components/terminal/CommandPalette.jsx';
 import MobileBottomNav from './components/terminal/MobileBottomNav.jsx';
 
-import RiskWorkspace from './workspaces/RiskWorkspace.jsx';
-import MacroWorkspace from './workspaces/MacroWorkspace.jsx';
-import PortfolioWorkspace from './workspaces/PortfolioWorkspace.jsx';
-import ExecutionWorkspace from './workspaces/ExecutionWorkspace.jsx';
-import ReplayWorkspace from './workspaces/ReplayWorkspace.jsx';
-import QuantLabWorkspace from './workspaces/QuantLabWorkspace.jsx';
-import StrategyLabWorkspace from './workspaces/StrategyLabWorkspace.jsx';
-import StrategyBuilderWorkspace from './workspaces/StrategyBuilderWorkspace.jsx';
-import PaperTradingWorkspace from './workspaces/PaperTradingWorkspace.jsx';
-import LiveDataWorkspace from './workspaces/LiveDataWorkspace.jsx';
-import ChartOrderflowWorkspace from './workspaces/ChartOrderflowWorkspace.jsx';
-import AILabWorkspace from './workspaces/AILabWorkspace.jsx';
-import AlertsWorkspace from './workspaces/AlertsWorkspace.jsx';
-import OMSWorkspace from './workspaces/OMSWorkspace.jsx';
-import InstitutionalWorkspace from './workspaces/InstitutionalWorkspace.jsx';
-import OpsWorkspace from './workspaces/OpsWorkspace.jsx';
-import MLDashboard from './workspaces/MLDashboard.jsx';
-import HistoricalDataWorkspace from './workspaces/HistoricalDataWorkspace.jsx';
+import { DEFAULT_WORKSPACE_ID, getWorkspace, normalizeWorkspaceId } from './config/workspaces.js';
+import { getWorkspaceComponent } from './config/workspaceComponents.jsx';
 
 import { useWorkspaceStore } from './store/workspaceStore';
 import { useMarketStore } from './store/marketStore';
@@ -94,32 +78,15 @@ function WorkspaceRenderer({ workspace, marketData }) {
 }
 
 function WorkspaceSwitch({ workspace, marketData }) {
-  switch (workspace) {
-    case 'Macro':           return <MacroWorkspace marketData={marketData} />;
-    case 'Portfolio':       return <PortfolioWorkspace />;
-    case 'Execution':       return <ExecutionWorkspace />;
-    case 'Replay':          return <ReplayWorkspace />;
-    case 'QuantLab':        return <QuantLabWorkspace />;
-    case 'StrategyLab':     return <StrategyLabWorkspace />;
-    case 'StrategyBuilder': return <StrategyBuilderWorkspace />;
-    case 'PaperTrading':
-      return (
-        <ErrorBoundary>
-          <PaperTradingWorkspace />
-        </ErrorBoundary>
-      );
-    case 'LiveData':        return <LiveDataWorkspace />;
-    case 'ChartOrderflow':  return <ChartOrderflowWorkspace />;
-    case 'AILab':           return <AILabWorkspace />;
-    case 'Alerts':          return <AlertsWorkspace />;
-    case 'OMS':             return <OMSWorkspace />;
-    case 'Institutional':   return <InstitutionalWorkspace />;
-    case 'Ops':             return <OpsWorkspace />;
-    case 'MLEngine':        return <MLDashboard />;
-    case 'HistoricalData':  return <HistoricalDataWorkspace />;
-    case 'Risk':
-    default:                return <RiskWorkspace marketData={marketData} />;
+  const workspaceConfig = getWorkspace(workspace);
+  const WorkspaceComponent = getWorkspaceComponent(workspaceConfig);
+
+  if (!WorkspaceComponent) {
+    const DefaultComponent = getWorkspaceComponent(getWorkspace(DEFAULT_WORKSPACE_ID));
+    return <DefaultComponent marketData={marketData} />;
   }
+
+  return <WorkspaceComponent marketData={marketData} />;
 }
 
 export default function App() {
@@ -156,6 +123,13 @@ export default function App() {
     useMarketStore.getState().initialize();
     useSocketStore.getState().initialize();
   }, []);
+
+  // Validate hydrated/persisted workspace ids so stale or corrupt values cannot
+  // leave either desktop or mobile navigation pointing at a blank workspace.
+  useEffect(() => {
+    const validWorkspace = normalizeWorkspaceId(workspace);
+    if (validWorkspace !== workspace) setWorkspace(validWorkspace);
+  }, [workspace, setWorkspace]);
 
   // Start runtime polling after auth
   useEffect(() => {
@@ -266,15 +240,18 @@ export default function App() {
       <ErrorBoundary>
         <AlertToast />
         <CommandPalette />
-        <div data-testid="app-shell" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100dvh',
-          background: 'var(--t-bg-0)',
-          overflow: 'hidden',
-          color: 'var(--t-text)',
-          fontFamily: 'var(--t-font-ui)',
-        }}>
+        <div
+          data-testid="terminal-shell"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100dvh',
+            background: 'var(--t-bg-0)',
+            overflow: 'hidden',
+            color: 'var(--t-text)',
+            fontFamily: 'var(--t-font-ui)',
+          }}
+        >
           <TerminalTopBar user={user} onLogout={() => setUser(null)} />
           <div style={{ flex: 1, overflow: 'auto', paddingBottom: 56 }}>
             <WorkspaceRenderer workspace={workspace} marketData={marketData} />
@@ -290,15 +267,18 @@ export default function App() {
     <ErrorBoundary>
       <AlertToast />
       <CommandPalette />
-      <div data-testid="app-shell" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        background: 'var(--t-bg-0)',
-        overflow: 'hidden',
-        color: 'var(--t-text)',
-        fontFamily: 'var(--t-font-ui)',
-      }}>
+      <div
+        data-testid="terminal-shell"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          background: 'var(--t-bg-0)',
+          overflow: 'hidden',
+          color: 'var(--t-text)',
+          fontFamily: 'var(--t-font-ui)',
+        }}
+      >
         <TerminalTopBar user={user} onLogout={() => setUser(null)} />
 
         <div style={{

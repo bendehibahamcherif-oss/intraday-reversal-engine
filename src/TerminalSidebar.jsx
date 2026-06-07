@@ -1,36 +1,21 @@
 import { useEffect } from 'react';
+import { getDesktopWorkspaces, getWorkspace } from './config/workspaces.js';
 import { useWorkspaceStore } from './store/workspaceStore.js';
-import { useWatchlistStore } from './store/watchlistStore.js';
 import { useMLSignalStore } from './store/mlSignalStore.js';
-import { WORKSPACES } from './config/workspaces.js';
-
-const SHORTCUTS = {
-  ChartOrderflow: 'Alt+1',
-  Execution:      'Alt+2',
-  Alerts:         'Alt+3',
-  MLEngine:       'Alt+4',
-  Portfolio:      'Alt+5',
-  Risk:           'Alt+6',
-};
-
-const NAV_ITEMS = WORKSPACES.map((w) => ({
-  id:      w.id,
-  abbr:    w.abbr,
-  title:   w.label,
-  shortcut: SHORTCUTS[w.id] || '',
-}));
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {
   const workspace    = useWorkspaceStore((s) => s.workspace);
   const setWorkspace = useWorkspaceStore((s) => s.setWorkspace);
   const mlStore      = useMLSignalStore();
+  const navItems     = getDesktopWorkspaces();
+  const settingsItem  = getWorkspace('Settings');
 
   // Load ML signals for all watchlist symbols
   useEffect(() => {
     for (const sym of watchlist) mlStore.loadSignal(sym);
   }, [watchlist.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function navButtonStyle(active) {
+  function navButtonStyle(active, disabled = false) {
     return {
       width: 40,
       height: 40,
@@ -40,18 +25,20 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
       justifyContent: 'center',
       borderRadius: 3,
       background: active ? 'var(--t-accent)' : 'transparent',
-      color: active ? 'white' : 'var(--t-text-3)',
+      color: disabled ? 'var(--t-text-4)' : active ? 'white' : 'var(--t-text-3)',
       border: active ? '1px solid var(--t-accent-hover)' : '1px solid transparent',
       fontSize: 10,
       fontWeight: 700,
       fontFamily: 'monospace',
-      cursor: 'pointer',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.55 : 1,
       position: 'relative',
     };
   }
 
   return (
     <aside
+      data-testid="desktop-workspace-nav"
       style={{
         width: 48,
         background: 'var(--t-bg-2)',
@@ -92,28 +79,32 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
           flexDirection: 'column',
         }}
       >
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = workspace === item.id;
-          const tooltip = item.shortcut ? `${item.title} (${item.shortcut})` : item.title;
+          const tooltip = item.implemented ? item.label : `${item.label} (coming soon)`;
+          const ariaLabel = item.implemented ? item.ariaLabel : `${item.ariaLabel} (coming soon)`;
           return (
             <button
               key={item.id}
-              onClick={() => setWorkspace(item.id)}
-              style={navButtonStyle(active)}
+              onClick={() => item.implemented && setWorkspace(item.id)}
+              disabled={!item.implemented}
+              style={navButtonStyle(active, !item.implemented)}
+              data-testid={item.navTestId}
               data-tooltip={tooltip}
               title={tooltip}
+              aria-label={ariaLabel}
               onMouseEnter={(e) => {
-                if (!active) {
+                if (!active && item.implemented) {
                   e.currentTarget.style.background = 'var(--t-bg-hover)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (!active) {
+                if (!active && item.implemented) {
                   e.currentTarget.style.background = 'transparent';
                 }
               }}
             >
-              {item.abbr}
+              {item.shortLabel}
             </button>
           );
         })}
@@ -123,22 +114,24 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
       <div style={{ flexShrink: 0 }}>
         <div style={{ borderTop: '1px solid var(--t-border)', margin: '4px 0' }} />
         <button
-          onClick={() => setWorkspace('Admin')}
-          style={navButtonStyle(workspace === 'Admin')}
-          data-tooltip="Admin"
-          title="Admin"
+          onClick={() => setWorkspace(settingsItem.id)}
+          style={navButtonStyle(workspace === settingsItem.id)}
+          data-testid={settingsItem.navTestId}
+          data-tooltip={settingsItem.label}
+          title={settingsItem.label}
+          aria-label={settingsItem.ariaLabel}
           onMouseEnter={(e) => {
-            if (workspace !== 'Admin') {
+            if (workspace !== settingsItem.id) {
               e.currentTarget.style.background = 'var(--t-bg-hover)';
             }
           }}
           onMouseLeave={(e) => {
-            if (workspace !== 'Admin') {
+            if (workspace !== settingsItem.id) {
               e.currentTarget.style.background = 'transparent';
             }
           }}
         >
-          AD
+          {settingsItem.shortLabel}
         </button>
       </div>
     </aside>

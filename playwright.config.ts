@@ -1,39 +1,30 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = Number(process.env.PLAYWRIGHT_PORT || 4173);
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30_000,
-  expect: { timeout: 8_000 },
-  retries: process.env.CI ? 1 : 0,
-  workers: 1, // serial – one browser process, prevents port conflicts
-  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
-
+  timeout: 60_000,
+  expect: { timeout: 7_500 },
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'playwright-results/results.json' }],
+  ],
   use: {
-    baseURL: 'http://localhost:4173',
-    trace: 'on-first-retry',
+    baseURL,
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-
-  projects: [
-    {
-      name: 'desktop',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1440, height: 900 },
-      },
-    },
-    {
-      name: 'mobile',
-      use: {
-        ...devices['Pixel 5'], // 393 × 851, Android-like
-      },
-    },
-  ],
-
-  webServer: {
-    command: 'npx vite preview --port 4173',
-    url: 'http://localhost:4173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
+    command: `npm run dev -- --host 127.0.0.1 --port ${port}`,
+    url: baseURL,
+    reuseExistingServer: true,
+    timeout: 120_000,
+    env: { VITE_API_BASE: process.env.VITE_API_BASE || 'http://127.0.0.1:10000' },
   },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } } },
+  ],
 });

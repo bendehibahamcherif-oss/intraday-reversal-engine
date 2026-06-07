@@ -78,7 +78,7 @@ function CandlestickChart({ candles = [] }) {
 export default function ChartOrderflowWorkspace() {
   const {
     symbol, timeframe, limit, candles, indicators, overlays, orderflow, source, warnings, loading, error, lastUpdated,
-    setSymbol, setTimeframe, setLimit, refreshChart, clearError,
+    setSymbol, setTimeframe, setLimit, refreshChart, clearError, abortChartRequest,
   } = useChartStore();
 
   // Local draft for the symbol input — avoids firing setSymbol (and a fetch) on every keystroke.
@@ -99,18 +99,21 @@ export default function ChartOrderflowWorkspace() {
 
   // Auto-fetch chart when symbol, timeframe, or limit finalizes.
   useEffect(() => {
-    if (!symbol) return;
+    if (!symbol) return undefined;
     refreshChart();
+    return () => abortChartRequest();
   }, [symbol, timeframe, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial volume profile load on mount.
   useEffect(() => {
     useVolumeProfileStore.getState().loadVolumeProfile();
+    return () => useVolumeProfileStore.getState().abortVolumeProfileRequest();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load CVD whenever symbol changes; also on mount.
   useEffect(() => {
     useCVDStore.getState().loadCVD();
+    return () => useCVDStore.getState().abortCVDRequest();
   }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync footprint timeframe with chart timeframe; reload if footprint panel is open.

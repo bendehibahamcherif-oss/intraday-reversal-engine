@@ -1,72 +1,34 @@
-/**
- * Mobile workspace crawler.
- *
- * Visits every workspace through the mobile bottom nav (primary tabs + More
- * drawer), confirms the workspace loads without console errors or dead routes.
- */
 import { test, expect } from '@playwright/test';
-import { setupHarness } from './helpers/appHarness.js';
-import {
-  MOBILE_PRIMARY_TAB_IDS,
-  MOBILE_MORE_WORKSPACES,
-} from '../../src/config/workspaces.js';
+import fs from 'node:fs';
+import { attachNetworkGuards } from './helpers/networkGuards';
+import { bootApp, openMobileWorkspace, scanVisibleInvalidValues } from './helpers/appHarness';
+import { duplicateLabels, mobileWorkspaces } from './helpers/workspaceData';
 
-test.use({ viewport: { width: 393, height: 851 } });
+test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-test.describe('Mobile workspace crawler', () => {
-  // Primary tabs
-  for (const id of MOBILE_PRIMARY_TAB_IDS) {
-    test(`primary tab ${id} navigates correctly`, async ({ page }) => {
-      const harness = await setupHarness(page);
-      await harness.goto(id);
-      await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      harness.assertClean(`mobile primary tab ${id}`);
-    });
+test('mobile crawler reaches every implemented mobile workspace without stale components', async ({ page }) => {
+  const guard = attachNetworkGuards(page);
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await bootApp(page, { viewport: { width: 390, height: 844 } });
+  await page.getByTestId('mobile-more-workspaces').click();
+  const moreLabels = await page.getByRole('dialog', { name: /more workspaces/i }).locator('button[aria-label]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') || '').filter(Boolean));
+  const primaryLabels = await page.locator('nav[aria-label="Mobile workspace navigation"] button[title]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('title') || '').filter((label) => label && label !== 'More'));
+  await page.getByRole('button', { name: /close more workspaces/i }).click();
+  const duplicateMenuLabels = duplicateLabels([...primaryLabels, ...moreLabels]);
+  const workspaces: any[] = [];
+  for (const workspace of mobileWorkspaces) {
+    await openMobileWorkspace(page, workspace);
+    const sanity = await scanVisibleInvalidValues(page);
+    const bodyBox = await page.locator('body').boundingBox();
+    workspaces.push({ id: workspace.id, label: workspace.label, invalidText: sanity.invalidText, invalidSvgAttrs: sanity.invalidSvgAttrs, bodyBox });
+    expect(sanity.invalidText, `${workspace.label} rendered invalid mobile text`).toEqual([]);
+    expect(sanity.invalidSvgAttrs, `${workspace.label} rendered invalid mobile SVG attributes`).toEqual([]);
+    expect(bodyBox?.width || 0).toBeGreaterThan(300);
   }
-
-  // More drawer workspaces
-  for (const ws of MOBILE_MORE_WORKSPACES) {
-    test(`more drawer workspace ${ws.id} renders without errors`, async ({ page }) => {
-      const harness = await setupHarness(page);
-      await harness.goto(ws.id);
-      await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-      await page.waitForLoadState('networkidle');
-      harness.assertClean(`mobile more=${ws.id}`);
-    });
-  }
-
-  test('More button opens drawer listing all secondary workspaces', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto(MOBILE_PRIMARY_TAB_IDS[0]);
-    await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-
-    // Open the More drawer.
-    await page.locator('[data-testid="mobile-tab-more"]').click();
-    await expect(page.locator('[data-testid="more-drawer"]')).toBeVisible();
-
-    // Every non-primary workspace must be in the drawer.
-    for (const ws of MOBILE_MORE_WORKSPACES) {
-      await expect(page.locator(`[data-testid="more-item-${ws.id}"]`)).toBeVisible();
-    }
-
-    harness.assertClean('more-drawer open');
-  });
-
-  test('Selecting a workspace from the drawer navigates to it', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto(MOBILE_PRIMARY_TAB_IDS[0]);
-    await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-
-    // Open drawer and pick first More workspace.
-    await page.locator('[data-testid="mobile-tab-more"]').click();
-    const firstMore = MOBILE_MORE_WORKSPACES[0];
-    await page.locator(`[data-testid="more-item-${firstMore.id}"]`).click();
-
-    // Drawer closes and workspace renders.
-    await expect(page.locator('[data-testid="more-drawer"]')).not.toBeVisible();
-    await page.waitForLoadState('networkidle');
-
-    harness.assertClean(`drawer select ${firstMore.id}`);
-  });
+  const results = { generatedAt: new Date().toISOString(), labels: [...primaryLabels, ...moreLabels], duplicateMenuLabels, errors, apiRequests: guard.apiRequests, workspaces };
+  fs.writeFileSync('MOBILE_APP_CRAWLER_RESULTS.json', JSON.stringify(results, null, 2));
+  expect(duplicateMenuLabels).toEqual([]);
+  expect(errors).toEqual([]);
+  guard.assertClean();
 });

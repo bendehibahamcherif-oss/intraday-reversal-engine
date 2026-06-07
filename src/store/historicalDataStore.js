@@ -1,10 +1,29 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { api } from '../api.js';
 import { assertDatasetId, getDatasetId, normalizeDataset } from '../utils/datasets.js';
 
 const errMsg = (e) => (e instanceof Error ? e.message : String(e));
 
-export const useHistoricalDataStore = create((set, get) => ({
+const RAW_API_ERROR_PATTERN = /(?:^\s*[\[{]|\b(?:500|501|404|undefined|nan|infinity)\b|internal server error|request failed with status|\[object object\]|typeerror|referenceerror|cannot read properties|\bat\s+\w+\s*\([^)]*\.jsx?:\d+:\d+\))/i;
+
+export function safeHistoricalError(e, fallback = 'Historical data is unavailable.') {
+  const message = errMsg(e);
+  if (!message || RAW_API_ERROR_PATTERN.test(message)) return fallback;
+  return message;
+}
+
+const safeHistoricalStorage = {
+  getItem: (name) => { try { return localStorage.getItem(name); } catch { return null; } },
+  setItem: (name, value) => { try { localStorage.setItem(name, value); } catch {} },
+  removeItem: (name) => { try { localStorage.removeItem(name); } catch {} },
+};
+
+const normalizePersistedDataset = (dataset) => dataset ? normalizeDataset(dataset) : null;
+
+export const useHistoricalDataStore = create(
+  persist(
+    (set, get) => ({
   // Providers
   providers: [],
   providersLoading: false,
@@ -43,7 +62,7 @@ export const useHistoricalDataStore = create((set, get) => ({
       const data = await api.getHistoricalProviders();
       set({ providers: data.providers || [], providersLoading: false });
     } catch (e) {
-      set({ providersLoading: false, providersError: errMsg(e) });
+      set({ providersLoading: false, providersError: safeHistoricalError(e, 'Historical data is unavailable.') });
     }
   },
 
@@ -53,7 +72,7 @@ export const useHistoricalDataStore = create((set, get) => ({
       const data = await api.getHistoricalDatasets();
       set({ datasets: (data.datasets || []).map(normalizeDataset), datasetsLoading: false });
     } catch (e) {
-      set({ datasetsLoading: false, datasetsError: errMsg(e) });
+      set({ datasetsLoading: false, datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') });
     }
   },
 
@@ -66,7 +85,7 @@ export const useHistoricalDataStore = create((set, get) => ({
       get().fetchDatasets();
       return data;
     } catch (e) {
-      set({ downloadLoading: false, downloadError: errMsg(e) });
+      set({ downloadLoading: false, downloadError: safeHistoricalError(e, 'Historical data is unavailable.') });
       throw e;
     }
   },
@@ -80,7 +99,7 @@ export const useHistoricalDataStore = create((set, get) => ({
         selectedDataset:   s.selectedDatasetId === datasetId ? null : s.selectedDataset,
       }));
     } catch (e) {
-      set({ datasetsError: errMsg(e) });
+      set({ datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') });
     }
   },
 
@@ -99,7 +118,7 @@ export const useHistoricalDataStore = create((set, get) => ({
         datasets: state.datasets.map((d) => getDatasetId(d) === getDatasetId(full) ? full : d),
       }));
     } catch (e) {
-      set({ datasetsError: errMsg(e) });
+      set({ datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') });
     }
   },
 
@@ -112,7 +131,7 @@ export const useHistoricalDataStore = create((set, get) => ({
       const data = await api.getHistoricalDatasetDiagnostics(datasetId);
       set({ diagnostics: data, diagnosticsLoading: false });
     } catch (e) {
-      set({ diagnosticsLoading: false, diagnosticsError: errMsg(e) });
+      set({ diagnosticsLoading: false, diagnosticsError: safeHistoricalError(e, 'Historical data is unavailable.') });
     }
   },
 
@@ -121,7 +140,12 @@ export const useHistoricalDataStore = create((set, get) => ({
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedMlDatasetId: asserted.datasetId, selectedMlDataset: normalized, datasetsError: '' });
-    return { ok: true, datasetId: asserted.datasetId, message: `Dataset "${asserted.datasetId}" sent to ML Engine` };
+    api.useHistoricalDatasetForMl?.(asserted.datasetId)
+      ?.then((response) => {
+        if (response?.dataset) set({ selectedMlDataset: normalizeDataset(response.dataset), datasetsError: '' });
+      })
+      .catch((e) => set({ datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') }));
+    return { ok: true, datasetId: asserted.datasetId, dataset: normalized, message: `Dataset "${asserted.datasetId}" sent to ML Engine` };
   },
 
   useDatasetForBacktest: (dataset) => {
@@ -129,7 +153,12 @@ export const useHistoricalDataStore = create((set, get) => ({
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedBacktestDatasetId: asserted.datasetId, selectedBacktestDataset: normalized, datasetsError: '' });
-    return { ok: true, datasetId: asserted.datasetId, message: `Dataset "${asserted.datasetId}" sent to Backtesting` };
+    api.useHistoricalDatasetForBacktest?.(asserted.datasetId)
+      ?.then((response) => {
+        if (response?.dataset) set({ selectedBacktestDataset: normalizeDataset(response.dataset), datasetsError: '' });
+      })
+      .catch((e) => set({ datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') }));
+    return { ok: true, datasetId: asserted.datasetId, dataset: normalized, message: `Dataset "${asserted.datasetId}" sent to Backtesting` };
   },
 
   useDatasetForCorrelation: (dataset) => {
@@ -137,8 +166,41 @@ export const useHistoricalDataStore = create((set, get) => ({
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedCorrelationDatasetId: asserted.datasetId, selectedCorrelationDataset: normalized, datasetsError: '' });
-    return { ok: true, datasetId: asserted.datasetId, message: `Dataset "${asserted.datasetId}" sent to Correlation` };
+    api.useHistoricalDatasetForCorrelation?.(asserted.datasetId)
+      ?.then((response) => {
+        if (response?.dataset) set({ selectedCorrelationDataset: normalizeDataset(response.dataset), datasetsError: '' });
+      })
+      .catch((e) => set({ datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') }));
+    return { ok: true, datasetId: asserted.datasetId, dataset: normalized, message: `Dataset "${asserted.datasetId}" sent to Correlation` };
   },
 
   clearDownloadResult: () => set({ downloadResult: null, downloadError: '' }),
-}));
+}),
+    {
+      name: 'reversal-historical-selection-v2',
+      version: 2,
+      storage: createJSONStorage(() => safeHistoricalStorage),
+      partialize: (state) => ({
+        selectedDatasetId: state.selectedDatasetId || null,
+        selectedDataset: normalizePersistedDataset(state.selectedDataset),
+        selectedMlDatasetId: state.selectedMlDatasetId || null,
+        selectedMlDataset: normalizePersistedDataset(state.selectedMlDataset),
+        selectedBacktestDatasetId: state.selectedBacktestDatasetId || null,
+        selectedBacktestDataset: normalizePersistedDataset(state.selectedBacktestDataset),
+        selectedCorrelationDatasetId: state.selectedCorrelationDatasetId || null,
+        selectedCorrelationDataset: normalizePersistedDataset(state.selectedCorrelationDataset),
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        selectedDatasetId: persistedState?.selectedDatasetId || null,
+        selectedDataset: normalizePersistedDataset(persistedState?.selectedDataset),
+        selectedMlDatasetId: persistedState?.selectedMlDatasetId || null,
+        selectedMlDataset: normalizePersistedDataset(persistedState?.selectedMlDataset),
+        selectedBacktestDatasetId: persistedState?.selectedBacktestDatasetId || null,
+        selectedBacktestDataset: normalizePersistedDataset(persistedState?.selectedBacktestDataset),
+        selectedCorrelationDatasetId: persistedState?.selectedCorrelationDatasetId || null,
+        selectedCorrelationDataset: normalizePersistedDataset(persistedState?.selectedCorrelationDataset),
+      }),
+    }
+  )
+);

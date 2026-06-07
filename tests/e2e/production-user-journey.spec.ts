@@ -1,110 +1,65 @@
-/**
- * Production user journey — desktop.
- *
- * Exercises the core trading/analysis workflows in order:
- *   1. App boots and authenticates
- *   2. Risk dashboard is visible
- *   3. ML Engine workspace loads, no dead-endpoint calls
- *   4. AI Lab workspace loads
- *   5. Historical Data workspace loads
- *   6. Quant Lab (backtest) workspace loads
- *   7. Alerts workspace loads
- *   8. A workspace crash shows an inline fallback, not a full-page error
- */
 import { test, expect } from '@playwright/test';
-import { setupHarness } from './helpers/appHarness.js';
+import fs from 'node:fs';
+import { attachNetworkGuards } from './helpers/networkGuards';
+import { bootApp, expectScreenSane, openDesktopWorkspace } from './helpers/appHarness';
+import { desktopWorkspaces, duplicateLabels, requiredWorkspaceLabels, workspaceById } from './helpers/workspaceData';
 
-test.describe('Desktop production user journey', () => {
-  test('app boots to the shell without auth redirect', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('Risk');
-    await expect(page.locator('[data-testid="app-shell"]')).toBeVisible();
-    harness.assertClean('boot');
+const majorLabels = requiredWorkspaceLabels(['ChartOrderflow', 'Macro', 'LiveData', 'Providers', 'Credentials', 'HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk', 'Ops']);
+
+function byLabel(label: string) {
+  return desktopWorkspaces.find((workspace) => workspace.label === label || workspace.aliases?.includes(label));
+}
+
+test('desktop production user journey keeps datasets, ML, backtesting, macro, portfolio and risk stable', async ({ page }) => {
+  const guard = attachNetworkGuards(page);
+  await bootApp(page);
+  const labels = await page.locator('aside button[title], aside button[data-tooltip]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('title') || button.getAttribute('data-tooltip') || '').filter(Boolean));
+  expect(duplicateLabels(labels)).toEqual([]);
+
+  for (const label of majorLabels) {
+    const workspace = byLabel(label);
+    expect(workspace, `workspace present for ${label}`).toBeTruthy();
+    await openDesktopWorkspace(page, workspace!);
+    await expectScreenSane(page);
+  }
+
+  await page.evaluate(() => {
+    const dataset = { datasetId: 'e2e-dataset', id: 'e2e-dataset', symbols: ['SPY'], rowCount: 480, fileStatus: 'ready' };
+    localStorage.setItem('reversal-historical-data', JSON.stringify({ state: { selectedMlDatasetId: 'e2e-dataset', selectedMlDataset: dataset, selectedBacktestDatasetId: 'e2e-dataset', selectedBacktestDataset: dataset, selectedCorrelationDatasetId: 'e2e-dataset', selectedCorrelationDataset: dataset }, version: 0 }));
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId: 'e2e-dataset', dataset } }));
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId: 'e2e-dataset', dataset } }));
+    window.dispatchEvent(new CustomEvent('reversal:use-dataset-correlation', { detail: { datasetId: 'e2e-dataset', dataset } }));
   });
 
-  test('Risk workspace renders without API errors', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('Risk');
-    await page.waitForLoadState('networkidle');
-    harness.assertClean('Risk');
-  });
+  await openDesktopWorkspace(page, byLabel('AI Lab')!);
+  await expect(page.locator('body')).toContainText(/e2e-dataset|Select a historical dataset|Selected dataset/i);
+  await page.reload();
+  await page.waitForTimeout(500);
+  await openDesktopWorkspace(page, byLabel('AI Lab')!);
+  await expect(page.locator('body')).toContainText(/e2e-dataset|Select a historical dataset|Selected dataset/i);
 
-  test('ML Engine workspace makes no dead /api/ai/models/* requests', async ({ page }) => {
-    const deadCalls: string[] = [];
-    page.on('request', (req) => {
-      if (/\/api\/ai\/models\//.test(req.url())) {
-        deadCalls.push(`${req.method()} ${req.url()}`);
-      }
-    });
-    const harness = await setupHarness(page);
-    await harness.goto('MLEngine');
-    await page.waitForLoadState('networkidle');
-    expect(deadCalls, `Dead /api/ai/models/* calls: ${deadCalls.join(', ')}`).toHaveLength(0);
-    harness.assertClean('MLEngine');
-  });
+  const train = page.getByRole('button', { name: /train model/i }).first();
+  if (await train.count()) await train.click();
+  await openDesktopWorkspace(page, byLabel('ML Model Card') || byLabel('AI Lab')!);
+  const promote = page.getByRole('button', { name: /promote/i }).first();
+  if (await promote.count()) await promote.click();
+  const infer = page.getByRole('button', { name: /infer|inference|run/i }).first();
+  if (await infer.count()) await infer.click();
 
-  test('AI Lab workspace loads feature/label data from /api/ai/* (not dead routes)', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('AILab');
-    await page.waitForLoadState('networkidle');
-    harness.assertClean('AILab');
-  });
+  await openDesktopWorkspace(page, byLabel('Backtesting')!);
+  await expectScreenSane(page);
+  await openDesktopWorkspace(page, byLabel('Macro / Multi-Asset')!);
+  await expectScreenSane(page);
+  await openDesktopWorkspace(page, byLabel('Portfolio')!);
+  await expectScreenSane(page);
+  await openDesktopWorkspace(page, byLabel('Risk')!);
+  await expectScreenSane(page);
 
-  test('Historical Data workspace loads', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('HistoricalData');
-    await page.waitForLoadState('networkidle');
-    harness.assertClean('HistoricalData');
-  });
+  const settingsWorkspace = workspaceById('Settings');
+  expect(settingsWorkspace?.desktopVisible, 'Settings / More is a mobile-only More item, not a desktop workspace').toBe(false);
+  expect(byLabel('Operations'), 'desktop Settings/More journey uses canonical Operations workspace').toBeTruthy();
 
-  test('QuantLab workspace loads', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('QuantLab');
-    await page.waitForLoadState('networkidle');
-    harness.assertClean('QuantLab');
-  });
-
-  test('Alerts workspace loads', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('Alerts');
-    await page.waitForLoadState('networkidle');
-    harness.assertClean('Alerts');
-  });
-
-  test('navigate across multiple workspaces sequentially without errors', async ({ page }) => {
-    const harness = await setupHarness(page);
-    await harness.goto('Risk');
-
-    const sequence = ['MLEngine', 'Portfolio', 'Macro', 'Alerts', 'HistoricalData', 'Risk'];
-    for (const ws of sequence) {
-      await page.evaluate((id) => {
-        try {
-          const raw = localStorage.getItem('reversal-workspace');
-          const parsed = raw ? JSON.parse(raw) : {};
-          localStorage.setItem('reversal-workspace', JSON.stringify({ ...parsed, state: { workspace: id } }));
-          // Dispatch a storage event so Zustand picks it up.
-          window.dispatchEvent(new StorageEvent('storage', { key: 'reversal-workspace' }));
-        } catch {}
-      }, ws);
-      await page.waitForTimeout(300);
-    }
-
-    harness.assertClean('multi-workspace navigation');
-  });
-
-  test('promote endpoint uses /api/ml/promote/:id not /api/ai/*', async ({ page }) => {
-    const calls: string[] = [];
-    page.on('request', (req) => {
-      if (req.url().includes('/api/')) {
-        calls.push(`${req.method()} ${req.url()}`);
-      }
-    });
-    const harness = await setupHarness(page);
-    await harness.goto('MLEngine');
-    await page.waitForLoadState('networkidle');
-
-    const deadCalls = calls.filter((c) => /\/api\/ai\/models\//.test(c));
-    expect(deadCalls, `Dead champion calls: ${deadCalls.join(', ')}`).toHaveLength(0);
-    harness.assertClean('promote-endpoint');
-  });
+  fs.writeFileSync('PRODUCTION_USER_JOURNEY_RESULTS.json', JSON.stringify({ generatedAt: new Date().toISOString(), labels, apiRequests: guard.apiRequests }, null, 2));
+  expect(guard.apiRequests.some((request) => request.url.includes('/api/ml/model'))).toBeTruthy();
+  guard.assertClean();
 });

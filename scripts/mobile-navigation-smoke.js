@@ -2,9 +2,9 @@
 /**
  * Mobile navigation smoke test — static source checks.
  *
- * Verifies that every workspace in the canonical registry is reachable
- * on mobile through either a primary tab or the More drawer, and that
- * the TerminalSidebar includes all workspaces.
+ * Verifies that every workspace in the canonical registry is reachable on mobile
+ * through either a primary tab or the More drawer, and that the TerminalSidebar
+ * includes all desktop workspaces.
  *
  * Usage: node scripts/mobile-navigation-smoke.js
  * Writes: MOBILE_NAVIGATION_SMOKE_RESULTS.json
@@ -35,69 +35,69 @@ function check(label, ok, detail = '') {
 
 const registrySrc = read('src/config/workspaces.js');
 
-// Extract workspace IDs from the registry file.
-const idMatches = [...registrySrc.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1]);
-check('Registry exports workspace ids', idMatches.length >= 18, `found ${idMatches.length}`);
+check('Registry has DEFAULT_WORKSPACE_ID', registrySrc.includes('DEFAULT_WORKSPACE_ID'));
+check('Registry exports normalizeWorkspaceId', registrySrc.includes('normalizeWorkspaceId'));
+check('Registry exports isValidWorkspaceId', registrySrc.includes('isValidWorkspaceId'));
+check('Registry exports getMobilePrimaryWorkspaces', registrySrc.includes('getMobilePrimaryWorkspaces'));
+check('Registry exports getMobileMoreWorkspaces', registrySrc.includes('getMobileMoreWorkspaces'));
+check('Registry exports getDesktopWorkspaces', registrySrc.includes('getDesktopWorkspaces'));
+check('Registry exports getWorkspace', registrySrc.includes('getWorkspace'));
+check('Registry has mobilePrimary flag', registrySrc.includes('mobilePrimary'));
+check('Registry has mobileVisible flag', registrySrc.includes('mobileVisible'));
+check('Registry has desktopVisible flag', registrySrc.includes('desktopVisible'));
 
-// Extract MOBILE_PRIMARY_TAB_IDS.
-const primaryMatch = registrySrc.match(/MOBILE_PRIMARY_TAB_IDS\s*=\s*\[([^\]]+)\]/);
-const primaryIds   = primaryMatch
-  ? [...primaryMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
-  : [];
-check('Registry exports MOBILE_PRIMARY_TAB_IDS with 4 entries', primaryIds.length === 4, `found ${primaryIds.length}`);
+// Count workspace definitions
+const idMatches = [...registrySrc.matchAll(/\{\s*id:\s*'([^']+)'/g)].map((m) => m[1]);
+check('Registry defines at least 20 workspaces', idMatches.length >= 20, `found ${idMatches.length}`);
 
-// Verify MOBILE_MORE_WORKSPACES is derived (not duplicating ids from primary).
-check(
-  'MOBILE_MORE_WORKSPACES excludes primary tab ids',
-  registrySrc.includes('MOBILE_PRIMARY_TAB_IDS.includes'),
-  'filter expression not found',
-);
+// Critical workspaces must be present
+const criticalIds = ['Risk', 'MLEngine', 'AILab', 'HistoricalData', 'Portfolio', 'Alerts', 'OMS', 'Institutional', 'Ops'];
+for (const id of criticalIds) {
+  const found = idMatches.includes(id);
+  check(`Registry includes ${id}`, found);
+}
 
 // ── MobileBottomNav source checks ─────────────────────────────────────────────
 
 const navSrc = read('src/components/terminal/MobileBottomNav.jsx');
 
-check('MobileBottomNav imports MOBILE_MORE_WORKSPACES', navSrc.includes('MOBILE_MORE_WORKSPACES'));
-check('MobileBottomNav imports MOBILE_PRIMARY_TAB_IDS', navSrc.includes('MOBILE_PRIMARY_TAB_IDS'));
-check('MobileBottomNav has more-drawer data-testid', navSrc.includes('data-testid="more-drawer"'));
-check('MobileBottomNav renders more-item data-testids', navSrc.includes('more-item-'));
-check('MobileBottomNav maps MOBILE_MORE_WORKSPACES in drawer', navSrc.includes('MOBILE_MORE_WORKSPACES.map'));
-check('MobileBottomNav has More button', navSrc.includes('mobile-tab-more'));
-check('MobileBottomNav backdrop for drawer', navSrc.includes('setDrawerOpen(false)'));
+check('MobileBottomNav imports getMobileMoreWorkspaces', navSrc.includes('getMobileMoreWorkspaces'));
+check('MobileBottomNav imports getMobilePrimaryWorkspaces', navSrc.includes('getMobilePrimaryWorkspaces'));
+check('MobileBottomNav renders More dialog', navSrc.includes('role="dialog"'));
+check('MobileBottomNav has mobile-more-workspaces testId', navSrc.includes('mobile-more-workspaces'));
+check('MobileBottomNav maps moreItems', navSrc.includes('moreItems'));
+check('MobileBottomNav uses navTestId for items', navSrc.includes('navTestId'));
+check('MobileBottomNav has close button for drawer', navSrc.includes('Close more workspaces') || navSrc.includes('close more workspaces') || navSrc.includes('setMoreOpen(false)'));
 
 // Old hardcoded Portfolio-as-MORE tab must be gone.
 check(
-  'MobileBottomNav no longer hardcodes Portfolio as MORE',
-  !navSrc.match(/id:\s*['"]Portfolio['"][^}]+label.*MORE/),
+  'MobileBottomNav no longer hardcodes Portfolio as MORE tab',
+  !navSrc.match(/label:\s*['"]MORE['"]/),
 );
 
 // ── workspaceStore validation ─────────────────────────────────────────────────
 
 const storeSrc = read('src/store/workspaceStore.js');
 
-check('workspaceStore imports isValidWorkspace', storeSrc.includes('isValidWorkspace'));
-check('workspaceStore validates setWorkspace', storeSrc.includes('if (!isValidWorkspace'));
+check('workspaceStore imports normalizeWorkspaceId', storeSrc.includes('normalizeWorkspaceId'));
+check('workspaceStore imports DEFAULT_WORKSPACE_ID', storeSrc.includes('DEFAULT_WORKSPACE_ID'));
+check('workspaceStore normalizes in setWorkspace', storeSrc.includes('normalizeWorkspaceId(workspace)') || storeSrc.includes('normalizeWorkspaceId(get()'));
 check('workspaceStore has onRehydrateStorage', storeSrc.includes('onRehydrateStorage'));
-check('workspaceStore uses DEFAULT_WORKSPACE', storeSrc.includes('DEFAULT_WORKSPACE'));
+check('workspaceStore uses safeStorage or try/catch', storeSrc.includes('safeWorkspaceStorage') || storeSrc.includes('try {'));
 
 // ── TerminalSidebar completeness ──────────────────────────────────────────────
 
 const sidebarSrc = read('src/TerminalSidebar.jsx');
 
-check('TerminalSidebar imports WORKSPACES registry', sidebarSrc.includes('WORKSPACES'));
-// Sidebar is driven by WORKSPACES.map() — all 18 ids (incl. OMS/Institutional/Ops) come from the registry.
-check(
-  'TerminalSidebar maps all workspaces from registry (covers OMS/Institutional/Ops)',
-  sidebarSrc.includes('WORKSPACES.map'),
-  sidebarSrc.includes('WORKSPACES.map') ? 'WORKSPACES.map found' : 'registry map not found',
-);
+check('TerminalSidebar imports getDesktopWorkspaces', sidebarSrc.includes('getDesktopWorkspaces'));
+check('TerminalSidebar maps all workspaces from registry', sidebarSrc.includes('getDesktopWorkspaces()') || sidebarSrc.includes('navItems'));
 
-// All workspace ids must appear in either MobileBottomNav (via imports) or drawer.
-const coveredOnMobile = primaryIds.length > 0 && navSrc.includes('MOBILE_MORE_WORKSPACES.map');
+// ── All workspaces reachable on mobile ────────────────────────────────────────
+
 check(
-  'All workspaces reachable on mobile (primary tabs + More drawer)',
-  coveredOnMobile,
-  coveredOnMobile ? 'primary tabs + drawer covers all' : 'drawer mapping not found',
+  'All mobile workspaces reachable (primary + More drawer)',
+  navSrc.includes('getMobilePrimaryWorkspaces') && navSrc.includes('getMobileMoreWorkspaces'),
+  'registry-driven primary + more drawer',
 );
 
 // ── Summary ───────────────────────────────────────────────────────────────────

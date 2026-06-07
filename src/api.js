@@ -343,35 +343,35 @@ export const api = {
   ).then(handle),
 
   saveFeatureRecord: async (symbol) => fetch(
-    `${API_BASE}/api/ai/features/save/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/features/save/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers() }
   ).then(handle),
   getFeatureRecords: async (symbol, limit = 50) => fetch(
-    `${API_BASE}/api/ai/features/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
+    `${API_BASE}/api/ml/features/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   getFeatureRecord: async (id) => fetch(
-    `${API_BASE}/api/ai/features/record/${encodeURIComponent(id)}`,
+    `${API_BASE}/api/ml/features/record/${encodeURIComponent(id)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   clearFeatureRecords: async (symbol) => fetch(
-    `${API_BASE}/api/ai/features/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/features/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
   ).then(handle),
   labelFeatureRecord: async (id, horizon = 10) => fetch(
-    `${API_BASE}/api/ai/labels/record/${encodeURIComponent(id)}`,
+    `${API_BASE}/api/ml/labels/record/${encodeURIComponent(id)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ horizon }) }
   ).then(handle),
   labelSymbolHistory: async (symbol, horizon = 10, limit = 50) => fetch(
-    `${API_BASE}/api/ai/labels/symbol/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/labels/symbol/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers(), body: JSON.stringify({ horizon, limit }) }
   ).then(handle),
   getOutcomeLabels: async (symbol, limit = 50) => fetch(
-    `${API_BASE}/api/ai/labels/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
+    `${API_BASE}/api/ml/labels/${encodeURIComponent(symbol)}?limit=${encodeURIComponent(limit)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   clearOutcomeLabels: async (symbol) => fetch(
-    `${API_BASE}/api/ai/labels/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/labels/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
   ).then(handle),
   saveStrategyFromReversal: async (symbol, reversalPointId) => fetch(
@@ -414,27 +414,27 @@ export const api = {
 
 
   getCurrentRegime: async (symbol) => fetch(
-    `${API_BASE}/api/ai/regime/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/regime/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   analyzeDatasetAnalytics: async (symbol) => fetch(
-    `${API_BASE}/api/ai/analytics/analyze/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/analytics/analyze/${encodeURIComponent(symbol)}`,
     { method: 'POST', headers: headers() }
   ).then(handle),
   getDatasetAnalytics: async (symbol) => fetch(
-    `${API_BASE}/api/ai/analytics/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/analytics/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   getFeatureAnalytics: async (symbol) => fetch(
-    `${API_BASE}/api/ai/analytics/features/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/analytics/features/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   getRegimeAnalytics: async (symbol) => fetch(
-    `${API_BASE}/api/ai/analytics/regimes/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/analytics/regimes/${encodeURIComponent(symbol)}`,
     { method: 'GET', headers: headers() }
   ).then(handle),
   clearDatasetAnalytics: async (symbol) => fetch(
-    `${API_BASE}/api/ai/analytics/${encodeURIComponent(symbol)}`,
+    `${API_BASE}/api/ml/analytics/${encodeURIComponent(symbol)}`,
     { method: 'DELETE', headers: headers() }
   ).then(handle),
 
@@ -693,7 +693,7 @@ export const api = {
     return fetch(`${API_BASE}/api/execution/analytics?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getFeedStatus: async () => feedFetch(
-    `/api/feed/status`,
+    `/api/feeds/status`,
     { method: 'GET', headers: headers() }
   ),
   getFeedStatusBySource: async (source) => feedFetch(
@@ -1070,4 +1070,25 @@ export const api = {
 
   getHistoricalDatasetDiagnostics: async (datasetId) =>
     fetch(`${API_BASE}/api/historical/datasets/${encodeURIComponent(datasetId)}/diagnostics`, { method: 'GET', headers: headers() }).then(handle),
+
+  useHistoricalDatasetForMl: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/use-for-ml`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ datasetId }),
+    }).then(handle);
+  },
+
+  useHistoricalDatasetForBacktest: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/use-for-backtest`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ datasetId }),
+    }).then(handle);
+  },
+
+  useHistoricalDatasetForCorrelation: async (datasetId) => {
+    if (!datasetId) throw new Error('datasetId is required');
+    return fetch(`${API_BASE}/api/historical/use-for-correlation`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ datasetId }),
+    }).then(handle);
+  },
 };
