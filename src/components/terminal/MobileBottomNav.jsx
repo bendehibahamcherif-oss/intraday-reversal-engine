@@ -17,7 +17,7 @@ export default function MobileBottomNav() {
 
   const tabs = [
     ...primaryTabs,
-    { id: 'MoreMenu', label: 'More', shortLabel: 'MORE', icon: '⋯', isMore: true },
+    { id: 'MoreMenu', label: 'More', ariaLabel: 'More workspaces', navTestId: 'mobile-more-workspaces', shortLabel: 'MORE', icon: '⋯', isMore: true },
   ];
 
   return (
@@ -92,7 +92,8 @@ export default function MobileBottomNav() {
                     key={item.id}
                     onClick={() => item.implemented && selectWorkspace(item.id)}
                     disabled={!item.implemented}
-                    aria-label={item.label}
+                    data-testid={item.navTestId}
+                    aria-label={item.ariaLabel}
                     aria-current={active ? 'page' : undefined}
                     style={{
                       minHeight: 48,
@@ -147,6 +148,8 @@ export default function MobileBottomNav() {
               type="button"
               key={tab.id}
               onClick={() => tab.isMore ? setMoreOpen((open) => !open) : selectWorkspace(tab.id)}
+              data-testid={tab.navTestId}
+              aria-label={tab.ariaLabel}
               aria-expanded={tab.isMore ? moreOpen : undefined}
               aria-haspopup={tab.isMore ? 'dialog' : undefined}
               style={{

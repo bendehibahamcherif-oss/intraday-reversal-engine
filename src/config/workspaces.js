@@ -1,6 +1,20 @@
 export const DEFAULT_WORKSPACE_ID = 'ChartOrderflow';
 
-export const workspaceDefinitions = [
+const workspaceNavigationOverrides = {
+  ChartOrderflow: { ariaLabel: 'Chart', navTestId: 'workspace-nav-chart' },
+  Macro: { ariaLabel: 'Markets', navTestId: 'workspace-nav-markets' },
+  LiveData: { ariaLabel: 'Live Data', navTestId: 'workspace-nav-live-data' },
+  AILab: { ariaLabel: 'AI Lab', navTestId: 'workspace-nav-ai-lab' },
+  MLEngine: { ariaLabel: 'ML Signal Engine', navTestId: 'workspace-nav-ml' },
+  MacroMultiAsset: { ariaLabel: 'Macro', navTestId: 'workspace-nav-macro' },
+  Backtesting: { ariaLabel: 'Backtesting', navTestId: 'workspace-nav-backtesting' },
+  Portfolio: { ariaLabel: 'Portfolio', navTestId: 'workspace-nav-portfolio' },
+  Risk: { ariaLabel: 'Risk', navTestId: 'workspace-nav-risk' },
+};
+
+const toNavTestId = (workspaceId) => `workspace-nav-${workspaceId.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`;
+
+const baseWorkspaceDefinitions = [
   { id: 'ChartOrderflow', label: 'Chart', shortLabel: 'CH', icon: '▤', componentKey: 'ChartOrderflow', group: 'Primary', mobileVisible: true, desktopVisible: true, implemented: true, order: 10, mobilePrimary: true, aliases: ['Chart / Orderflow'] },
   { id: 'Macro', label: 'Markets', shortLabel: 'MK', icon: '◎', componentKey: 'Macro', group: 'Markets', mobileVisible: true, desktopVisible: true, implemented: true, order: 20, mobilePrimary: true, aliases: ['Macro / Multi-Asset', 'Live Markets'] },
   { id: 'Alerts', label: 'Alerts', shortLabel: 'AL', icon: '▲', componentKey: 'Alerts', group: 'Primary', mobileVisible: true, desktopVisible: true, implemented: true, order: 30, mobilePrimary: true },
@@ -35,6 +49,12 @@ export const workspaceDefinitions = [
   { id: 'Institutional', label: 'Institutional', shortLabel: 'IN', icon: '▧', componentKey: 'Institutional', group: 'System', mobileVisible: true, desktopVisible: true, implemented: true, order: 320 },
   { id: 'Ops', label: 'Operations', shortLabel: 'OP', icon: '⚙', componentKey: 'Ops', group: 'System', mobileVisible: true, desktopVisible: true, implemented: true, order: 330 },
 ];
+
+export const workspaceDefinitions = baseWorkspaceDefinitions.map((workspace) => ({
+  ...workspace,
+  ariaLabel: workspaceNavigationOverrides[workspace.id]?.ariaLabel ?? workspace.label,
+  navTestId: workspaceNavigationOverrides[workspace.id]?.navTestId ?? toNavTestId(workspace.id),
+}));
 
 export const sortedWorkspaces = [...workspaceDefinitions].sort((a, b) => a.order - b.order);
 export const workspaceIds = new Set(workspaceDefinitions.map((workspace) => workspace.id));

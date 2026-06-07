@@ -81,14 +81,17 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
         {navItems.map((item) => {
           const active = workspace === item.id;
           const tooltip = item.implemented ? item.label : `${item.label} (coming soon)`;
+          const ariaLabel = item.implemented ? item.ariaLabel : `${item.ariaLabel} (coming soon)`;
           return (
             <button
               key={item.id}
               onClick={() => item.implemented && setWorkspace(item.id)}
               disabled={!item.implemented}
               style={navButtonStyle(active, !item.implemented)}
+              data-testid={item.navTestId}
               data-tooltip={tooltip}
               title={tooltip}
+              aria-label={ariaLabel}
               onMouseEnter={(e) => {
                 if (!active && item.implemented) {
                   e.currentTarget.style.background = 'var(--t-bg-hover)';
@@ -112,8 +115,10 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
         <button
           onClick={() => setWorkspace(settingsItem.id)}
           style={navButtonStyle(workspace === settingsItem.id)}
+          data-testid={settingsItem.navTestId}
           data-tooltip={settingsItem.label}
           title={settingsItem.label}
+          aria-label={settingsItem.ariaLabel}
           onMouseEnter={(e) => {
             if (workspace !== settingsItem.id) {
               e.currentTarget.style.background = 'var(--t-bg-hover)';
