@@ -306,3 +306,68 @@ Fixed by adding deterministic empty-state mocks for all 14 routes in `tests/e2e/
 - `npm run frontend:build` — passed with existing Vite chunk-size warning.
 - `node scripts/static-api-scanner.js` — passed (145 files).
 - `node scripts/detect-menu-duplicates.js` — passed (33 workspaces).
+
+## Round 3: Production backend contract verification — 2026-06-07
+
+### New tests added
+
+- `tests/e2e/production-backend-contract.spec.ts` — direct HTTP contract test using the
+  Playwright `request` fixture (no browser, no CORS).  Exercises 50 known frontend API routes
+  against the live production backend.  Skipped unless `PRODUCTION_CONTRACT=1`.
+- `tests/e2e/production-real-backend-journey.spec.ts` — browser journey test that intercepts
+  all `/api/**` traffic at the Playwright network layer and forwards it server-side to the
+  production backend via `route.fetch()`.  Auth routes are stubbed so the shell boots without
+  real credentials.  Skipped unless `PRODUCTION_CONTRACT=1`.
+- `scripts/run-production-readiness.js` — extended with `PRODUCTION_CONTRACT=1` mode that
+  appends both production contract specs to the readiness run, passing `PLAYWRIGHT_BASE_URL`
+  and `VITE_API_BASE` for the correct backend target.
+
+### Root cause fixed — journey test navigation
+
+`production-real-backend-journey.spec.ts` previously hardcoded workspace labels and
+`navTestId` values that diverged from the registry (`'Chart / Orderflow'` vs registry label
+`'Chart'`, etc.).  Replaced the hardcoded `journeyWorkspaces` array with a list of workspace
+IDs resolved at test time via `workspaceById(id)` from `workspaceData.ts`, and replaced the
+custom navigation block with `openDesktopWorkspace(page, workspace)` from `appHarness.ts`.
+This gives every workspace all registry-backed fallbacks (testId, aria-label, title/tooltip,
+short label) and throws a diagnostic error with available nav labels instead of silently
+skipping.
+
+### Production contract results
+
+| Route | Result |
+|-------|--------|
+| 49 routes (feeds, chart, ML, alerts, backtest, macro, portfolio, risk, institutional, OMS, market) | PASS (200 or 401/403 auth-gated) |
+| `GET /api/ops/status` | **FAIL — 404** (backend defect, see `BACKEND_FIX_REQUIRED_FROM_FRONTEND_CONTRACT.md`) |
+
+- Total: 50 routes tested
+- Passed: 49 (including 1 auth-gated `/auth/me → 401`)
+- Failed: 1 (`/api/ops/status → 404` — **backend fix required**)
+- Auth-gated: 1
+
+### Backend fix documented
+
+`BACKEND_FIX_REQUIRED_FROM_FRONTEND_CONTRACT.md` documents the `GET /api/ops/status → 404`
+defect with exact endpoint, screen effect, root cause analysis, and a concrete backend fix
+prompt.  The frontend production contract test (`production-backend-contract.spec.ts`) is NOT
+weakened — it continues to fail this route until the backend is repaired.
+
+### Files changed in Round 3
+
+- `tests/e2e/production-backend-contract.spec.ts` — NEW: direct HTTP production contract test
+- `tests/e2e/production-real-backend-journey.spec.ts` — NEW (then fixed): browser journey with
+  production passthrough; navigation replaced with registry-backed `openDesktopWorkspace`
+- `scripts/run-production-readiness.js` — added `PRODUCTION_CONTRACT=1` mode with production
+  contract commands
+- `BACKEND_FIX_REQUIRED_FROM_FRONTEND_CONTRACT.md` — NEW: documented `GET /api/ops/status → 404`
+
+### Command results (Round 3)
+
+- `npm test` — passed: 18 test files / 203 tests.
+- `npm run build` — passed with existing Vite chunk-size warning.
+- `node scripts/static-api-scanner.js` — passed (145 files).
+- `node scripts/detect-menu-duplicates.js` — passed (33 workspaces).
+- `npx playwright test` — 25/25 passed (production specs skipped by default — require
+  `PRODUCTION_CONTRACT=1`).
+- Production contract spec (`PRODUCTION_CONTRACT=1`): 49/50 routes passed; 1 backend defect
+  (`GET /api/ops/status → 404`) documented in `BACKEND_FIX_REQUIRED_FROM_FRONTEND_CONTRACT.md`.
