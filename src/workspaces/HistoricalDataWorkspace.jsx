@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useHistoricalDataStore } from '../store/historicalDataStore.js';
+import { safeHistoricalError, useHistoricalDataStore } from '../store/historicalDataStore.js';
 import { getDatasetId } from '../utils/datasets.js';
 
 // ── Constants (mirrors backend canonicalSchema) ───────────────────────────────
@@ -278,11 +278,11 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
       {(localError || error) && <div style={S.error}>{localError || error}</div>}
       {result && result.ok && (
         <div style={S.success}>
-          Downloaded {result.dataset?.rowCount ?? result.rowCount ?? result.totalRows ?? 0} rows → {result.dataset?.datasetId || result.datasetId}
+          Downloaded dataset → {result.dataset?.datasetId || result.datasetId || 'ready'}
         </div>
       )}
       {result && !result.ok && !error && (
-        <div style={S.error}>{result.error?.message || 'Download failed'}</div>
+        <div style={S.error}>{safeHistoricalError(result.error?.message || result.error || result.message, 'Historical data is unavailable.')}</div>
       )}
 
       <div style={S.fieldGroup}>

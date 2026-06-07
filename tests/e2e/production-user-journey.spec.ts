@@ -24,7 +24,7 @@ test('desktop production user journey keeps datasets, ML, backtesting, macro, po
   }
 
   await page.evaluate(() => {
-    const dataset = { datasetId: 'e2e-dataset', id: 'e2e-dataset', symbols: ['SPY'], rowCount: 500, fileStatus: 'ready' };
+    const dataset = { datasetId: 'e2e-dataset', id: 'e2e-dataset', symbols: ['SPY'], rowCount: 480, fileStatus: 'ready' };
     localStorage.setItem('reversal-historical-data', JSON.stringify({ state: { selectedMlDatasetId: 'e2e-dataset', selectedMlDataset: dataset, selectedBacktestDatasetId: 'e2e-dataset', selectedBacktestDataset: dataset, selectedCorrelationDatasetId: 'e2e-dataset', selectedCorrelationDataset: dataset }, version: 0 }));
     window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId: 'e2e-dataset', dataset } }));
     window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId: 'e2e-dataset', dataset } }));

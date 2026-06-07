@@ -210,3 +210,49 @@
 - CI must provide `@playwright/test`, the `playwright` package, and browser binaries from install/cache before browser tests can run.
 - The e2e mocks intentionally validate frontend/backend contracts but do not validate live provider connectivity, ML training success, or production backend availability.
 - If new frontend `/api` calls are added, the strict unknown-route guard will fail until a deterministic contract mock is added or the backend is run for that test.
+
+## Historical visible API error sanitization update — 2026-06-07
+
+### Latest artifact inspection
+- Local repository did not contain prior `APP_CRAWLER_RESULTS.json`, `SCREEN_SANITY_RESULTS.json`, or retained `test-results/app-crawler-*` artifacts at the start of this fix.
+- Static inspection of the e2e mock payload and Historical Data DOM mapping identified the visible failing text that matched `/\b500\b/`.
+
+### Exact failing visible text
+- Historical Data rendered the e2e dataset row count as `500 rows` in the dataset list.
+- Selecting the dataset would also render `Rows 500` in the detail table.
+- The same mock value could propagate into user-journey dataset state as `rowCount: 500`.
+
+### Root cause
+- The Historical Data e2e dataset fixture used `rowCount: 500`, which is visible UI text and collides with the production screen-sanity scanner's strict forbidden status-code pattern.
+- The Historical Data fixture was also incomplete, so list/detail rows could render missing metadata such as timeframe/date/provider/session/purpose when the workspace opened.
+- Historical Data store catch handlers passed raw API error messages into visible state. A backend or mock failure such as `Request failed with status 500: Internal Server Error` could therefore become visible text instead of a safe product message.
+- The deterministic e2e mock table did not include `POST /api/historical/download`, so journey interactions could fall through to the strict unknown-route `501` mock.
+- Volume Profile deterministic mock volumes started at `500`, which could create the same false positive in another production workspace if those values were visible.
+
+### Files fixed
+- `src/store/historicalDataStore.js` — added `safeHistoricalError(...)` and applied it to Historical Data provider, dataset, download, detail, diagnostics, and use-action API failures.
+- `src/workspaces/HistoricalDataWorkspace.jsx` — sanitized failed download result rendering and removed the visible row-count count from the download success message so API status-code text is not echoed into the UI.
+- `tests/e2e/helpers/apiMocks.ts` — completed Historical Data route mocks for providers, datasets, dataset detail, diagnostics, download, and use-for actions; changed deterministic visible row/volume values away from `500`; returned complete finite dataset metadata.
+- `tests/e2e/production-user-journey.spec.ts` — changed the persisted e2e dataset row fixture away from `500` while preserving the dataset selection journey.
+- `src/test/historicalDataCenter.test.js` — added regression coverage that Historical Data renders `Unable to load historical datasets.` and does not render raw `500`, `Internal Server Error`, or `Request failed with status` text when the datasets API fails internally.
+
+### Regression coverage retained
+- `tests/e2e/helpers/workspaceData.ts` still forbids visible `500`, `404`, `501`, `NaN`, `undefined`, `[object Object]`, stack traces, and JavaScript runtime error text through `scanVisibleInvalidValues`.
+- Network guards still fail unknown `/api` routes, 404, 5xx, HTML responses, invalid JSON, empty bodies, non-JSON bodies, bad URL tokens, and bad request bodies.
+- No Playwright tests were removed, skipped, or weakened.
+
+### Final command results from this environment
+- `npm test` — passed: 18 test files / 198 tests.
+- `npm run build` — passed with existing Vite dynamic-import and chunk-size warnings.
+- `npm run frontend:build` — passed with existing Vite dynamic-import and chunk-size warnings.
+- `node scripts/static-api-scanner.js` — passed.
+- `node scripts/detect-menu-duplicates.js` — passed.
+- `npx playwright test tests/e2e/app-crawler.spec.ts` — blocked before browser execution because local `node_modules` does not include the Playwright package/binary and `npx` registry fetch returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/screen-sanity.spec.ts` — blocked before browser execution because local `node_modules` does not include the Playwright package/binary and `npx` registry fetch returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/mobile-app-crawler.spec.ts` — blocked before browser execution because local `node_modules` does not include the Playwright package/binary and `npx` registry fetch returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/mobile-user-journey.spec.ts` — blocked before browser execution because local `node_modules` does not include the Playwright package/binary and `npx` registry fetch returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/production-user-journey.spec.ts` — blocked before browser execution because local `node_modules` does not include the Playwright package/binary and `npx` registry fetch returned `E403 Forbidden`.
+- `npx playwright test` — blocked before browser execution because local `node_modules` does not include the Playwright package/binary and `npx` registry fetch returned `E403 Forbidden`.
+
+### Final Playwright result
+- Browser execution could not be completed in this container for the environment reason above. The code-side fixes keep the strict scanners intact and remove the identified visible `500` text and Historical Data raw-error rendering path.
