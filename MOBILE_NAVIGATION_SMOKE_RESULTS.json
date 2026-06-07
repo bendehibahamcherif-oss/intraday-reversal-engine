@@ -1,12 +1,187 @@
 {
-  "ok": true,
-  "totalWorkspaceCount": 33,
-  "mobileAccessibleCount": 33,
-  "mobilePrimaryCount": 4,
-  "mobileMoreCount": 29,
-  "mobileMissingWorkspaces": [],
-  "unimplementedWorkspaces": [],
-  "invalidWorkspaceMappings": [],
-  "missingComponents": [],
-  "duplicateIds": []
+  "passed": 36,
+  "failed": 0,
+  "total": 36,
+  "results": [
+    {
+      "label": "Registry has DEFAULT_WORKSPACE_ID",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry exports normalizeWorkspaceId",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry exports isValidWorkspaceId",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry exports getMobilePrimaryWorkspaces",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry exports getMobileMoreWorkspaces",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry exports getDesktopWorkspaces",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry exports getWorkspace",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry has mobilePrimary flag",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry has mobileVisible flag",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry has desktopVisible flag",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry defines at least 20 workspaces",
+      "status": "PASS",
+      "detail": "found 33"
+    },
+    {
+      "label": "Registry includes Risk",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes MLEngine",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes AILab",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes HistoricalData",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes Portfolio",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes Alerts",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes OMS",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes Institutional",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registry includes Ops",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav imports getMobileMoreWorkspaces",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav imports getMobilePrimaryWorkspaces",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav renders More dialog",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav has mobile-more-workspaces testId",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav maps moreItems",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav uses navTestId for items",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav has close button for drawer",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav no longer hardcodes Portfolio as MORE tab",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore imports normalizeWorkspaceId",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore imports DEFAULT_WORKSPACE_ID",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore normalizes in setWorkspace",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore has onRehydrateStorage",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore uses safeStorage or try/catch",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "TerminalSidebar imports getDesktopWorkspaces",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "TerminalSidebar maps all workspaces from registry",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "All mobile workspaces reachable (primary + More drawer)",
+      "status": "PASS",
+      "detail": "registry-driven primary + more drawer"
+    }
+  ]
 }

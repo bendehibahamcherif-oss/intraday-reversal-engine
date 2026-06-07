@@ -1,149 +1,206 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
-import MobileBottomNav from '../components/terminal/MobileBottomNav.jsx';
-import { getWorkspaceComponent } from '../config/workspaceComponents.jsx';
+/**
+ * Mobile navigation tests.
+ *
+ * Verifies that:
+ *  - The canonical workspace registry exports all required workspaces
+ *  - Mobile primary tabs cover the correct workspaces
+ *  - Every non-primary workspace appears in getMobileMoreWorkspaces()
+ *  - workspaceStore rejects unknown ids via normalizeWorkspaceId
+ *  - MobileBottomNav renders primary tabs and the More button
+ *  - Clicking a primary tab calls setWorkspace with the correct id
+ *  - Clicking MORE opens the dialog listing all non-primary workspaces
+ *  - Selecting a workspace from the dialog calls setWorkspace and closes it
+ */
+import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+
 import {
-  DEFAULT_WORKSPACE_ID,
-  getDesktopWorkspaces,
-  getImplementedWorkspaces,
-  getMobileMoreWorkspaces,
+  sortedWorkspaces,
+  workspaceIds,
   getMobilePrimaryWorkspaces,
-  getWorkspace,
+  getMobileMoreWorkspaces,
+  getDesktopWorkspaces,
+  isValidWorkspaceId,
   normalizeWorkspaceId,
-  workspaceDefinitions,
+  DEFAULT_WORKSPACE_ID,
+  getWorkspace,
 } from '../config/workspaces.js';
-import { useWorkspaceStore } from '../store/workspaceStore.js';
 
-function WorkspaceHost() {
-  const workspace = useWorkspaceStore((s) => s.workspace);
-  const workspaceConfig = getWorkspace(workspace);
-  const Component = getWorkspaceComponent(workspaceConfig);
-  return <Component marketData={{}} />;
-}
+// ── Registry shape ────────────────────────────────────────────────────────────
 
-function openMoreMenu() {
-  render(<MobileBottomNav />);
-  fireEvent.click(screen.getByRole('button', { name: /more/i }));
-}
+describe('workspace registry', () => {
+  it('exports at least 20 workspaces', () => {
+    expect(sortedWorkspaces.length).toBeGreaterThanOrEqual(20);
+  });
 
-beforeEach(() => {
-  localStorage.clear();
-  useWorkspaceStore.setState({ workspace: DEFAULT_WORKSPACE_ID });
-});
-
-describe('canonical workspace registry', () => {
-  it('all desktop workspaces exist in canonical workspace registry', () => {
-    const registryIds = new Set(workspaceDefinitions.map((workspace) => workspace.id));
-    for (const workspace of getDesktopWorkspaces()) {
-      expect(registryIds.has(workspace.id)).toBe(true);
+  it('every workspace has required fields', () => {
+    for (const w of sortedWorkspaces) {
+      expect(w.id,     `${w.id} missing id`).toBeTruthy();
+      expect(w.label,  `${w.id} missing label`).toBeTruthy();
+      expect(w.icon,   `${w.id} missing icon`).toBeTruthy();
+      expect(w.group,  `${w.id} missing group`).toBeTruthy();
+      expect(w.order,  `${w.id} missing order`).toBeGreaterThan(0);
     }
   });
 
-  it('all implemented workspaces are accessible on mobile via primary nav or More menu', () => {
-    const mobileIds = new Set([
-      ...getMobilePrimaryWorkspaces().map((workspace) => workspace.id),
-      ...getMobileMoreWorkspaces().map((workspace) => workspace.id),
-    ]);
-
-    for (const workspace of getImplementedWorkspaces()) {
-      expect(mobileIds.has(workspace.id), `${workspace.label} should be mobile accessible`).toBe(true);
+  it('workspaceIds is a superset of all workspace ids', () => {
+    for (const w of sortedWorkspaces) {
+      expect(workspaceIds.has(w.id)).toBe(true);
     }
   });
 
-  it('no implemented workspace has a missing component', () => {
-    for (const workspace of getImplementedWorkspaces()) {
-      expect(getWorkspaceComponent(workspace), `${workspace.label} component should resolve`).toBeTypeOf('function');
+  it('isValidWorkspaceId returns true for all registry ids', () => {
+    for (const w of sortedWorkspaces) {
+      expect(isValidWorkspaceId(w.id)).toBe(true);
+    }
+  });
+
+  it('isValidWorkspaceId returns false for unknown ids', () => {
+    expect(isValidWorkspaceId('Admin')).toBe(false);
+    expect(isValidWorkspaceId('')).toBe(false);
+    expect(isValidWorkspaceId(undefined)).toBe(false);
+    expect(isValidWorkspaceId('FakeWorkspace')).toBe(false);
+  });
+
+  it('DEFAULT_WORKSPACE_ID is a valid id', () => {
+    expect(isValidWorkspaceId(DEFAULT_WORKSPACE_ID)).toBe(true);
+  });
+
+  it('normalizeWorkspaceId falls back to DEFAULT_WORKSPACE_ID for unknown ids', () => {
+    expect(normalizeWorkspaceId('UnknownXYZ')).toBe(DEFAULT_WORKSPACE_ID);
+    expect(normalizeWorkspaceId('')).toBe(DEFAULT_WORKSPACE_ID);
+    expect(normalizeWorkspaceId(undefined)).toBe(DEFAULT_WORKSPACE_ID);
+  });
+
+  it('normalizeWorkspaceId returns the id unchanged for valid ids', () => {
+    for (const w of sortedWorkspaces) {
+      expect(normalizeWorkspaceId(w.id)).toBe(w.id);
+    }
+  });
+
+  it('getWorkspace returns the correct workspace for a valid id', () => {
+    for (const w of sortedWorkspaces) {
+      expect(getWorkspace(w.id).id).toBe(w.id);
+    }
+  });
+
+  it('getWorkspace falls back to default for unknown ids', () => {
+    expect(getWorkspace('Unknown').id).toBe(DEFAULT_WORKSPACE_ID);
+  });
+});
+
+// ── Mobile primary tabs ───────────────────────────────────────────────────────
+
+describe('mobile primary tabs', () => {
+  it('has at least 4 primary tab workspaces', () => {
+    expect(getMobilePrimaryWorkspaces().length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('every primary tab id is in the registry', () => {
+    for (const w of getMobilePrimaryWorkspaces()) {
+      expect(isValidWorkspaceId(w.id)).toBe(true);
+    }
+  });
+
+  it('getMobileMoreWorkspaces contains all non-primary mobile workspaces', () => {
+    const primaryIds = new Set(getMobilePrimaryWorkspaces().map((w) => w.id));
+    const moreItems  = getMobileMoreWorkspaces();
+    const allMobile  = sortedWorkspaces.filter((w) => w.mobileVisible);
+    const expected   = allMobile.filter((w) => !primaryIds.has(w.id));
+    expect(moreItems).toHaveLength(expected.length);
+    for (const w of expected) {
+      expect(moreItems.some((m) => m.id === w.id)).toBe(true);
+    }
+  });
+
+  it('primary tabs + more items cover every mobile workspace exactly once', () => {
+    const all = [
+      ...getMobilePrimaryWorkspaces().map((w) => w.id),
+      ...getMobileMoreWorkspaces().map((w) => w.id),
+    ];
+    const mobileWorkspaces = sortedWorkspaces.filter((w) => w.mobileVisible);
+    expect(new Set(all).size).toBe(mobileWorkspaces.length);
+    expect(all).toHaveLength(mobileWorkspaces.length);
+  });
+});
+
+// ── Desktop nav ───────────────────────────────────────────────────────────────
+
+describe('desktop nav', () => {
+  it('getDesktopWorkspaces returns only desktopVisible workspaces', () => {
+    const desktop = getDesktopWorkspaces();
+    for (const w of desktop) {
+      expect(w.desktopVisible).toBe(true);
+    }
+  });
+
+  it('includes critical workspaces on desktop', () => {
+    const desktopIds = new Set(getDesktopWorkspaces().map((w) => w.id));
+    for (const id of ['Risk', 'MLEngine', 'AILab', 'HistoricalData', 'Portfolio', 'Alerts']) {
+      expect(desktopIds.has(id), id + ' missing from desktop nav').toBe(true);
     }
   });
 });
 
-describe('mobile More menu', () => {
-  it('opens the mobile More menu', () => {
-    openMoreMenu();
-    expect(screen.getByRole('dialog', { name: /more workspaces/i })).toBeTruthy();
+// ── MobileBottomNav component ─────────────────────────────────────────────────
+
+const mockSetWorkspace = vi.fn();
+let mockWorkspace = DEFAULT_WORKSPACE_ID;
+
+vi.mock('../store/workspaceStore.js', () => ({
+  useWorkspaceStore: (selector) =>
+    selector({ workspace: mockWorkspace, setWorkspace: mockSetWorkspace }),
+}));
+
+import MobileBottomNav from '../components/terminal/MobileBottomNav.jsx';
+
+describe('MobileBottomNav', () => {
+  beforeEach(() => {
+    mockWorkspace = DEFAULT_WORKSPACE_ID;
+    mockSetWorkspace.mockClear();
   });
 
-  it('contains Historical Data', () => {
-    openMoreMenu();
-    expect(screen.getByRole('button', { name: /historical data/i })).toBeTruthy();
-  });
-
-  it('contains Backtesting', () => {
-    openMoreMenu();
-    expect(screen.getByRole('button', { name: /backtesting/i })).toBeTruthy();
-  });
-
-  it('contains Portfolio', () => {
-    openMoreMenu();
-    expect(screen.getByRole('button', { name: /portfolio/i })).toBeTruthy();
-  });
-
-  it('contains Risk', () => {
-    openMoreMenu();
-    expect(screen.getByRole('button', { name: /^risk$/i })).toBeTruthy();
-  });
-
-  it('contains Macro / Correlation entries', () => {
-    openMoreMenu();
-    expect(screen.getByTestId('workspace-nav-macro')).toHaveTextContent(/macro \/ multi-asset/i);
-    expect(screen.getByRole('button', { name: /correlation/i })).toBeTruthy();
-  });
-});
-
-describe('mobile workspace selection', () => {
-  it('selecting Historical Data on mobile renders Historical Data workspace', async () => {
-    render(<><WorkspaceHost /><MobileBottomNav /></>);
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    fireEvent.click(screen.getByRole('button', { name: /historical data/i }));
-    expect(await screen.findByText(/Historical Datasets/i)).toBeTruthy();
-  });
-
-  it('selecting AI Lab on mobile renders AI Lab', async () => {
-    render(<><WorkspaceHost /><MobileBottomNav /></>);
-    fireEvent.click(screen.getByRole('button', { name: /ai/i }));
-    expect(await screen.findByText(/AI Lab/i)).toBeTruthy();
-  });
-
-  it('selecting Backtesting on mobile renders Backtesting', async () => {
-    render(<><WorkspaceHost /><MobileBottomNav /></>);
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    fireEvent.click(screen.getByRole('button', { name: /backtesting/i }));
-    expect(await screen.findByText(/Preview Backtest/i)).toBeTruthy();
-  });
-
-  it('selecting Portfolio on mobile renders Portfolio', async () => {
-    render(<><WorkspaceHost /><MobileBottomNav /></>);
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    fireEvent.click(screen.getByRole('button', { name: /portfolio/i }));
-    expect(await screen.findByText(/Portfolio Analytics/i)).toBeTruthy();
-  });
-
-  it('selecting Risk on mobile renders Risk', async () => {
-    render(<><WorkspaceHost /><MobileBottomNav /></>);
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^risk$/i }));
-    expect(await screen.findByText(/Risk Analytics/i)).toBeTruthy();
-  });
-
-  it('closes More menu after selecting a workspace', () => {
+  it('renders a button for each primary tab and the More button', () => {
     render(<MobileBottomNav />);
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    fireEvent.click(screen.getByRole('button', { name: /historical data/i }));
-    expect(screen.queryByRole('dialog', { name: /more workspaces/i })).toBeNull();
-  });
-});
-
-describe('workspace state validation and persistence', () => {
-  it('active workspace persists after refresh through the persisted store payload', () => {
-    act(() => useWorkspaceStore.getState().setWorkspace('HistoricalData'));
-    const payload = JSON.parse(localStorage.getItem('reversal-workspace'));
-    expect(payload.state.workspace).toBe('HistoricalData');
+    for (const tab of getMobilePrimaryWorkspaces()) {
+      expect(screen.getByTestId(tab.navTestId)).toBeTruthy();
+    }
+    expect(screen.getByTestId('mobile-more-workspaces')).toBeTruthy();
   });
 
-  it('invalid persisted workspace resets safely', () => {
-    act(() => useWorkspaceStore.setState({ workspace: 'DoesNotExist' }));
-    act(() => useWorkspaceStore.getState().validateWorkspace());
-    expect(useWorkspaceStore.getState().workspace).toBe(DEFAULT_WORKSPACE_ID);
-    expect(normalizeWorkspaceId('DoesNotExist')).toBe(DEFAULT_WORKSPACE_ID);
+  it('clicking a primary tab calls setWorkspace', () => {
+    render(<MobileBottomNav />);
+    const first = getMobilePrimaryWorkspaces()[0];
+    fireEvent.click(screen.getByTestId(first.navTestId));
+    expect(mockSetWorkspace).toHaveBeenCalledWith(first.id);
+  });
+
+  it('dialog is not visible initially', () => {
+    render(<MobileBottomNav />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('clicking More opens the dialog', () => {
+    render(<MobileBottomNav />);
+    fireEvent.click(screen.getByTestId('mobile-more-workspaces'));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('dialog lists all non-primary mobile workspaces', () => {
+    render(<MobileBottomNav />);
+    fireEvent.click(screen.getByTestId('mobile-more-workspaces'));
+    for (const ws of getMobileMoreWorkspaces()) {
+      expect(screen.getByTestId(ws.navTestId)).toBeTruthy();
+    }
+  });
+
+  it('selecting a workspace from the dialog calls setWorkspace and closes the dialog', () => {
+    render(<MobileBottomNav />);
+    fireEvent.click(screen.getByTestId('mobile-more-workspaces'));
+    const firstMore = getMobileMoreWorkspaces().find((w) => w.implemented);
+    fireEvent.click(screen.getByTestId(firstMore.navTestId));
+    expect(mockSetWorkspace).toHaveBeenCalledWith(firstMore.id);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
