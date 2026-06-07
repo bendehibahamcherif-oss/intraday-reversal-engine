@@ -8,3 +8,6 @@ dist
 server-deliverables/ml/registry/registry.json
 server-deliverables/ai/artifacts/
 server-deliverables/ai/registry/
+playwright-report/
+playwright-results/
+test-results/
