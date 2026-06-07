@@ -10,7 +10,7 @@ test('mobile crawler reaches every implemented mobile workspace without stale co
   const guard = attachNetworkGuards(page);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await bootApp(page);
+  await bootApp(page, { viewport: { width: 390, height: 844 } });
   await page.getByTestId('mobile-more-workspaces').click();
   const moreLabels = await page.getByRole('dialog', { name: /more workspaces/i }).locator('button[aria-label]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') || '').filter(Boolean));
   const primaryLabels = await page.locator('nav[aria-label="Mobile workspace navigation"] button[title]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('title') || '').filter((label) => label && label !== 'More'));

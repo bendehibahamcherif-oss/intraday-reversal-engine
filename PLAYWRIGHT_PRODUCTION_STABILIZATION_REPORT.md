@@ -96,3 +96,44 @@
 
 ### Final Playwright result
 - Playwright browser tests are expected to run in GitHub Actions where `@playwright/test` and the browser binaries are available. In this container, both requested Playwright commands were blocked before test execution by npm registry policy (`E403 Forbidden` fetching `playwright`).
+
+## App shell boot stabilization update — 2026-06-07
+
+### Artifact inspection
+- The requested GitHub Actions artifacts (`test-results/app-crawler-*/test-failed-1.png`, `test-results/navigation-accessibility-*/test-failed-1.png`, `test-results/mobile-app-crawler-*/test-failed-1.png`, `error-context.md`, and `trace.zip`) were not present in this checkout, so the local investigation proceeded from the repository test helpers, mounted components, and the failure evidence supplied in the mission.
+
+### Why `Available navigation labels: (none)` happened
+- The actual app root is `src/main.jsx`, which mounts `src/App.jsx` directly into `#root`; there is no separate router/root shell in this repo.
+- `App.jsx` first checks the cached token/user and then calls `api.me()` before rendering the terminal shell. The e2e harness only mocked `**/api/**`, while the real API client calls `/auth/me` (without the `/api` prefix). In Playwright this left the auth check outside the safe mocks, caused the app to fall back to the auth gate, and meant the crawler selector `aside button, nav button, [role="dialog"] button` saw no workspace navigation buttons at all.
+- The previous selector additions landed on real components (`TerminalSidebar.jsx` and `MobileBottomNav.jsx`), but the Playwright boot path was not reliably reaching those mounted components because the auth boot request was not mocked.
+
+### Actual DOM / screenshot finding
+- No local retained screenshot/trace artifact was available in this checkout. Static inspection of the mounted app path shows that successful desktop boot renders `App.jsx` → `TerminalSidebar.jsx`, while successful mobile boot renders `App.jsx` → `MobileBottomNav.jsx` at the `window.innerWidth < 768` breakpoint.
+- The shell/nav absence described by CI is therefore consistent with the auth gate/loading boot branch, not with a desktop/mobile selector spelling problem.
+
+### Actual mounted shell/nav component
+- Desktop shell: `src/App.jsx` renders the top-level terminal container and mounts `src/TerminalSidebar.jsx` for workspace navigation.
+- Mobile shell: `src/App.jsx` renders the top-level terminal container and mounts `src/components/terminal/MobileBottomNav.jsx` for primary and More workspace navigation.
+- `src/AuthGate.jsx` remains a real login gate for non-authenticated runtime use, but e2e boot now bypasses it via safe mocked `/auth/*` responses and pre-seeded local storage.
+
+### Root cause
+- `bootApp` seeded local storage but did not wait for the actual terminal shell/nav markers.
+- `installSafeApiMocks` did not intercept the real `/auth/me` boot request made by `api.me()`, so Playwright could render the auth gate instead of the terminal shell.
+- Mobile specs relied on project viewport configuration, but the harness did not offer a pre-`goto()` viewport path for mobile callers.
+
+### Fix
+- Added non-visual permanent `data-testid="terminal-shell"`, `data-testid="desktop-workspace-nav"`, and `data-testid="mobile-workspace-nav"` markers to the actual mounted shell/sidebar/mobile nav components; `mobile-more-workspaces` remains on the actual mobile More button.
+- Extended e2e safe mocks to cover `/auth/me`, `/auth/check`, `/auth/login`, and `/auth/register` without weakening `/api` network guards.
+- Updated `bootApp` to optionally set viewport before `page.goto('/')`, wait for `terminal-shell`, then wait for either desktop or mobile nav.
+- Added boot/navigation diagnostics that write to `APP_CRAWLER_RESULTS.json` and include current URL, document title/readiness, body text/HTML previews, all buttons, all data-testid elements, nav/aside/dialog elements, and shell/nav marker booleans in thrown errors.
+- Updated navigation accessibility tests to assert the terminal shell and expected desktop/mobile nav container before checking workspace buttons.
+
+### Final commands and result
+- `npm install` — failed in this environment because registry policy blocked `playwright-core@1.56.1` with `E403 Forbidden`; existing cached dependencies were still sufficient for Vitest and Vite.
+- `npm test` — passed: 18 test files / 197 tests.
+- `npm run build` — passed with the existing Vite dynamic-import and chunk-size warnings.
+- `npm run frontend:build` — passed with the existing Vite dynamic-import and chunk-size warnings.
+- `node scripts/static-api-scanner.js` — passed.
+- `node scripts/detect-menu-duplicates.js` — passed.
+- `npx playwright test tests/e2e/navigation-accessibility.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+- `npx playwright test` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.

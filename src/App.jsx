@@ -240,15 +240,18 @@ export default function App() {
       <ErrorBoundary>
         <AlertToast />
         <CommandPalette />
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100dvh',
-          background: 'var(--t-bg-0)',
-          overflow: 'hidden',
-          color: 'var(--t-text)',
-          fontFamily: 'var(--t-font-ui)',
-        }}>
+        <div
+          data-testid="terminal-shell"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100dvh',
+            background: 'var(--t-bg-0)',
+            overflow: 'hidden',
+            color: 'var(--t-text)',
+            fontFamily: 'var(--t-font-ui)',
+          }}
+        >
           <TerminalTopBar user={user} onLogout={() => setUser(null)} />
           <div style={{ flex: 1, overflow: 'auto', paddingBottom: 56 }}>
             <WorkspaceRenderer workspace={workspace} marketData={marketData} />
@@ -264,15 +267,18 @@ export default function App() {
     <ErrorBoundary>
       <AlertToast />
       <CommandPalette />
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        background: 'var(--t-bg-0)',
-        overflow: 'hidden',
-        color: 'var(--t-text)',
-        fontFamily: 'var(--t-font-ui)',
-      }}>
+      <div
+        data-testid="terminal-shell"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          background: 'var(--t-bg-0)',
+          overflow: 'hidden',
+          color: 'var(--t-text)',
+          fontFamily: 'var(--t-font-ui)',
+        }}
+      >
         <TerminalTopBar user={user} onLogout={() => setUser(null)} />
 
         <div style={{

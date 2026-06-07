@@ -128,6 +128,7 @@ export default function MobileBottomNav() {
       )}
 
       <nav
+        data-testid="mobile-workspace-nav"
         aria-label="Mobile workspace navigation"
         style={{
           position: 'fixed',
