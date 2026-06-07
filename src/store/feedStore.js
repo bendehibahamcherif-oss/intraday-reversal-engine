@@ -280,6 +280,13 @@ let _marketAbort = null;
 export const useFeedStore = create((set, get) => ({
   ...initialState,
   syncFeedDebug: () => set(getLiveDataDebug()),
+  abortMarketDataRequest: () => {
+    if (_marketAbort) {
+      _marketAbort.abort();
+      _marketAbort = null;
+    }
+    set({ loading: false });
+  },
 
   setSymbol: (symbol) => {
     const nextSymbol = String(symbol || '').toUpperCase() || 'SPY';
@@ -590,6 +597,7 @@ export const useFeedStore = create((set, get) => ({
     } catch (error) {
       if (error?.name === 'AbortError') {
         console.debug('[feedStore] market data request aborted cleanly');
+        set({ loading: false });
         return null;
       }
       get().syncFeedDebug();

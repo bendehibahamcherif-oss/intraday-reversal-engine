@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import { attachNetworkGuards } from './helpers/networkGuards';
 import { bootApp, expectScreenSane, openMobileWorkspace } from './helpers/appHarness';
-import { duplicateLabels, mobileWorkspaces } from './helpers/workspaceData';
+import { duplicateLabels, mobileWorkspaces, requiredWorkspaceNavLabels } from './helpers/workspaceData';
 
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-const required = ['Historical Data', 'AI Lab', 'Backtesting', 'Macro / Multi-Asset', 'Portfolio', 'Risk'];
+const required = requiredWorkspaceNavLabels(['HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk']);
 
 test('mobile production journey reaches all critical implemented workspaces', async ({ page }) => {
   const guard = attachNetworkGuards(page);

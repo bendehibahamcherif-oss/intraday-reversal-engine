@@ -137,3 +137,76 @@
 - `node scripts/detect-menu-duplicates.js` — passed.
 - `npx playwright test tests/e2e/navigation-accessibility.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
 - `npx playwright test` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+
+## API harness and workspace label stabilization update — 2026-06-07
+
+### Previous shell/nav issue
+- The prior stabilization work fixed the shell boot path by seeding auth state, mocking `/auth/*`, waiting for `terminal-shell`, and targeting the real desktop/mobile navigation markers before opening workspaces.
+- Current failures therefore moved past selector/shell boot problems and into API contract handling and canonical workspace metadata mismatches.
+
+### New root cause
+- Playwright CI starts only the Vite frontend web server from `playwright.config.ts`; it does not start the backend API server bound to `http://127.0.0.1:10000`.
+- The real app shell boots the default Chart workspace, which immediately calls chart, volume-profile, CVD, provider, and feed endpoints through `VITE_API_BASE`.
+- The previous e2e mock layer returned broad safe JSON for some `/api` groups but did not provide contract-shaped responses for chart/feed polling endpoints.
+- Workspace transitions can cancel in-flight GET polling/data requests. Those cancellations are legitimate only when the request was already matched by a deterministic e2e mock, is a GET chart/feed/provider polling request, has no `undefined`/`null`/`NaN` URL token, and is not a stale/forbidden endpoint.
+- Mobile and desktop journey tests mixed hardcoded labels with the registry. `Macro / Multi-Asset` is the canonical registry label for the dedicated `MacroMultiAsset` workspace, while `Settings / More` is mobile-only (`desktopVisible: false`) and the desktop canonical workspace is `Operations`.
+
+### Deterministic API endpoints mocked
+- Chart/feed: `GET /api/chart/payload/:symbol`, `GET /api/chart/cvd/:symbol`, `GET /api/volume-profile/:symbol`, `GET /api/feeds/tick/:symbol`, `GET /api/feeds/candle/:symbol`, `GET /api/feeds/orderbook/:symbol`, `GET /api/feed/status`, and `GET /api/feeds/status`.
+- Providers/historical: `GET /api/providers/health`, `GET /api/providers/credentials`, `GET /api/providers/active`, `GET /api/historical/providers`, `GET /api/historical/datasets`, dataset detail/diagnostics/delete helpers used by crawled workspaces, and the historical use-for-ML/backtest/correlation POST endpoints.
+- ML: `GET /api/ml/dependencies`, `GET /api/ml/model`, `GET /api/ml/model-runs`, `GET /api/ml/predictions`, `GET /api/ml/feature-importance`, `GET /api/ml/drift`, `GET /api/ml/model-card`, `POST /api/ml/train`, `POST /api/ml/infer/:symbol`, and `POST /api/ml/promote/:modelId`.
+- Backtest/macro: `POST /api/backtest/run`, `GET /api/backtest/runs`, `GET /api/macro/beta`, `GET /api/macro/correlation`, `GET /api/macro/sector-rotation`, and `GET /api/macro/volatility-heatmap` plus the app's current `/api/multi-asset/*` equivalents.
+- Portfolio/risk: `GET /api/portfolio/summary`, `GET /api/portfolio/positions`, `GET /api/portfolio/pnl`, `GET /api/portfolio/exposure`, `GET /api/portfolio/drawdown`, `GET /api/portfolio/history`, `GET /api/risk/summary`, `GET /api/risk/limits`, `GET /api/risk/var`, `GET /api/risk/drawdown`, `GET /api/risk/exposure`, and `GET /api/risk/alerts`.
+- Additional crawled workspace safe empty states are covered for execution, OMS, ops, institutional, rules, strategy-lab, paper, market, and legacy chart sub-resources so crawler coverage does not depend on a live backend.
+
+### Mock response policy
+- All e2e API mocks return `application/json; charset=utf-8` with an `x-e2e-api-mock: true` marker header.
+- Unknown `/api` routes return deterministic JSON with HTTP 501, which keeps network guards strict and causes the test to fail as an unmocked API request.
+- Chart payload, CVD, volume profile, and feed responses use finite deterministic values only.
+- Macro beta/correlation use safe `not_enough_data` empty states with `beta: null` and `r2: null`, never `NaN`.
+- Portfolio and risk responses use safe empty states.
+- ML model responses report `champion: null`; inference returns `no_champion_model`; training returns `training_unavailable`; provider connectivity and ML success are not faked.
+
+### Network guard updates
+- Network guards now classify API traffic as `mocked-response-ok`, `real-response-ok`, `aborted-cancelled-get-polling-request`, `forbidden-aborted-request`, or `unknown-unmocked-api-request`.
+- Guards still fail stale ML endpoints, bad URL tokens, bad request bodies, unknown unmocked `/api` requests, 404, 5xx, HTML responses, invalid JSON, empty API bodies, non-JSON content types, and `undefined`/`NaN`/`Infinity` response content.
+- `net::ERR_ABORTED` is allowed only for matched deterministic GET polling/data requests and never for POST requests or unknown routes.
+
+### Macro label fix
+- The mobile journey now derives required navigation labels from canonical workspace registry IDs via `requiredWorkspaceNavLabels(...)` instead of hardcoding `Macro / Multi-Asset`; this correctly expects the rendered mobile aria label `Macro` for the `MacroMultiAsset` workspace while preserving the visible registry label.
+- No duplicate Macro menu item was added and no visual layout/design change was made.
+
+### Settings / More fix
+- The desktop production journey no longer requires fake desktop workspace lookup for the mobile-only `Settings / More` entry.
+- The desktop journey uses the implemented canonical `Operations` workspace.
+- A separate regression validates that `Settings / More` remains present inside the mobile More dialog and is not treated as a desktop workspace.
+
+### Polling cleanup findings
+- Chart, CVD, volume-profile, and live feed requests already used `AbortController` for one active request at a time.
+- The mounted Chart and Live Data workspaces did not consistently abort pending requests on workspace unmount/route change.
+- Cleanup hooks now call store abort methods on unmount, and aborted requests clear loading state without surfacing UI errors.
+
+### Regression tests added
+- `tests/e2e/api-mock-coverage.spec.ts` verifies app boot has zero unmocked `/api` requests.
+- `tests/e2e/api-mock-coverage.spec.ts` verifies switching from Chart through other workspaces does not create forbidden repeated aborted polling failures.
+- `tests/e2e/api-mock-coverage.spec.ts` verifies journey labels are derived from canonical registry metadata.
+- `tests/e2e/api-mock-coverage.spec.ts` verifies `Settings / More` separately in the mobile More dialog.
+
+### Final command results from this environment
+- `npm test` — passed: 18 test files / 197 tests.
+- `npm run build` — passed with existing Vite dynamic-import and chunk-size warnings.
+- `npm run frontend:build` — passed with existing Vite dynamic-import and chunk-size warnings.
+- `node scripts/static-api-scanner.js` — passed.
+- `node scripts/detect-menu-duplicates.js` — passed.
+- `npm run e2e -- tests/e2e/navigation-accessibility.spec.ts` — blocked before test execution because local `node_modules` does not include the Playwright binary.
+- `npx playwright test tests/e2e/navigation-accessibility.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/payload-fuzz.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/storage-fuzz.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/mobile-user-journey.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+- `npx playwright test tests/e2e/production-user-journey.spec.ts` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+- `npx playwright test` — blocked before test execution because `npx` attempted to fetch `playwright` and npm returned `E403 Forbidden`.
+
+### Remaining risks
+- CI must provide `@playwright/test`, the `playwright` package, and browser binaries from install/cache before browser tests can run.
+- The e2e mocks intentionally validate frontend/backend contracts but do not validate live provider connectivity, ML training success, or production backend availability.
+- If new frontend `/api` calls are added, the strict unknown-route guard will fail until a deterministic contract mock is added or the backend is run for that test.

@@ -126,9 +126,10 @@ export default function LiveDataWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (!store.hasHydratedProviders) return;
+    if (!store.hasHydratedProviders) return undefined;
     store.loadLatestMarketData();
     store.loadFeedStatus();
+    return () => store.abortMarketDataRequest();
   }, [store.symbol, store.timeframe, store.hasHydratedProviders]);
 
   const statuses = Array.isArray(store.feedStatus?.activeStatuses) && store.feedStatus.activeStatuses.length

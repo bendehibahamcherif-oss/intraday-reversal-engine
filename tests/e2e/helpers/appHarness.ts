@@ -1,6 +1,7 @@
-import { expect, type Locator, type Page, type Route } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import { invalidTextPatterns } from './workspaceData';
+import { installApiMocks } from './apiMocks';
 
 export const resultsPath = (name: string) => name;
 
@@ -16,51 +17,7 @@ export async function installAuthState(page: Page) {
 }
 
 export async function installSafeApiMocks(page: Page) {
-  const fulfillJson = (route: Route, body: unknown, status = 200) => route.fulfill({
-    status,
-    contentType: 'application/json; charset=utf-8',
-    body: JSON.stringify(body),
-  });
-
-  await page.route('**/auth/**', async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const path = url.pathname;
-    if (path.includes('undefined') || path.includes('null') || path.includes('NaN')) {
-      return fulfillJson(route, { error: { code: 'BAD_E2E_AUTH_REQUEST', message: 'Invalid generated auth path' } }, 400);
-    }
-    if (path === '/auth/me' || path === '/auth/check') {
-      return fulfillJson(route, { user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } });
-    }
-    if (path === '/auth/login' || path === '/auth/register') {
-      return fulfillJson(route, { token: 'e2e-token', user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } });
-    }
-    return fulfillJson(route, { ok: true });
-  });
-
-  await page.route('**/api/**', async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const path = url.pathname;
-    const method = request.method();
-    const json = (body: unknown, status = 200) => fulfillJson(route, body, status);
-
-    if (path.includes('undefined') || path.includes('null') || path.includes('NaN')) {
-      return json({ error: { code: 'BAD_E2E_REQUEST', message: 'Invalid generated API path' } }, 400);
-    }
-    if (path === '/api/auth/me') return json({ user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } });
-    if (path.includes('/providers') || path.includes('/feeds') || path.includes('/feed')) return json({ ok: true, providers: [], statuses: [], enabledByProvider: {}, providerOrder: [], activeProviders: [] });
-    if (path.includes('/historical')) return json({ ok: true, datasets: [], files: [], data: [], status: 'empty' });
-    if (path.includes('/ml/model-runs')) return json({ ok: true, models: [], runs: [] });
-    if (path.includes('/ml/model')) return json({ ok: true, model: null, champion: null });
-    if (path.includes('/ml/infer')) return json({ ok: false, error: { code: 'NO_CHAMPION_MODEL', message: 'No champion model is available for inference.' } }, 422);
-    if (path.includes('/ml/train')) return json({ ok: false, error: { code: 'DATASET_REQUIRED', message: 'Select a valid historical dataset before training.' } }, 422);
-    if (path.includes('/ml/promote')) return json({ ok: false, error: { code: 'MODEL_REQUIRED', message: 'Select a model before promotion.' } }, 422);
-    if (path.includes('/ml')) return json({ ok: true, data: [], features: [], drift: [], metrics: {} });
-    if (path.includes('/backtest') || path.includes('/correlation') || path.includes('/beta')) return json({ ok: true, result: null, rows: [] });
-    if (method === 'DELETE') return json({ ok: true });
-    return json({ ok: true, data: [], rows: [], items: [], status: 'ok' });
-  });
+  await installApiMocks(page);
 }
 
 async function collectBootDiagnostics(page: Page) {
