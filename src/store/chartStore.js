@@ -63,6 +63,13 @@ export const useChartStore = create((set, get) => ({
   setTimeframe: (timeframe) => set({ timeframe: timeframe || DEFAULT_TIMEFRAME }),
   setLimit: (limit) => set({ limit: Number(limit) > 0 ? Number(limit) : DEFAULT_LIMIT }),
   clearError: () => set({ error: '' }),
+  abortChartRequest: () => {
+    if (_chartAbort) {
+      _chartAbort.abort();
+      _chartAbort = null;
+    }
+    set({ loading: false });
+  },
 
   loadChartPayload: async () => {
     // Cancel any in-flight request before starting a new one.
@@ -119,6 +126,7 @@ export const useChartStore = create((set, get) => ({
     } catch (err) {
       if (err?.name === 'AbortError') {
         console.debug('[chartStore] request aborted cleanly');
+        set({ loading: false });
         return;
       }
       set({ loading: false, error: err?.message || 'Failed to load chart payload' });

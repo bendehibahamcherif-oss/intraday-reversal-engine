@@ -9,6 +9,26 @@ export const mobileWorkspaces = implementedWorkspaces.filter((workspace) => work
 export const mobilePrimaryWorkspaces = mobileWorkspaces.filter((workspace) => workspace.mobilePrimary);
 export const mobileMoreWorkspaces = mobileWorkspaces.filter((workspace) => !workspace.mobilePrimary);
 
+export function workspaceById(id: string) {
+  return implementedWorkspaces.find((workspace) => workspace.id === id);
+}
+
+export function requiredWorkspaceLabels(ids: string[]) {
+  return ids.map((id) => {
+    const workspace = workspaceById(id);
+    if (!workspace) throw new Error(`Missing implemented workspace metadata for ${id}`);
+    return workspace.label;
+  });
+}
+
+export function requiredWorkspaceNavLabels(ids: string[]) {
+  return ids.map((id) => {
+    const workspace = workspaceById(id);
+    if (!workspace) throw new Error(`Missing implemented workspace metadata for ${id}`);
+    return workspace.ariaLabel || workspace.label;
+  });
+}
+
 export const invalidTextPatterns = [
   /API endpoint not found/i,
   /Endpoint not available/i,

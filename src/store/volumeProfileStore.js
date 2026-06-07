@@ -62,6 +62,18 @@ export const useVolumeProfileStore = create((set, get) => ({
   _wsConnected: false,       // future: true when WS profile stream is live
   _setWsConnected: (v) => set({ _wsConnected: Boolean(v) }),
 
+  abortVolumeProfileRequest: () => {
+    if (_vpAbort) {
+      _vpAbort.abort();
+      _vpAbort = null;
+    }
+    if (_vpDebounce) {
+      clearTimeout(_vpDebounce);
+      _vpDebounce = null;
+    }
+    set({ loading: false });
+  },
+
   loadVolumeProfile: async () => {
     const symbol = useActiveSymbolStore.getState().symbol;
     const timeframe = useChartStore.getState().timeframe;
@@ -128,6 +140,7 @@ export const useVolumeProfileStore = create((set, get) => ({
     } catch (err) {
       if (err?.name === 'AbortError') {
         console.debug('[volumeProfile] request aborted cleanly');
+        set({ loading: false });
         return;
       }
       console.warn('[volumeProfile] API failure', { message: err?.message, symbol });

@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import { attachNetworkGuards } from './helpers/networkGuards';
 import { bootApp, expectScreenSane, openDesktopWorkspace } from './helpers/appHarness';
-import { desktopWorkspaces, duplicateLabels } from './helpers/workspaceData';
+import { desktopWorkspaces, duplicateLabels, requiredWorkspaceLabels, workspaceById } from './helpers/workspaceData';
 
-const majorLabels = ['Chart', 'Markets', 'Live Data', 'Providers', 'Credentials', 'Historical Data', 'AI Lab', 'Backtesting', 'Macro / Multi-Asset', 'Portfolio', 'Risk', 'Settings / More'];
+const majorLabels = requiredWorkspaceLabels(['ChartOrderflow', 'Macro', 'LiveData', 'Providers', 'Credentials', 'HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk', 'Ops']);
 
 function byLabel(label: string) {
   return desktopWorkspaces.find((workspace) => workspace.label === label || workspace.aliases?.includes(label));
@@ -54,6 +54,10 @@ test('desktop production user journey keeps datasets, ML, backtesting, macro, po
   await expectScreenSane(page);
   await openDesktopWorkspace(page, byLabel('Risk')!);
   await expectScreenSane(page);
+
+  const settingsWorkspace = workspaceById('Settings');
+  expect(settingsWorkspace?.desktopVisible, 'Settings / More is a mobile-only More item, not a desktop workspace').toBe(false);
+  expect(byLabel('Operations'), 'desktop Settings/More journey uses canonical Operations workspace').toBeTruthy();
 
   fs.writeFileSync('PRODUCTION_USER_JOURNEY_RESULTS.json', JSON.stringify({ generatedAt: new Date().toISOString(), labels, apiRequests: guard.apiRequests }, null, 2));
   expect(guard.apiRequests.some((request) => request.url.includes('/api/ml/model'))).toBeTruthy();

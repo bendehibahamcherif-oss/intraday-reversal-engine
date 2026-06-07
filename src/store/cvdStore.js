@@ -49,6 +49,14 @@ export const useCVDStore = create((set, get) => ({
   liveUpdate:     false,     // true when the last update came from WS
 
   // ── API load ──────────────────────────────────────────────────────────────
+  abortCVDRequest: () => {
+    if (_cvdAbort) {
+      _cvdAbort.abort();
+      _cvdAbort = null;
+    }
+    set({ loading: false });
+  },
+
   loadCVD: async () => {
     const symbol = useActiveSymbolStore.getState().symbol;
     if (_cvdAbort) _cvdAbort.abort();
@@ -57,12 +65,12 @@ export const useCVDStore = create((set, get) => ({
     set({ loading: true, error: '', liveUpdate: false });
     try {
       const payload = await api.getChartCVD(symbol, { signal });
-      if (signal.aborted) return;
-      if (useActiveSymbolStore.getState().symbol !== symbol) return;
+      if (signal.aborted) { set({ loading: false }); return; }
+      if (useActiveSymbolStore.getState().symbol !== symbol) { set({ loading: false }); return; }
       const { bars, sessionDelta, source, fallback, sessionResetAt } = normalizeCVD(payload);
       set({ bars, sessionDelta, source, fallback, sessionResetAt, loading: false, lastUpdated: new Date().toISOString() });
     } catch (err) {
-      if (signal.aborted) return;
+      if (signal.aborted) { set({ loading: false }); return; }
       // If the backend doesn't have CVD data yet, store a graceful empty state.
       set({ loading: false, error: err?.message || 'Failed to load CVD', bars: [], sessionDelta: 0, fallback: true, source: 'unknown' });
     }
