@@ -13,7 +13,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "platform:smoke": "node scripts/platform-smoke.js",
-    "frontend:smoke": "node scripts/frontend-functional-smoke.js"
+    "frontend:smoke": "node scripts/frontend-functional-smoke.js",
+    "mobile:smoke": "node scripts/mobile-navigation-smoke.js",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -27,6 +30,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

@@ -266,7 +266,7 @@ export default function App() {
       <ErrorBoundary>
         <AlertToast />
         <CommandPalette />
-        <div style={{
+        <div data-testid="app-shell" style={{
           display: 'flex',
           flexDirection: 'column',
           height: '100dvh',
@@ -290,7 +290,7 @@ export default function App() {
     <ErrorBoundary>
       <AlertToast />
       <CommandPalette />
-      <div style={{
+      <div data-testid="app-shell" style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',

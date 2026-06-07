@@ -2,42 +2,23 @@ import { useEffect } from 'react';
 import { useWorkspaceStore } from './store/workspaceStore.js';
 import { useWatchlistStore } from './store/watchlistStore.js';
 import { useMLSignalStore } from './store/mlSignalStore.js';
+import { WORKSPACES } from './config/workspaces.js';
 
-const WORKSPACE_MAP = {
-  Dashboard: 'Risk',
-  'Live Markets': 'Macro',
-  'Quant Signals': 'Execution',
-  'Risk Analytics': 'Risk',
-  'Macro Intelligence': 'Macro',
-  Portfolio: 'Portfolio',
-  Replay: 'Replay',
-  'Quant Lab': 'QuantLab',
-  'Strategy Lab': 'StrategyLab',
-  'Strategy Builder': 'StrategyBuilder',
-  'Paper Trading': 'PaperTrading',
-  'Live Data': 'LiveData',
-  'Chart / Orderflow': 'ChartOrderflow',
-  'AI Lab': 'AILab',
-  'ML Engine': 'MLEngine',
+const SHORTCUTS = {
+  ChartOrderflow: 'Alt+1',
+  Execution:      'Alt+2',
+  Alerts:         'Alt+3',
+  MLEngine:       'Alt+4',
+  Portfolio:      'Alt+5',
+  Risk:           'Alt+6',
 };
 
-const NAV_ITEMS = [
-  { id: 'ChartOrderflow',  abbr: 'CH', title: 'Chart / Orderflow', shortcut: 'Alt+1' },
-  { id: 'Risk',            abbr: 'RK', title: 'Risk / Dashboard',  shortcut: 'Alt+6' },
-  { id: 'Macro',           abbr: 'MK', title: 'Live Markets',      shortcut: '' },
-  { id: 'Execution',       abbr: 'EX', title: 'Quant Signals',     shortcut: 'Alt+2' },
-  { id: 'Portfolio',       abbr: 'PF', title: 'Portfolio',         shortcut: 'Alt+5' },
-  { id: 'LiveData',        abbr: 'LD', title: 'Live Data',         shortcut: '' },
-  { id: 'Alerts',          abbr: 'AL', title: 'Alerts',            shortcut: 'Alt+3' },
-  { id: 'MLEngine',        abbr: 'ML', title: 'ML Engine',         shortcut: 'Alt+4' },
-  { id: 'AILab',           abbr: 'AI', title: 'AI Lab',            shortcut: '' },
-  { id: 'QuantLab',        abbr: 'QL', title: 'Quant Lab',         shortcut: '' },
-  { id: 'StrategyLab',     abbr: 'SL', title: 'Strategy Lab',      shortcut: '' },
-  { id: 'StrategyBuilder', abbr: 'SB', title: 'Strategy Builder',  shortcut: '' },
-  { id: 'PaperTrading',    abbr: 'PT', title: 'Paper Trading',     shortcut: '' },
-  { id: 'Replay',          abbr: 'RP', title: 'Replay',            shortcut: '' },
-  { id: 'HistoricalData',  abbr: 'HD', title: 'Historical Data',   shortcut: '' },
-];
+const NAV_ITEMS = WORKSPACES.map((w) => ({
+  id:      w.id,
+  abbr:    w.abbr,
+  title:   w.label,
+  shortcut: SHORTCUTS[w.id] || '',
+}));
 
 export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknown', onSelectSymbol }) {
   const workspace    = useWorkspaceStore((s) => s.workspace);

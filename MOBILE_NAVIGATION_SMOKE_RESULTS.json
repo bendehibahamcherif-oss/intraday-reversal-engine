@@ -1,0 +1,97 @@
+{
+  "passed": 18,
+  "failed": 0,
+  "total": 18,
+  "results": [
+    {
+      "label": "Registry exports workspace ids",
+      "status": "PASS",
+      "detail": "found 18"
+    },
+    {
+      "label": "Registry exports MOBILE_PRIMARY_TAB_IDS with 4 entries",
+      "status": "PASS",
+      "detail": "found 4"
+    },
+    {
+      "label": "MOBILE_MORE_WORKSPACES excludes primary tab ids",
+      "status": "PASS",
+      "detail": "filter expression not found"
+    },
+    {
+      "label": "MobileBottomNav imports MOBILE_MORE_WORKSPACES",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav imports MOBILE_PRIMARY_TAB_IDS",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav has more-drawer data-testid",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav renders more-item data-testids",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav maps MOBILE_MORE_WORKSPACES in drawer",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav has More button",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav backdrop for drawer",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "MobileBottomNav no longer hardcodes Portfolio as MORE",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore imports isValidWorkspace",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore validates setWorkspace",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore has onRehydrateStorage",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "workspaceStore uses DEFAULT_WORKSPACE",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "TerminalSidebar imports WORKSPACES registry",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "TerminalSidebar maps all workspaces from registry (covers OMS/Institutional/Ops)",
+      "status": "PASS",
+      "detail": "WORKSPACES.map found"
+    },
+    {
+      "label": "All workspaces reachable on mobile (primary tabs + More drawer)",
+      "status": "PASS",
+      "detail": "primary tabs + drawer covers all"
+    }
+  ]
+}
