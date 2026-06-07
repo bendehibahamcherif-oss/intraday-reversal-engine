@@ -5,6 +5,8 @@ import { desktopWorkspaces, duplicateLabels, mobilePrimaryWorkspaces, mobileMore
 test.describe('desktop navigation accessibility', () => {
   test('exposes implemented workspace buttons and opens every desktop workspace', async ({ page }) => {
     await bootApp(page);
+    await expect(page.getByTestId('terminal-shell')).toBeVisible();
+    await expect(page.getByTestId('desktop-workspace-nav')).toBeVisible();
 
     for (const workspace of desktopWorkspaces) {
       await expect(page.getByTestId(workspace.navTestId), `${workspace.id} test selector`).toBeVisible();
@@ -25,7 +27,9 @@ test.describe('mobile navigation accessibility', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
   test('exposes primary and more navigation and opens every mobile workspace', async ({ page }) => {
-    await bootApp(page);
+    await bootApp(page, { viewport: { width: 390, height: 844 } });
+    await expect(page.getByTestId('terminal-shell')).toBeVisible();
+    await expect(page.getByTestId('mobile-workspace-nav')).toBeVisible();
 
     for (const workspace of mobilePrimaryWorkspaces) {
       await expect(page.getByTestId(workspace.navTestId), `${workspace.id} primary test selector`).toBeVisible();

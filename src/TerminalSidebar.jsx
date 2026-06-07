@@ -38,6 +38,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
 
   return (
     <aside
+      data-testid="desktop-workspace-nav"
       style={{
         width: 48,
         background: 'var(--t-bg-2)',

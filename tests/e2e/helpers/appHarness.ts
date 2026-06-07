@@ -1,7 +1,12 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, type Route } from '@playwright/test';
+import fs from 'node:fs';
 import { invalidTextPatterns } from './workspaceData';
 
 export const resultsPath = (name: string) => name;
+
+type BootAppOptions = {
+  viewport?: { width: number; height: number };
+};
 
 export async function installAuthState(page: Page) {
   await page.addInitScript(() => {
@@ -11,21 +16,39 @@ export async function installAuthState(page: Page) {
 }
 
 export async function installSafeApiMocks(page: Page) {
+  const fulfillJson = (route: Route, body: unknown, status = 200) => route.fulfill({
+    status,
+    contentType: 'application/json; charset=utf-8',
+    body: JSON.stringify(body),
+  });
+
+  await page.route('**/auth/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    if (path.includes('undefined') || path.includes('null') || path.includes('NaN')) {
+      return fulfillJson(route, { error: { code: 'BAD_E2E_AUTH_REQUEST', message: 'Invalid generated auth path' } }, 400);
+    }
+    if (path === '/auth/me' || path === '/auth/check') {
+      return fulfillJson(route, { user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } });
+    }
+    if (path === '/auth/login' || path === '/auth/register') {
+      return fulfillJson(route, { token: 'e2e-token', user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } });
+    }
+    return fulfillJson(route, { ok: true });
+  });
+
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
     const method = request.method();
-    const json = (body: unknown, status = 200) => route.fulfill({
-      status,
-      contentType: 'application/json; charset=utf-8',
-      body: JSON.stringify(body),
-    });
+    const json = (body: unknown, status = 200) => fulfillJson(route, body, status);
 
     if (path.includes('undefined') || path.includes('null') || path.includes('NaN')) {
       return json({ error: { code: 'BAD_E2E_REQUEST', message: 'Invalid generated API path' } }, 400);
     }
-    if (path === '/api/auth/me') return json({ user: { id: 'e2e-user', email: 'e2e@example.com' } });
+    if (path === '/api/auth/me') return json({ user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } });
     if (path.includes('/providers') || path.includes('/feeds') || path.includes('/feed')) return json({ ok: true, providers: [], statuses: [], enabledByProvider: {}, providerOrder: [], activeProviders: [] });
     if (path.includes('/historical')) return json({ ok: true, datasets: [], files: [], data: [], status: 'empty' });
     if (path.includes('/ml/model-runs')) return json({ ok: true, models: [], runs: [] });
@@ -40,13 +63,120 @@ export async function installSafeApiMocks(page: Page) {
   });
 }
 
-export async function bootApp(page: Page) {
+async function collectBootDiagnostics(page: Page) {
+  return page.evaluate(() => {
+    const body = document.body;
+    const attrs = (element: Element) => ({
+      tagName: element.tagName.toLowerCase(),
+      textContent: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 300),
+      ariaLabel: element.getAttribute('aria-label') || '',
+      title: element.getAttribute('title') || '',
+      testId: element.getAttribute('data-testid') || '',
+      className: typeof element.className === 'string' ? element.className : String(element.getAttribute('class') || ''),
+    });
+
+    return {
+      currentUrl: window.location.href,
+      title: document.title,
+      readyState: document.readyState,
+      bodyInnerText: (body?.innerText || '').slice(0, 3000),
+      bodyInnerHTML: (body?.innerHTML || '').slice(0, 3000),
+      buttons: Array.from(document.querySelectorAll('button')).map(attrs),
+      testIds: Array.from(document.querySelectorAll('[data-testid]')).map((element) => ({
+        ...attrs(element),
+        id: element.id || '',
+      })),
+      landmarks: Array.from(document.querySelectorAll('nav, aside, dialog, [role="dialog"]')).map(attrs),
+      markers: {
+        rootExists: Boolean(document.querySelector('#root')),
+        terminalShellExists: Boolean(document.querySelector('[data-testid="terminal-shell"]')),
+        desktopWorkspaceNavExists: Boolean(document.querySelector('[data-testid="desktop-workspace-nav"]')),
+        mobileWorkspaceNavExists: Boolean(document.querySelector('[data-testid="mobile-workspace-nav"]')),
+      },
+    };
+  }).catch((error) => ({
+    currentUrl: page.url(),
+    title: '',
+    readyState: 'unavailable',
+    bodyInnerText: '',
+    bodyInnerHTML: '',
+    buttons: [],
+    testIds: [],
+    landmarks: [],
+    markers: {
+      rootExists: false,
+      terminalShellExists: false,
+      desktopWorkspaceNavExists: false,
+      mobileWorkspaceNavExists: false,
+    },
+    collectionError: error instanceof Error ? error.message : String(error),
+  }));
+}
+
+function diagnosticsMessage(context: string, diagnostics: Awaited<ReturnType<typeof collectBootDiagnostics>>) {
+  const buttonLines = diagnostics.buttons
+    .map((button) => [button.testId, button.ariaLabel, button.title, button.textContent, button.className].filter(Boolean).join(' | '))
+    .filter(Boolean)
+    .join('\n') || '(none)';
+  const testIdLines = diagnostics.testIds
+    .map((element) => [element.testId, element.tagName, element.ariaLabel, element.title, element.textContent, element.className].filter(Boolean).join(' | '))
+    .join('\n') || '(none)';
+  const landmarkLines = diagnostics.landmarks
+    .map((element) => [element.tagName, element.testId, element.ariaLabel, element.title, element.textContent, element.className].filter(Boolean).join(' | '))
+    .join('\n') || '(none)';
+
+  return `${context}
+Current URL: ${diagnostics.currentUrl}
+Document title: ${diagnostics.title || '(empty)'}
+Document readyState: ${diagnostics.readyState}
+Markers: ${JSON.stringify(diagnostics.markers)}
+
+First 3000 chars of document.body.innerText:
+${diagnostics.bodyInnerText || '(empty)'}
+
+First 3000 chars of document.body.innerHTML:
+${diagnostics.bodyInnerHTML || '(empty)'}
+
+Buttons (data-testid | aria-label | title | text | className):
+${buttonLines}
+
+Elements with data-testid:
+${testIdLines}
+
+Nav/aside/dialog elements:
+${landmarkLines}`;
+}
+
+function recordBootDiagnostics(context: string, diagnostics: Awaited<ReturnType<typeof collectBootDiagnostics>>) {
+  const path = 'APP_CRAWLER_RESULTS.json';
+  let previous: Record<string, unknown> = {};
+  try {
+    if (fs.existsSync(path)) previous = JSON.parse(fs.readFileSync(path, 'utf8'));
+  } catch {
+    previous = {};
+  }
+  const bootDiagnostics = Array.isArray(previous.bootDiagnostics) ? previous.bootDiagnostics : [];
+  bootDiagnostics.push({ context, generatedAt: new Date().toISOString(), ...diagnostics });
+  fs.writeFileSync(path, JSON.stringify({ ...previous, bootDiagnostics }, null, 2));
+}
+
+export async function bootApp(page: Page, options: BootAppOptions = {}) {
+  if (options.viewport) await page.setViewportSize(options.viewport);
   await installAuthState(page);
   await installSafeApiMocks(page);
   await page.goto('/');
-  await expect(page.locator('body')).toBeVisible();
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(300);
+
+  const shell = page.getByTestId('terminal-shell');
+  try {
+    await expect(shell).toBeVisible();
+    await expect(page.getByTestId('desktop-workspace-nav').or(page.getByTestId('mobile-workspace-nav'))).toBeVisible();
+  } catch (error) {
+    const diagnostics = await collectBootDiagnostics(page);
+    const context = error instanceof Error ? error.message : String(error);
+    recordBootDiagnostics(context, diagnostics);
+    throw new Error(diagnosticsMessage(`Terminal shell boot failed: ${context}`, diagnostics));
+  }
 }
 
 type WorkspaceNavTarget = {
@@ -67,14 +197,26 @@ async function availableNavigationLabels(page: Page, selector = 'button') {
     title: button.getAttribute('title') || '',
     testId: button.getAttribute('data-testid') || '',
     tooltip: button.getAttribute('data-tooltip') || '',
+    className: typeof button.className === 'string' ? button.className : button.getAttribute('class') || '',
   })));
 }
 
 function navLabelsMessage(labels: Awaited<ReturnType<typeof availableNavigationLabels>>) {
   return labels
-    .map((label) => [label.testId, label.ariaLabel, label.title, label.tooltip, label.text].filter(Boolean).join(' | '))
+    .map((label) => [label.testId, label.ariaLabel, label.title, label.tooltip, label.text, label.className].filter(Boolean).join(' | '))
     .filter(Boolean)
     .join('\n');
+}
+
+async function throwNavigationDiagnostic(page: Page, message: string, selector: string) {
+  const labels = await availableNavigationLabels(page, selector);
+  const diagnostics = await collectBootDiagnostics(page);
+  recordBootDiagnostics(message, diagnostics);
+  throw new Error(`${message}
+Available navigation labels:
+${navLabelsMessage(labels) || '(none)'}
+
+${diagnosticsMessage('DOM diagnostics at navigation failure:', diagnostics)}`);
 }
 
 async function clickIfReady(locator: Locator) {
@@ -116,10 +258,11 @@ export async function openDesktopWorkspace(page: Page, workspace: WorkspaceNavTa
     return;
   }
 
-  const labels = await availableNavigationLabels(page, 'aside button, nav button, [role="dialog"] button');
-  throw new Error(`Unable to find desktop workspace navigation for ${workspace.id} (${workspace.label}). Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}, shortLabel=${workspace.shortLabel || '(none)'}.
-Available navigation labels:
-${navLabelsMessage(labels) || '(none)'}`);
+  await throwNavigationDiagnostic(
+    page,
+    `Unable to find desktop workspace navigation for ${workspace.id} (${workspace.label}). Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}, shortLabel=${workspace.shortLabel || '(none)'}.`,
+    'aside button, nav button, [role="dialog"] button'
+  );
 }
 
 export async function openMobileWorkspace(page: Page, workspace: WorkspaceNavTarget) {
@@ -143,10 +286,11 @@ export async function openMobileWorkspace(page: Page, workspace: WorkspaceNavTar
     await moreButton.first().click();
     await expect(page.getByRole('dialog', { name: /more workspaces/i })).toBeVisible();
   } else {
-    const labels = await availableNavigationLabels(page, 'nav[aria-label="Mobile workspace navigation"] button, [role="dialog"] button');
-    throw new Error(`Unable to find mobile workspace ${workspace.id} (${workspace.label}) in visible primary nav, and More workspaces is not required/rendered. Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}.
-Available mobile navigation labels:
-${navLabelsMessage(labels) || '(none)'}`);
+    await throwNavigationDiagnostic(
+      page,
+      `Unable to find mobile workspace ${workspace.id} (${workspace.label}) in visible primary nav, and More workspaces is not required/rendered. Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}.`,
+      'nav[aria-label="Mobile workspace navigation"] button, [role="dialog"] button'
+    );
   }
 
   if (await clickIfReady(page.getByTestId(testId))) {
@@ -161,10 +305,11 @@ ${navLabelsMessage(labels) || '(none)'}`);
     }
   }
 
-  const labels = await availableNavigationLabels(page, 'nav[aria-label="Mobile workspace navigation"] button, [role="dialog"] button');
-  throw new Error(`Unable to find mobile workspace navigation for ${workspace.id} (${workspace.label}). Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}.
-Available mobile navigation labels:
-${navLabelsMessage(labels) || '(none)'}`);
+  await throwNavigationDiagnostic(
+    page,
+    `Unable to find mobile workspace navigation for ${workspace.id} (${workspace.label}). Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}.`,
+    'nav[aria-label="Mobile workspace navigation"] button, [role="dialog"] button'
+  );
 }
 
 export async function scanVisibleInvalidValues(page: Page) {
