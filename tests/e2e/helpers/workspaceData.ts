@@ -6,6 +6,8 @@ export const implementedWorkspaces = workspaceDefinitions
 
 export const desktopWorkspaces = implementedWorkspaces.filter((workspace) => workspace.desktopVisible);
 export const mobileWorkspaces = implementedWorkspaces.filter((workspace) => workspace.mobileVisible);
+export const mobilePrimaryWorkspaces = mobileWorkspaces.filter((workspace) => workspace.mobilePrimary);
+export const mobileMoreWorkspaces = mobileWorkspaces.filter((workspace) => !workspace.mobilePrimary);
 
 export const invalidTextPatterns = [
   /API endpoint not found/i,

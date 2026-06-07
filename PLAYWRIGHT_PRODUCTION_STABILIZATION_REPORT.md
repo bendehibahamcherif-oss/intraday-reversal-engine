@@ -66,3 +66,33 @@
 - `npx playwright test` — failed in this container before tests executed because `npx` could not download `playwright` from the npm registry (`E403 Forbidden`).
 - `npm run lint` — unavailable: package has no `lint` script.
 - `npm run typecheck` — unavailable: package has no `typecheck` script.
+
+## Navigation selector stabilization update — 2026-06-07
+
+### Failing tests addressed
+- Desktop failures: `tests/e2e/app-crawler.spec.ts`, `tests/e2e/production-user-journey.spec.ts`, and `tests/e2e/screen-sanity.spec.ts` timed out while looking for `getByRole('button', { name: 'CH', exact: true })`.
+- Mobile failures: `tests/e2e/mobile-app-crawler.spec.ts` and `tests/e2e/mobile-user-journey.spec.ts` timed out while looking for `getByRole('button', { name: /more/i })`.
+
+### Root cause
+- Desktop workspace buttons rendered the short visual labels (`CH`, `MK`, etc.) and tooltip/title metadata, but did not expose stable full accessible names or test selectors for the implemented workspaces.
+- Mobile primary and More-menu workspace controls had mixed title/text/aria-label behavior, and the More button did not provide a stable non-visual selector for the harness.
+- The e2e harness depended first on role names that could diverge from the real implemented navigation DOM instead of using canonical registry-driven selectors.
+
+### Fix
+- Added canonical registry-backed `navTestId` and `ariaLabel` metadata for implemented workspaces, including `workspace-nav-chart`, `workspace-nav-markets`, `workspace-nav-live-data`, `workspace-nav-ai-lab`, `workspace-nav-ml`, `workspace-nav-macro`, `workspace-nav-backtesting`, `workspace-nav-portfolio`, and `workspace-nav-risk`.
+- Added stable `data-testid` and `aria-label` attributes to desktop sidebar buttons, mobile primary workspace buttons, mobile More-menu workspace buttons, and `data-testid="mobile-more-workspaces"` / `aria-label="More workspaces"` for the mobile More control.
+- Updated `tests/e2e/helpers/appHarness.ts` so desktop navigation tries `data-testid`, full accessible labels, title/tooltip labels, and short labels before throwing a failure that lists available navigation labels.
+- Updated mobile navigation helpers to use `mobile-more-workspaces`, explicitly fail with available mobile labels when More is absent but needed, and use canonical workspace test IDs inside the drawer.
+- Added `tests/e2e/navigation-accessibility.spec.ts` to assert desktop and mobile navigation selectors/accessible names, duplicate-label protection, mobile More discoverability, and timeout-free workspace opening.
+
+### Commands run
+- `npm test` — passed: 18 test files / 197 tests.
+- `npm run build` — passed with existing Vite chunk-size warning.
+- `npm run frontend:build` — passed with existing Vite chunk-size warning.
+- `node scripts/static-api-scanner.js` — passed.
+- `node scripts/detect-menu-duplicates.js` — passed.
+- `npx playwright test tests/e2e/navigation-accessibility.spec.ts` — not executed in this container because `npx` attempted to fetch `playwright` from the npm registry and failed with `E403 Forbidden` before tests started.
+- `npx playwright test` — not executed in this container because `npx` attempted to fetch `playwright` from the npm registry and failed with `E403 Forbidden` before tests started.
+
+### Final Playwright result
+- Playwright browser tests are expected to run in GitHub Actions where `@playwright/test` and the browser binaries are available. In this container, both requested Playwright commands were blocked before test execution by npm registry policy (`E403 Forbidden` fetching `playwright`).

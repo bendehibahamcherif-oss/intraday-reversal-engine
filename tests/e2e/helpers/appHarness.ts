@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { invalidTextPatterns } from './workspaceData';
 
 export const resultsPath = (name: string) => name;
@@ -49,28 +49,122 @@ export async function bootApp(page: Page) {
   await page.waitForTimeout(300);
 }
 
-export async function openDesktopWorkspace(page: Page, workspace: { id: string; label: string; shortLabel?: string }) {
-  const button = page.locator(`button[title="${workspace.label}"], button[data-tooltip="${workspace.label}"]`).first();
-  if (await button.count()) {
-    await button.click();
-  } else if (workspace.shortLabel) {
-    await page.getByRole('button', { name: workspace.shortLabel, exact: true }).click();
-  }
-  await page.waitForTimeout(250);
+type WorkspaceNavTarget = {
+  id: string;
+  label: string;
+  shortLabel?: string;
+  ariaLabel?: string;
+  navTestId?: string;
+  mobilePrimary?: boolean;
+};
+
+const workspaceTestId = (workspace: WorkspaceNavTarget) => workspace.navTestId ?? `workspace-nav-${workspace.id.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`;
+
+async function availableNavigationLabels(page: Page, selector = 'button') {
+  return page.locator(selector).evaluateAll((buttons) => buttons.map((button) => ({
+    text: (button.textContent || '').trim().replace(/\s+/g, ' '),
+    ariaLabel: button.getAttribute('aria-label') || '',
+    title: button.getAttribute('title') || '',
+    testId: button.getAttribute('data-testid') || '',
+    tooltip: button.getAttribute('data-tooltip') || '',
+  })));
 }
 
-export async function openMobileWorkspace(page: Page, workspace: { id: string; label: string; shortLabel?: string; mobilePrimary?: boolean }) {
-  const visibleButton = page.getByRole('button', { name: workspace.label, exact: true }).first();
-  if (await visibleButton.isVisible().catch(() => false)) {
-    await visibleButton.click();
-    await page.waitForTimeout(200);
+function navLabelsMessage(labels: Awaited<ReturnType<typeof availableNavigationLabels>>) {
+  return labels
+    .map((label) => [label.testId, label.ariaLabel, label.title, label.tooltip, label.text].filter(Boolean).join(' | '))
+    .filter(Boolean)
+    .join('\n');
+}
+
+async function clickIfReady(locator: Locator) {
+  if (await locator.count()) {
+    const first = locator.first();
+    if (await first.isVisible().catch(() => false)) {
+      await first.click();
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function openDesktopWorkspace(page: Page, workspace: WorkspaceNavTarget) {
+  const testId = workspaceTestId(workspace);
+  const names = [workspace.ariaLabel, workspace.label].filter(Boolean) as string[];
+
+  if (await clickIfReady(page.getByTestId(testId))) {
+    await page.waitForTimeout(250);
     return;
   }
-  const more = page.getByRole('button', { name: /more/i }).first();
-  if (await more.count()) await more.click();
-  const menuButton = page.getByRole('button', { name: workspace.label, exact: true }).first();
-  if (await menuButton.count()) await menuButton.click();
-  await page.waitForTimeout(250);
+
+  for (const name of names) {
+    if (await clickIfReady(page.getByRole('button', { name, exact: true }))) {
+      await page.waitForTimeout(250);
+      return;
+    }
+  }
+
+  for (const name of names) {
+    if (await clickIfReady(page.locator(`button[title="${name}"], button[data-tooltip="${name}"]`))) {
+      await page.waitForTimeout(250);
+      return;
+    }
+  }
+
+  if (workspace.shortLabel && await clickIfReady(page.getByRole('button', { name: workspace.shortLabel, exact: true }))) {
+    await page.waitForTimeout(250);
+    return;
+  }
+
+  const labels = await availableNavigationLabels(page, 'aside button, nav button, [role="dialog"] button');
+  throw new Error(`Unable to find desktop workspace navigation for ${workspace.id} (${workspace.label}). Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}, shortLabel=${workspace.shortLabel || '(none)'}.
+Available navigation labels:
+${navLabelsMessage(labels) || '(none)'}`);
+}
+
+export async function openMobileWorkspace(page: Page, workspace: WorkspaceNavTarget) {
+  const testId = workspaceTestId(workspace);
+  const names = [workspace.ariaLabel, workspace.label].filter(Boolean) as string[];
+
+  if (await clickIfReady(page.getByTestId(testId))) {
+    await page.waitForTimeout(250);
+    return;
+  }
+
+  for (const name of names) {
+    if (await clickIfReady(page.getByRole('button', { name, exact: true }))) {
+      await page.waitForTimeout(250);
+      return;
+    }
+  }
+
+  const moreButton = page.getByTestId('mobile-more-workspaces');
+  if (await moreButton.count()) {
+    await moreButton.first().click();
+    await expect(page.getByRole('dialog', { name: /more workspaces/i })).toBeVisible();
+  } else {
+    const labels = await availableNavigationLabels(page, 'nav[aria-label="Mobile workspace navigation"] button, [role="dialog"] button');
+    throw new Error(`Unable to find mobile workspace ${workspace.id} (${workspace.label}) in visible primary nav, and More workspaces is not required/rendered. Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}.
+Available mobile navigation labels:
+${navLabelsMessage(labels) || '(none)'}`);
+  }
+
+  if (await clickIfReady(page.getByTestId(testId))) {
+    await page.waitForTimeout(250);
+    return;
+  }
+
+  for (const name of names) {
+    if (await clickIfReady(page.getByRole('button', { name, exact: true }))) {
+      await page.waitForTimeout(250);
+      return;
+    }
+  }
+
+  const labels = await availableNavigationLabels(page, 'nav[aria-label="Mobile workspace navigation"] button, [role="dialog"] button');
+  throw new Error(`Unable to find mobile workspace navigation for ${workspace.id} (${workspace.label}). Tried data-testid=${testId}, names=${names.join(', ') || '(none)'}.
+Available mobile navigation labels:
+${navLabelsMessage(labels) || '(none)'}`);
 }
 
 export async function scanVisibleInvalidValues(page: Page) {

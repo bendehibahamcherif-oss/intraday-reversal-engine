@@ -85,7 +85,7 @@ describe('mobile More menu', () => {
 
   it('contains Macro / Correlation entries', () => {
     openMoreMenu();
-    expect(screen.getByRole('button', { name: /macro \/ multi-asset/i })).toBeTruthy();
+    expect(screen.getByTestId('workspace-nav-macro')).toHaveTextContent(/macro \/ multi-asset/i);
     expect(screen.getByRole('button', { name: /correlation/i })).toBeTruthy();
   });
 });

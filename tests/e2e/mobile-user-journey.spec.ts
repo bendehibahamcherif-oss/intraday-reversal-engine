@@ -11,7 +11,7 @@ const required = ['Historical Data', 'AI Lab', 'Backtesting', 'Macro / Multi-Ass
 test('mobile production journey reaches all critical implemented workspaces', async ({ page }) => {
   const guard = attachNetworkGuards(page);
   await bootApp(page);
-  await page.getByRole('button', { name: /more/i }).click();
+  await page.getByTestId('mobile-more-workspaces').click();
   const moreLabels = await page.getByRole('dialog', { name: /more workspaces/i }).locator('button[aria-label]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') || '').filter(Boolean));
   const primaryLabels = await page.locator('nav[aria-label="Mobile workspace navigation"] button[title]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('title') || '').filter((label) => label && label !== 'More'));
   await page.getByRole('button', { name: /close more workspaces/i }).click();
