@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T11:53:57.695Z",
+  "generatedAt": "2026-06-07T13:53:19.417Z",
   "labels": [
     "Chart",
     "Markets",
@@ -814,7 +814,7 @@
       "method": "GET",
       "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
       "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
+      "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
@@ -895,7 +895,10 @@
       "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
       "requestBodyPreview": "",
       "reason": "api-request",
-      "classification": "mock-route-matched"
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"tick\":{\"symbol\":\"SPY\",\"price\":472.25,\"bid\":472.2,\"ask\":472.3,\"size\":100,\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
     },
     {
       "method": "GET",
@@ -1554,113 +1557,33 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/features/SPY?limit=50",
+      "url": "http://127.0.0.1:10000/api/market/runtime",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"status\":\"no_model\"}"
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/labels/SPY?limit=50",
+      "url": "http://127.0.0.1:10000/api/providers/health",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"labels\":[],\"status\":\"no_model\"}"
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"providers\":[],\"statuses\":[],\"enabledByProvider\":{},\"providerOrder\":[],\"activeProviders\":[],\"health\":[]}"
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/regime/SPY",
+      "url": "http://127.0.0.1:10000/api/market/subscriptions",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"regime\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/analytics/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/analytics/features/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/analytics/regimes/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"regimes\":[],\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/model-runs?symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"runs\":[],\"models\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/model?symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"champion\":null,\"challengers\":[],\"model\":null,\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/features/SPY?timeframe=1m&limit=1",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/metrics",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"metrics\":{},\"status\":\"empty\"}"
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
     },
     {
       "method": "GET",
@@ -1771,6 +1694,896 @@
       "status": 200,
       "contentType": "application/json; charset=utf-8",
       "responseBodyPreview": "{\"ok\":true,\"metrics\":{},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/features/SPY?limit=50",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/labels/SPY?limit=50",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"labels\":[],\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/regime/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"regime\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/analytics/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/analytics/features/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/analytics/regimes/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"regimes\":[],\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/model-runs?symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"runs\":[],\"models\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/model?symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"champion\":null,\"challengers\":[],\"model\":null,\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/features/SPY?timeframe=1m&limit=1",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"status\":\"no_model\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/metrics",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"metrics\":{},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/historical/providers",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"providers\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/historical/datasets",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":480,\"rowsBySymbol\":{\"SPY\":480},\"files\":{\"csv\":\"/data/historical/e2e-dataset.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/historical/providers",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"providers\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/historical/datasets",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":480,\"rowsBySymbol\":{\"SPY\":480},\"files\":{\"csv\":\"/data/historical/e2e-dataset.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/execution/orders?mode=paper&symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/execution/fills?mode=paper&symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/execution/analytics?mode=paper&symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/execution/orders?mode=paper&symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/execution/fills?mode=paper&symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/execution/analytics?mode=paper&symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/templates/strategies",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/templates/strategies",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/orders?symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/fills?symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/positions",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/risk/status",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/orders?symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/fills?symbol=SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/positions",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/risk/status",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/positions?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"positions\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/pnl?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"pnl\":{\"realized\":0,\"unrealized\":0,\"total\":0},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/exposure?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"exposure\":{\"gross\":0,\"net\":0,\"bySymbol\":[]},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/drawdown?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"drawdown\":{\"current\":0,\"max\":0},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/risk/status",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/positions?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"positions\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/pnl?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"pnl\":{\"realized\":0,\"unrealized\":0,\"total\":0},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/exposure?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"exposure\":{\"gross\":0,\"net\":0,\"bySymbol\":[]},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/portfolio/drawdown?mode=paper",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"drawdown\":{\"current\":0,\"max\":0},\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/paper/risk/status",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/strategy-lab/strategies/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/strategy-lab/strategies/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/quant/history/SPY?limit=20",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/analytics/trend/SPY?limit=20",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/analytics/latest/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/backtest/results/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"results\":[],\"rows\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/validation/results/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/reversals/points/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/quant/history/SPY?limit=20",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/analytics/trend/SPY?limit=20",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/analytics/latest/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/backtest/results/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"results\":[],\"rows\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/validation/results/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/reversals/points/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/templates/strategies",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/templates/strategies",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/runtime/health",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"mode\":\"e2e_mock\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/runtime/health",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"mode\":\"e2e_mock\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ops/status",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ops/status",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
     },
     {
       "method": "GET",
@@ -1804,786 +2617,6 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/historical/providers",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"providers\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/historical/datasets",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":480,\"rowsBySymbol\":{\"SPY\":480},\"files\":{\"csv\":\"/data/historical/e2e-dataset.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/historical/providers",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"providers\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/historical/datasets",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":480,\"rowsBySymbol\":{\"SPY\":480},\"files\":{\"csv\":\"/data/historical/e2e-dataset.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/execution/orders?mode=paper&symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/execution/fills?mode=paper&symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/execution/analytics?mode=paper&symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/execution/orders?mode=paper&symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/execution/fills?mode=paper&symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/execution/analytics?mode=paper&symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/templates/strategies",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/templates/strategies",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/orders?symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/fills?symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/positions",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/risk/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/orders?symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/fills?symbol=SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/positions",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/risk/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/positions?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"positions\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/pnl?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"pnl\":{\"realized\":0,\"unrealized\":0,\"total\":0},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/exposure?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"exposure\":{\"gross\":0,\"net\":0,\"bySymbol\":[]},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/drawdown?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"drawdown\":{\"current\":0,\"max\":0},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/risk/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/positions?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"positions\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/pnl?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"pnl\":{\"realized\":0,\"unrealized\":0,\"total\":0},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/exposure?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"exposure\":{\"gross\":0,\"net\":0,\"bySymbol\":[]},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/portfolio/drawdown?mode=paper",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"drawdown\":{\"current\":0,\"max\":0},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/paper/risk/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/strategy-lab/strategies/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/strategy-lab/strategies/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/quant/history/SPY?limit=20",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/analytics/trend/SPY?limit=20",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/analytics/latest/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/backtest/results/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"results\":[],\"rows\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/validation/results/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/reversals/points/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/quant/history/SPY?limit=20",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/analytics/trend/SPY?limit=20",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/analytics/latest/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"analytics\":null,\"trend\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/backtest/results/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"results\":[],\"rows\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/validation/results/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/reversals/points/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"points\":[],\"history\":[],\"results\":null,\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/templates/strategies",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/templates/strategies",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/runtime/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"mode\":\"e2e_mock\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/runtime/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"mode\":\"e2e_mock\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ops/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ops/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
-    },
-    {
-      "method": "GET",
       "url": "http://127.0.0.1:10000/api/oms/orders?limit=100",
       "requestBodyPreview": "",
       "reason": "api-request",
@@ -2641,6 +2674,16 @@
       "status": 200,
       "contentType": "application/json; charset=utf-8",
       "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"rows\":[],\"items\":[],\"data\":[],\"orders\":[],\"events\":[],\"stats\":{},\"audit\":[]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/alerts/history?limit=10",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"empty\",\"history\":[]}"
     },
     {
       "method": "GET",
