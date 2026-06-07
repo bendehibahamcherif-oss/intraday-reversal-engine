@@ -13,7 +13,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "platform:smoke": "node scripts/platform-smoke.js",
-    "frontend:smoke": "node scripts/frontend-functional-smoke.js"
+    "frontend:smoke": "node scripts/frontend-functional-smoke.js",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium",
+    "production:readiness": "node scripts/run-production-readiness.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -27,11 +30,13 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.1",
     "jsdom": "^29.1.1",
+    "playwright": "^1.56.1",
     "vite": "^5.4.10",
     "vitest": "^4.1.7"
   }
