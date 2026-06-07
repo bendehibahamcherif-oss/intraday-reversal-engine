@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { attachNetworkGuards } from './helpers/networkGuards';
+import { isKnownE2eMockedApiRequest } from './helpers/apiMocks';
 import { bootApp, expectScreenSane, openDesktopWorkspace } from './helpers/appHarness';
 import { desktopWorkspaces, requiredWorkspaceLabels, requiredWorkspaceNavLabels, workspaceById } from './helpers/workspaceData';
 
@@ -10,6 +11,22 @@ test('e2e API mock coverage: app boot has zero unmocked /api requests', async ({
   const unmocked = guard.apiRequests.filter((request) => request.classification === 'unknown-unmocked-api-request');
   expect(unmocked).toEqual([]);
   guard.assertClean();
+});
+
+test('e2e API mock coverage: ML signal and alert routes used by production UI are deterministic', async () => {
+  const urls = [
+    'http://localhost:5173/api/ml/signal/SPY?timeframe=1m',
+    'http://localhost:5173/api/ml/signal/BTC-USD?timeframe=1m',
+    'http://localhost:5173/api/ml/signal/EURUSD%3DX?timeframe=1m',
+    'http://localhost:5173/api/alerts/history?limit=10',
+    'http://localhost:5173/api/alerts',
+    'http://localhost:5173/api/alerts/diagnostics',
+    'http://localhost:5173/api/alerts/history?limit=50',
+  ];
+
+  for (const url of urls) {
+    expect(isKnownE2eMockedApiRequest('GET', url), url).toBe(true);
+  }
 });
 
 test('chart/feed polling cleanup: switching away from Chart has no repeated aborted polling failures', async ({ page }) => {
