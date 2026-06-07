@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { attachNetworkGuards } from './helpers/networkGuards';
-import { isKnownE2eMockedApiRequest } from './helpers/apiMocks';
+import { isKnownE2eMockedApiRequest, mockedApiBody } from './helpers/apiMocks';
 import { bootApp, expectScreenSane, openDesktopWorkspace } from './helpers/appHarness';
 import { desktopWorkspaces, requiredWorkspaceLabels, requiredWorkspaceNavLabels, workspaceById } from './helpers/workspaceData';
 
@@ -46,6 +46,101 @@ test('workspace label consistency: required journey labels come from canonical r
   const navLabels = requiredWorkspaceNavLabels(['HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk']);
   expect(labels).toEqual(labels.map((label) => desktopWorkspaces.find((workspace) => workspace.label === label)?.label));
   expect(navLabels).toEqual(['Historical Data', 'AI Lab', 'Backtesting', 'Macro', 'Portfolio', 'Risk']);
+});
+
+test('mocked API routes: every known route returns non-empty valid JSON without NaN/Infinity/undefined and status < 400', async () => {
+  const routes: Array<[string, string]> = [
+    ['GET', '/api/auth/me'],
+    ['GET', '/api/chart/payload/SPY'],
+    ['GET', '/api/chart/cvd/SPY'],
+    ['GET', '/api/chart/candles/SPY'],
+    ['GET', '/api/chart/indicators/SPY'],
+    ['GET', '/api/chart/overlays/SPY'],
+    ['GET', '/api/chart/orderflow/SPY'],
+    ['GET', '/api/chart/footprint/SPY'],
+    ['GET', '/api/volume-profile/SPY'],
+    ['GET', '/api/feeds/tick/SPY'],
+    ['GET', '/api/feeds/candle/SPY'],
+    ['GET', '/api/feeds/orderbook/SPY'],
+    ['GET', '/api/feed/status'],
+    ['GET', '/api/feeds/status'],
+    ['GET', '/api/providers/health'],
+    ['GET', '/api/providers/credentials'],
+    ['GET', '/api/providers/active'],
+    ['GET', '/api/historical/providers'],
+    ['GET', '/api/historical/datasets'],
+    ['GET', '/api/historical/datasets/e2e-dataset'],
+    ['GET', '/api/historical/datasets/e2e-dataset/diagnostics'],
+    ['POST', '/api/historical/download'],
+    ['POST', '/api/historical/use-for-ml'],
+    ['POST', '/api/historical/use-for-backtest'],
+    ['POST', '/api/historical/use-for-correlation'],
+    ['DELETE', '/api/historical/datasets/e2e-dataset'],
+    ['GET', '/api/ml/dependencies'],
+    ['GET', '/api/ml/model'],
+    ['GET', '/api/ml/model-runs'],
+    ['GET', '/api/ml/models'],
+    ['GET', '/api/ml/predictions'],
+    ['GET', '/api/ml/feature-importance'],
+    ['GET', '/api/ml/drift'],
+    ['GET', '/api/ml/model-card'],
+    ['GET', '/api/ml/metrics'],
+    ['GET', '/api/ml/worker/status'],
+    ['GET', '/api/ml/health'],
+    ['GET', '/api/ml/signal/SPY'],
+    ['POST', '/api/ml/train'],
+    ['POST', '/api/ml/infer/SPY'],
+    ['POST', '/api/ml/promote/SPY'],
+    ['GET', '/api/alerts'],
+    ['GET', '/api/alerts/diagnostics'],
+    ['GET', '/api/alerts/history'],
+    ['POST', '/api/alerts'],
+    ['GET', '/api/backtest/runs'],
+    ['POST', '/api/backtest/run'],
+    ['GET', '/api/macro/beta'],
+    ['GET', '/api/multi-asset/beta'],
+    ['GET', '/api/macro/correlation'],
+    ['GET', '/api/multi-asset/correlation'],
+    ['GET', '/api/macro/sector-rotation'],
+    ['GET', '/api/multi-asset/sector-rotation'],
+    ['GET', '/api/macro/volatility-heatmap'],
+    ['GET', '/api/multi-asset/volatility'],
+    ['GET', '/api/portfolio/summary'],
+    ['GET', '/api/portfolio/positions'],
+    ['GET', '/api/portfolio/pnl'],
+    ['GET', '/api/portfolio/exposure'],
+    ['GET', '/api/portfolio/drawdown'],
+    ['GET', '/api/portfolio/history'],
+    ['GET', '/api/portfolio/var'],
+    ['POST', '/api/portfolio/stress-test'],
+    ['GET', '/api/risk/summary'],
+    ['GET', '/api/risk/limits'],
+    ['GET', '/api/risk/var'],
+    ['GET', '/api/risk/drawdown'],
+    ['GET', '/api/risk/exposure'],
+    ['GET', '/api/risk/alerts'],
+    ['GET', '/api/oms/orders'],
+    ['GET', '/api/execution/orders'],
+    ['GET', '/api/ops/status'],
+    ['GET', '/api/institutional/accounts'],
+    ['GET', '/api/market/runtime'],
+    ['GET', '/api/market/subscriptions'],
+    ['GET', '/api/paper/positions'],
+    ['GET', '/api/rules/list'],
+    ['GET', '/api/strategy-lab/runs'],
+  ];
+
+  for (const [method, path] of routes) {
+    const result = mockedApiBody(path, method);
+    expect(result.known, `${method} ${path} must be a known mocked route`).toBe(true);
+    const status = result.status ?? 200;
+    expect(status, `${method} ${path} must not return 4xx/5xx (got ${status})`).toBeLessThan(400);
+    const bodyStr = JSON.stringify(result.body);
+    expect(bodyStr, `${method} ${path} must return non-empty JSON body`).toBeTruthy();
+    expect(() => JSON.parse(bodyStr), `${method} ${path} must be valid JSON`).not.toThrow();
+    expect(/\b(?:NaN|Infinity)\b/.test(bodyStr), `${method} ${path} must not contain NaN/Infinity`).toBe(false);
+    expect(/"undefined"/.test(bodyStr), `${method} ${path} must not contain "undefined" string`).toBe(false);
+  }
 });
 
 test('Settings / More is validated separately from desktop workspace label lookup', async ({ page }) => {

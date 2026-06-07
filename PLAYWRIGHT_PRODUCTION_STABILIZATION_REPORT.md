@@ -45,8 +45,40 @@
 ## Screenshots / traces
 - Playwright is configured to retain traces and screenshots on failure. No manual screenshot is included because no intentional visual/layout changes were made.
 
-## Final command results
-- See `PRODUCTION_READINESS_RESULTS.json`, `STATIC_API_SCAN_RESULTS.json`, and `MENU_DUPLICATION_RESULTS.json` for machine-readable command evidence.
+## Round 2: Polling cleanup and mock coverage (fix(frontend): return valid json from e2e api mocks and stabilize polling cleanup)
+
+### Root cause: `bad-response-empty-body` in network guards
+When the browser navigates away from a workspace that runs polling requests (Chart/Feed workspaces), in-flight `GET /api/feeds/tick/SPY` requests are aborted. Playwright fires the `response` event first (body stream cancelled → `response.text().catch(() => '')` returns `''`), then `requestfailed`. The `response` handler was pushing `bad-response-empty-body` unconditionally for empty bodies, without checking whether the request was a known cancellable polling request. Fixed by adding `!isCancelledGetPollingRequest(request)` guard before the push in `networkGuards.ts`.
+
+### Root cause: Missing e2e mocks for workspace API routes
+The following routes were called by implemented workspaces but had no deterministic mock, causing `unknown-unmocked-api-request` failures across all crawler and journey tests:
+- `GET /api/ml/features/:symbol`, `/api/ml/labels/:symbol`, `/api/ml/regime/:symbol`
+- `GET /api/ml/analytics/:symbol`, `/api/ml/analytics/features/:symbol`, `/api/ml/analytics/regimes/:symbol`
+- `GET /api/analytics/latest/:symbol`, `/api/analytics/trend/:symbol`
+- `GET /api/backtest/results/:symbol`
+- `GET /api/quant/history/:symbol`, `/api/reversals/points/:symbol`, `/api/validation/results/:symbol`
+- `GET /api/runtime/health`, `/api/templates/strategies`
+
+Fixed by adding deterministic empty-state mocks for all 14 routes in `tests/e2e/helpers/apiMocks.ts`.
+
+### Root cause: production-user-journey dispatch timing + wrong localStorage key
+`production-user-journey.spec.ts` dispatched `reversal:use-dataset-ml` custom events before opening AI Lab workspace — the component's listener wasn't registered yet. Also used the wrong localStorage key (`reversal-historical-data`) instead of the real persistence key (`reversal-historical-selection-v2`, version 2). Fixed by: (1) opening AI Lab before dispatching events, (2) using the correct key and version.
+
+### Mock coverage regression test added
+`tests/e2e/api-mock-coverage.spec.ts` — new test calls `mockedApiBody()` for every known route and asserts `known: true`, `status < 400`, non-empty valid JSON body, no NaN/Infinity/`"undefined"` string.
+
+### Files changed
+- `tests/e2e/helpers/networkGuards.ts` — added `isCancelledGetPollingRequest` guard before `bad-response-empty-body` push in response handler
+- `tests/e2e/helpers/apiMocks.ts` — exported `mockedApiBody`, added 14 missing mocks under `mlBody()` and top-level dispatcher
+- `tests/e2e/api-mock-coverage.spec.ts` — added regression test for all known mocked routes
+- `tests/e2e/production-user-journey.spec.ts` — fixed dataset event dispatch order and localStorage key
+
+### Final command results (Round 2)
+- `npm test`: 18 test files, 203 tests — all passed
+- `npm run build`: ✓ built in 1.66s
+- `node scripts/static-api-scanner.js`: passed (145 files)
+- `node scripts/detect-menu-duplicates.js`: passed (33 workspaces)
+- `npx playwright test`: **25/25 passed** (1.0 min)
 
 ## Remaining risks
 - The environment must have `@playwright/test` and browser binaries available for real browser execution. If registry access is blocked, Playwright installation must be supplied by CI/cache.
