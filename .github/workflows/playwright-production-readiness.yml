@@ -1,0 +1,76 @@
+name: Playwright Production Readiness
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  playwright-production-readiness:
+    name: Playwright production readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium with OS dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Build frontend
+        run: npm run frontend:build
+
+      - name: Run static API scanner
+        run: node scripts/static-api-scanner.js
+
+      - name: Detect duplicate menus
+        run: node scripts/detect-menu-duplicates.js
+
+      - name: Run Playwright e2e suite
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            playwright-report/
+            test-results/
+            playwright-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload JSON result artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-readiness-json-results
+          path: |
+            STATIC_API_SCAN_RESULTS.json
+            MENU_DUPLICATION_RESULTS.json
+            PRODUCTION_READINESS_RESULTS.json
+            playwright-results/**/*.json
+          if-no-files-found: ignore
+          retention-days: 14

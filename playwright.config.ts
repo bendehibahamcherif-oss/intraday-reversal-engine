@@ -7,7 +7,11 @@ export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60_000,
   expect: { timeout: 7_500 },
-  reporter: [['list']],
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'playwright-results/results.json' }],
+  ],
   use: {
     baseURL,
     trace: 'retain-on-failure',
