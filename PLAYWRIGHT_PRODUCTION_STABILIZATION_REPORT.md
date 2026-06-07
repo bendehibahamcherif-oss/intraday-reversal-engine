@@ -256,3 +256,21 @@
 
 ### Final Playwright result
 - Browser execution could not be completed in this container for the environment reason above. The code-side fixes keep the strict scanners intact and remove the identified visible `500` text and Historical Data raw-error rendering path.
+
+## CI lockfile sync fix — 2026-06-07
+
+### Root cause
+- `package.json` requested `@playwright/test@^1.60.0` but the `playwright` peer entry was still `^1.56.1`.
+- `package-lock.json` resolved both to `1.56.1`, so `npm ci` in GitHub Actions failed with a lockfile-out-of-sync error before any test ran.
+
+### Fix
+- Bumped `playwright` in `devDependencies` from `^1.56.1` to `^1.60.0` to match `@playwright/test`.
+- Regenerated `package-lock.json` via `npm install --package-lock-only`; all three Playwright packages (`@playwright/test`, `playwright`, `playwright-core`) now resolve to `1.60.0`.
+
+### Command results
+- `npm ci` — passed: lockfile and `package.json` are now in sync.
+- `npm test` — passed: 18 test files / 203 tests.
+- `npm run build` — passed with existing Vite chunk-size warning.
+- `npm run frontend:build` — passed with existing Vite chunk-size warning.
+- `node scripts/static-api-scanner.js` — passed (145 files).
+- `node scripts/detect-menu-duplicates.js` — passed (33 workspaces).
