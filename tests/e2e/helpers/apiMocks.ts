@@ -63,6 +63,55 @@ const providersHealth = { ok: true, status: 'available', providers: [], statuses
 const credentials = { ok: true, credentials: [], providers: [], configured: {}, status: 'empty' };
 const historicalDataset = { datasetId: 'e2e-dataset', id: 'e2e-dataset', symbols: ['SPY'], rowCount: 500, fileStatus: 'ready', fileExists: true, status: 'ready' };
 
+function mlSignal(path: string) {
+  const symbol = symbolFromPath(path);
+  return {
+    ok: true,
+    status: 'no_model',
+    symbol,
+    timeframe: '1m',
+    class: 'NEUTRAL',
+    confidence: 0.34,
+    probability: 0.34,
+    probabilities: { LONG: 0.33, NEUTRAL: 0.34, SHORT: 0.33 },
+    provisional: false,
+    modelVersion: null,
+    asOf: iso,
+    diagnostics: {
+      driftStatus: 'not_enough_data',
+      inferenceLatencyMs: 0,
+      featureComputeMs: 0,
+      missingFeatureCount: 0,
+      mode: 'e2e_mock',
+    },
+  };
+}
+
+const alertDiagnostics = {
+  ok: true,
+  status: 'empty',
+  running: false,
+  evaluationCount: 0,
+  triggerCount: 0,
+  activeAlerts: 0,
+  totalAlerts: 0,
+  symbolsTracked: [],
+  evalIntervalMs: 15000,
+  lastEvaluationAt: null,
+};
+
+function alertsBody(path: string, method: string) {
+  if (method === 'GET' && path === '/api/alerts') return { ok: true, status: 'empty', alerts: [] };
+  if (method === 'GET' && path === '/api/alerts/diagnostics') return alertDiagnostics;
+  if (method === 'GET' && path === '/api/alerts/history') return { ok: true, status: 'empty', history: [] };
+  if (method === 'POST' && path === '/api/alerts') return { ok: true, status: 'created', alert: { id: 'e2e-alert', enabled: true, createdAt: iso } };
+  if (method === 'GET' && /^\/api\/alerts\/[^/]+$/.test(path)) return { ok: true, status: 'not_found', alert: null };
+  if (method === 'PUT' && /^\/api\/alerts\/[^/]+$/.test(path)) return { ok: true, status: 'updated', alert: { id: symbolFromPath(path), updatedAt: iso } };
+  if (method === 'DELETE' && /^\/api\/alerts\/[^/]+$/.test(path)) return { ok: true, status: 'deleted' };
+  if (method === 'POST' && /^\/api\/alerts\/[^/]+\/(enable|disable)$/.test(path)) return { ok: true, status: path.endsWith('/enable') ? 'enabled' : 'disabled' };
+  return null;
+}
+
 function mlBody(path: string, method: string) {
   if (path === '/api/ml/dependencies') return { ok: true, status: 'available', dependencies: { xgboost: false, sklearn: false }, unavailable: ['xgboost'], mode: 'e2e_mock' };
   if (path === '/api/ml/model') return { ok: true, champion: null, challengers: [], model: null, status: 'no_model' };
@@ -74,6 +123,7 @@ function mlBody(path: string, method: string) {
   if (path === '/api/ml/metrics') return { ok: true, metrics: {}, status: 'empty' };
   if (path === '/api/ml/worker/status') return { ok: true, status: 'available', worker: { available: false, mode: 'e2e_mock' } };
   if (path === '/api/ml/health') return { ok: true, status: 'available', worker: { available: false, mode: 'e2e_mock' } };
+  if (method === 'GET' && /^\/api\/ml\/signal\/[^/]+$/.test(path)) return mlSignal(path);
   if (method === 'POST' && path === '/api/ml/train') return { ok: false, status: 'training_unavailable', message: 'E2E mock accepted the request but does not train models.' };
   if (method === 'POST' && /^\/api\/ml\/infer\/[^/]+$/.test(path)) return { ok: false, status: 'no_champion_model', message: 'No champion model available. Train and promote a model first.' };
   if (method === 'POST' && /^\/api\/ml\/promote\/[^/]+$/.test(path)) return { ok: false, status: 'model_required', message: 'Select a trained model before promotion.' };
@@ -99,6 +149,7 @@ function mockedApiBody(path: string, method: string) {
   if (method === 'DELETE' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, status: 'deleted' }, known: true };
   if (method === 'POST' && /^\/api\/historical\/use-for-(ml|backtest|correlation)$/.test(path)) return { body: { ok: true, dataset: historicalDataset, datasetId: historicalDataset.datasetId, status: 'selected' }, known: true };
   if (path.startsWith('/api/ml/')) { const body = mlBody(path, method); if (body) return { body, known: true }; }
+  if (path === '/api/alerts' || path.startsWith('/api/alerts/')) { const body = alertsBody(path, method); if (body) return { body, known: true }; }
   if (method === 'POST' && path === '/api/backtest/run') return { body: { ok: true, status: 'accepted', result: null, rows: [], message: 'E2E mock accepted backtest request without simulating profitability.' }, known: true };
   if (method === 'GET' && path === '/api/backtest/runs') return { body: { ok: true, runs: [], rows: [], status: 'empty' }, known: true };
   if (method === 'GET' && (path === '/api/macro/beta' || path === '/api/multi-asset/beta')) return { body: { ok: true, beta: null, r2: null, status: 'not_enough_data' }, known: true };
