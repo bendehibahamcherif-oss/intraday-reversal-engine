@@ -141,13 +141,19 @@ function mlBody(path: string, method: string) {
   if (path === '/api/ml/worker/status') return { ok: true, status: 'available', worker: { available: false, mode: 'e2e_mock' } };
   if (path === '/api/ml/health') return { ok: true, status: 'available', worker: { available: false, mode: 'e2e_mock' } };
   if (method === 'GET' && /^\/api\/ml\/signal\/[^/]+$/.test(path)) return mlSignal(path);
+  if (method === 'GET' && /^\/api\/ml\/features\/[^/]+$/.test(path)) return { ok: true, features: [], status: 'no_model' };
+  if (method === 'GET' && /^\/api\/ml\/labels\/[^/]+$/.test(path)) return { ok: true, labels: [], status: 'no_model' };
+  if (method === 'GET' && /^\/api\/ml\/regime\/[^/]+$/.test(path)) return { ok: true, regime: null, status: 'not_enough_data' };
+  if (method === 'GET' && /^\/api\/ml\/analytics\/features\/[^/]+$/.test(path)) return { ok: true, features: [], status: 'no_model' };
+  if (method === 'GET' && /^\/api\/ml\/analytics\/regimes\/[^/]+$/.test(path)) return { ok: true, regimes: [], status: 'no_model' };
+  if (method === 'GET' && /^\/api\/ml\/analytics\/[^/]+$/.test(path)) return { ok: true, analytics: null, status: 'no_model' };
   if (method === 'POST' && path === '/api/ml/train') return { ok: false, status: 'training_unavailable', message: 'E2E mock accepted the request but does not train models.' };
   if (method === 'POST' && /^\/api\/ml\/infer\/[^/]+$/.test(path)) return { ok: false, status: 'no_champion_model', message: 'No champion model available. Train and promote a model first.' };
   if (method === 'POST' && /^\/api\/ml\/promote\/[^/]+$/.test(path)) return { ok: false, status: 'model_required', message: 'Select a trained model before promotion.' };
   return null;
 }
 
-function mockedApiBody(path: string, method: string) {
+export function mockedApiBody(path: string, method: string) {
   if (BAD_URL_TOKENS.test(path)) return { body: { ok: false, error: { code: 'BAD_E2E_REQUEST', message: 'Invalid generated API path' } }, status: 400, known: true };
   if (path === '/api/auth/me') return { body: { ok: true, user: { id: 'e2e-user', email: 'e2e@example.com', name: 'E2E User' } }, known: true };
   if (method === 'GET' && /^\/api\/chart\/payload\/[^/]+$/.test(path)) return { body: chartPayload(path), known: true };
@@ -191,6 +197,11 @@ function mockedApiBody(path: string, method: string) {
   if (method === 'GET' && path === '/api/risk/alerts') return { body: { ok: true, alerts: [], status: 'empty' }, known: true };
 
   // Additional implemented workspaces crawled by e2e; safe empty states, not success simulation.
+  if (method === 'GET' && path === '/api/runtime/health') return { body: { ok: true, status: 'available', mode: 'e2e_mock' }, known: true };
+  if (method === 'GET' && path === '/api/templates/strategies') return { body: { ok: true, templates: [], status: 'empty' }, known: true };
+  if (method === 'GET' && /^\/api\/analytics\/(latest|trend)\/[^/]+$/.test(path)) return { body: { ok: true, analytics: null, trend: null, status: 'not_enough_data' }, known: true };
+  if (method === 'GET' && /^\/api\/(quant|reversals|validation)\b/.test(path)) return { body: { ok: true, points: [], history: [], results: null, status: 'empty' }, known: true };
+  if (method === 'GET' && /^\/api\/backtest\/results\/[^/]+$/.test(path)) return { body: { ok: true, results: [], rows: [], status: 'empty' }, known: true };
   if (method === 'GET' && /^\/api\/(execution|oms|ops|institutional|rules|strategy-lab|paper|market)\b/.test(path)) return { body: { ok: true, status: 'empty', rows: [], items: [], data: [], orders: [], events: [], stats: {}, audit: [] }, known: true };
   if (method !== 'GET' && /^\/api\/(execution|oms|ops|institutional|rules|strategy-lab|paper|market|feeds|providers)\b/.test(path)) return { body: { ok: true, status: 'accepted', rows: [], items: [] }, known: true };
   if (method === 'GET' && /^\/api\/chart\/(candles|indicators|overlays|orderflow|footprint)\/[^/]+$/.test(path)) return { body: { ok: true, status: 'rest_fallback', candles, data: [], rows: [], indicators: {}, overlays: {}, orderflow: {} }, known: true };

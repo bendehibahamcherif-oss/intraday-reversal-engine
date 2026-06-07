@@ -105,7 +105,7 @@ export function attachNetworkGuards(page: Page, options: { allowApi404?: boolean
     if (/html/i.test(contentType) || /^\s*<!doctype html/i.test(body) || /^\s*<html/i.test(body)) push({ ...base, reason: '/api response returned HTML', classification: 'bad-response-html' });
     if (status === 404 && !options.allowApi404) push({ ...base, reason: '/api response returned 404', classification: 'bad-response-404' });
     if (status >= 500) push({ ...base, reason: '/api response returned 5xx', classification: status === 501 ? 'unknown-unmocked-api-request' : 'bad-response-5xx' });
-    if (!body) push({ ...base, reason: '/api response returned empty body', classification: 'bad-response-empty-body' });
+    if (!body && !isCancelledGetPollingRequest(request)) push({ ...base, reason: '/api response returned empty body', classification: 'bad-response-empty-body' });
     if (body && !/json/i.test(contentType)) push({ ...base, reason: '/api response did not declare JSON content-type', classification: 'bad-response-content-type' });
     if (body && /json/i.test(contentType)) {
       try { JSON.parse(body); } catch { push({ ...base, reason: '/api response returned invalid JSON', classification: 'bad-response-invalid-json' }); }

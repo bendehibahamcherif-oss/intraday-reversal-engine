@@ -23,15 +23,22 @@ test('desktop production user journey keeps datasets, ML, backtesting, macro, po
     await expectScreenSane(page);
   }
 
+  // Persist the dataset to localStorage so post-reload reads it from historicalDataStore.
+  // Key must match historicalDataStore's persist name: 'reversal-historical-selection-v2', version 2.
   await page.evaluate(() => {
     const dataset = { datasetId: 'e2e-dataset', id: 'e2e-dataset', symbols: ['SPY'], rowCount: 480, fileStatus: 'ready' };
-    localStorage.setItem('reversal-historical-data', JSON.stringify({ state: { selectedMlDatasetId: 'e2e-dataset', selectedMlDataset: dataset, selectedBacktestDatasetId: 'e2e-dataset', selectedBacktestDataset: dataset, selectedCorrelationDatasetId: 'e2e-dataset', selectedCorrelationDataset: dataset }, version: 0 }));
+    localStorage.setItem('reversal-historical-selection-v2', JSON.stringify({ state: { selectedDatasetId: 'e2e-dataset', selectedDataset: dataset, selectedMlDatasetId: 'e2e-dataset', selectedMlDataset: dataset, selectedBacktestDatasetId: 'e2e-dataset', selectedBacktestDataset: dataset, selectedCorrelationDatasetId: 'e2e-dataset', selectedCorrelationDataset: dataset }, version: 2 }));
+  });
+
+  // Open AI Lab first so its reversal:use-dataset-ml listener is registered before dispatching.
+  await openDesktopWorkspace(page, byLabel('AI Lab')!);
+  await page.evaluate(() => {
+    const dataset = { datasetId: 'e2e-dataset', id: 'e2e-dataset', symbols: ['SPY'], rowCount: 480, fileStatus: 'ready' };
     window.dispatchEvent(new CustomEvent('reversal:use-dataset-ml', { detail: { datasetId: 'e2e-dataset', dataset } }));
     window.dispatchEvent(new CustomEvent('reversal:use-dataset-backtest', { detail: { datasetId: 'e2e-dataset', dataset } }));
     window.dispatchEvent(new CustomEvent('reversal:use-dataset-correlation', { detail: { datasetId: 'e2e-dataset', dataset } }));
   });
-
-  await openDesktopWorkspace(page, byLabel('AI Lab')!);
+  await page.waitForTimeout(200);
   await expect(page.locator('body')).toContainText(/e2e-dataset|Select a historical dataset|Selected dataset/i);
   await page.reload();
   await page.waitForTimeout(500);
