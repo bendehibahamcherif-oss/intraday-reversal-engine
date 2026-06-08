@@ -69,8 +69,29 @@ function CorrelationMatrix({ correlation, loading, error }) {
   if (error)   return <div style={{ color: RED, fontSize: 12 }}>{error}</div>;
   if (!correlation) return <div style={{ color: MUTED, fontSize: 12 }}>No data. Click ↻ Refresh.</div>;
 
+  if (correlation.status === 'missing_symbols') {
+    return (
+      <div style={{ fontSize: 12 }}>
+        <div style={{ color: AMBER, marginBottom: 4, fontWeight: 700 }}>Dataset missing symbols</div>
+        <div style={{ color: TEXT, marginBottom: 2 }}>Missing: <strong style={{ color: RED }}>{(correlation.missingSymbols || []).join(', ')}</strong></div>
+        <div style={{ color: MUTED }}>Available in dataset: {(correlation.availableSymbols || []).join(', ') || '(none)'}</div>
+        <div style={{ color: MUTED, marginTop: 6 }}>Select a dataset that includes all requested symbols, or remove the missing symbols from the Symbols input.</div>
+      </div>
+    );
+  }
+
+  if (correlation.status === 'not_enough_data') {
+    return (
+      <div style={{ fontSize: 12, color: MUTED }}>
+        Not enough overlapping observations.
+        {correlation.observations != null && <> Aligned rows: <strong style={{ color: TEXT }}>{correlation.observations}</strong> (min {correlation.window} required).</>}
+        {' '}Increase date range or reduce window.
+      </div>
+    );
+  }
+
   const { symbols, matrix } = correlation;
-  if (!Array.isArray(matrix) || !symbols?.length) return <div style={{ color: MUTED, fontSize: 12 }}>Empty result.</div>;
+  if (!Array.isArray(matrix) || !matrix.length || !symbols?.length) return <div style={{ color: MUTED, fontSize: 12 }}>Empty result.</div>;
 
   const cellW = Math.max(54, Math.min(80, Math.floor(600 / (symbols.length + 1))));
   const cellStyle = {
@@ -126,6 +147,17 @@ function CorrelationMatrix({ correlation, loading, error }) {
 function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelectedAsset, setBenchmark, symbols, window: w }) {
   if (loading) return <div style={{ color: MUTED, fontSize: 12 }}>Computing beta…</div>;
   if (error)   return <div style={{ color: RED, fontSize: 12 }}>{error}</div>;
+
+  if (beta?.status === 'missing_symbols') {
+    return (
+      <div style={{ fontSize: 12 }}>
+        <div style={{ color: AMBER, marginBottom: 4, fontWeight: 700 }}>Dataset missing symbols</div>
+        <div style={{ color: TEXT, marginBottom: 2 }}>Missing: <strong style={{ color: RED }}>{(beta.missingSymbols || []).join(', ')}</strong></div>
+        <div style={{ color: MUTED }}>Available in dataset: {(beta.availableSymbols || []).join(', ') || '(none)'}</div>
+        <div style={{ color: MUTED, marginTop: 6 }}>Select a dataset that includes both the asset and benchmark symbols.</div>
+      </div>
+    );
+  }
 
   const betaVal = finiteNumber(beta?.beta);
   const r2Val   = finiteNumber(beta?.r2);
@@ -203,6 +235,20 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
 function SectorRotationPanel({ sectorRotation, loading, error }) {
   if (loading) return <div style={{ color: MUTED, fontSize: 12 }}>Computing sector rotation…</div>;
   if (error)   return <div style={{ color: RED, fontSize: 12 }}>{error}</div>;
+
+  if (sectorRotation?.status === 'not_available' || sectorRotation?.reason === 'sector_metadata_missing') {
+    return (
+      <div style={{ fontSize: 12 }}>
+        <div style={{ color: AMBER, marginBottom: 4, fontWeight: 700 }}>Sector metadata not available</div>
+        <div style={{ color: MUTED, marginBottom: 4 }}>{sectorRotation.message || 'Sector rotation requires standard sector ETF classifications.'}</div>
+        {sectorRotation.symbols?.length > 0 && (
+          <div style={{ color: MUTED }}>Requested symbols: <strong style={{ color: TEXT }}>{sectorRotation.symbols.join(', ')}</strong></div>
+        )}
+        <div style={{ color: MUTED, marginTop: 6 }}>Standard sector ETFs: XLK, XLF, XLV, XLE, XLI, XLY, XLC, XLU, XLB, XLRE</div>
+      </div>
+    );
+  }
+
   if (!sectorRotation?.sectors?.length) return <div style={{ color: MUTED, fontSize: 12 }}>No data. Click ↻ Refresh.</div>;
 
   const sectors = [...sectorRotation.sectors].filter((s) => s.return != null).sort((a, b) => b.return - a.return);
@@ -255,9 +301,22 @@ function SectorRotationPanel({ sectorRotation, loading, error }) {
 function VolatilityHeatmap({ volatility, loading, error }) {
   if (loading) return <div style={{ color: MUTED, fontSize: 12 }}>Computing volatility…</div>;
   if (error)   return <div style={{ color: RED, fontSize: 12 }}>{error}</div>;
-  if (!volatility?.volatility?.length) return <div style={{ color: MUTED, fontSize: 12 }}>No data. Click ↻ Refresh.</div>;
 
-  const items = [...volatility.volatility].sort((a, b) => (b.vol ?? 0) - (a.vol ?? 0));
+  if (volatility?.status === 'missing_symbols') {
+    return (
+      <div style={{ fontSize: 12 }}>
+        <div style={{ color: AMBER, marginBottom: 4, fontWeight: 700 }}>Dataset missing symbols</div>
+        <div style={{ color: TEXT, marginBottom: 2 }}>Missing: <strong style={{ color: RED }}>{(volatility.missingSymbols || []).join(', ')}</strong></div>
+        <div style={{ color: MUTED }}>Available in dataset: {(volatility.availableSymbols || []).join(', ') || '(none)'}</div>
+      </div>
+    );
+  }
+
+  // Use volatility array; also accept heatmap as fallback field name
+  const items_raw = volatility?.volatility || volatility?.heatmap || [];
+  if (!items_raw.length) return <div style={{ color: MUTED, fontSize: 12 }}>No data. Click ↻ Refresh.</div>;
+
+  const items = [...items_raw].sort((a, b) => (b.vol ?? 0) - (a.vol ?? 0));
 
   function volColor(v) {
     if (v == null) return SURFACE;

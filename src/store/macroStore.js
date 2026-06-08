@@ -88,10 +88,10 @@ export const useMacroStore = create((set, get) => ({
   },
 
   loadSectorRotation: async () => {
-    const { window: w, timeframe } = get();
+    const { symbols, window: w, timeframe, correlationDatasetId } = get();
     set({ sectorRotationLoading: true, sectorRotationError: '' });
     try {
-      const data = await api.getMultiAssetSectorRotation({ window: w, timeframe });
+      const data = await api.getMultiAssetSectorRotation({ window: w, timeframe, symbols, datasetId: correlationDatasetId || null });
       set({ sectorRotation: data, sectorRotationLoading: false });
     } catch (e) {
       set({ sectorRotationLoading: false, sectorRotationError: errMsg(e) });
@@ -99,10 +99,10 @@ export const useMacroStore = create((set, get) => ({
   },
 
   loadVolatility: async () => {
-    const { symbols, window: w, timeframe } = get();
+    const { symbols, window: w, timeframe, correlationDatasetId } = get();
     set({ volatilityLoading: true, volatilityError: '' });
     try {
-      const data = await api.getMultiAssetVolatility({ symbols, window: w, timeframe });
+      const data = await api.getMultiAssetVolatility({ symbols, window: w, timeframe, datasetId: correlationDatasetId || null });
       set({ volatility: data, volatilityLoading: false });
     } catch (e) {
       set({ volatilityLoading: false, volatilityError: errMsg(e) });
