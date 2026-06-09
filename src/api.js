@@ -938,13 +938,16 @@ export const api = {
     if (datasetId) p.set('datasetId', datasetId);
     return fetch(`${API_BASE}/api/multi-asset/beta?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
-  getMultiAssetSectorRotation: async ({ window = 20, timeframe = '1d' } = {}) => {
-    const p = new URLSearchParams({ window: String(window), timeframe });
-    return fetch(`${API_BASE}/api/multi-asset/sector-rotation?${p}`, { method: 'GET', headers: headers() }).then(handle);
-  },
-  getMultiAssetVolatility: async ({ symbols = [], window = 20, timeframe = '1d' } = {}) => {
+  getMultiAssetSectorRotation: async ({ window = 20, timeframe = '1d', symbols = [], datasetId = null } = {}) => {
     const p = new URLSearchParams({ window: String(window), timeframe });
     if (symbols.length) p.set('symbols', symbols.join(','));
+    if (datasetId) p.set('datasetId', datasetId);
+    return fetch(`${API_BASE}/api/multi-asset/sector-rotation?${p}`, { method: 'GET', headers: headers() }).then(handle);
+  },
+  getMultiAssetVolatility: async ({ symbols = [], window = 20, timeframe = '1d', datasetId = null } = {}) => {
+    const p = new URLSearchParams({ window: String(window), timeframe });
+    if (symbols.length) p.set('symbols', symbols.join(','));
+    if (datasetId) p.set('datasetId', datasetId);
     return fetch(`${API_BASE}/api/multi-asset/volatility?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
 

@@ -154,14 +154,18 @@ async function installProductionPassthrough(
   });
 }
 
-// Journey workspace IDs — resolved from the registry so navigation uses correct labels, testIds, and fallbacks.
+// Journey workspace IDs — canonical entries only (duplicates have been merged into tabs).
+// 'Providers' navigates to LiveData workspace starting on the providers tab.
+// Removed from journey: Credentials, StreamStatus, ProviderDiagnostics, MLModelCard,
+//   MLTrainingRuns, MLPredictions, MLDiagnosticsDrift, MLChampionInference,
+//   VolumeProfile, Correlation, Beta, StrategyBuilder, Settings, Macro.
 const journeyWorkspaceIds = [
   'ChartOrderflow',
   'LiveData',
   'Providers',
-  'Credentials',
   'HistoricalData',
   'AILab',
+  'MLEngine',
   'Backtesting',
   'MacroMultiAsset',
   'Portfolio',

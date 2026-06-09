@@ -130,8 +130,15 @@ describe('ML/backtest/correlation dataset consumers', () => {
     expect(corr.datasetId).toBe(ds.datasetId);
     const beta = (await request(`/api/multi-asset/beta?datasetId=${ds.datasetId}&symbol=NFLX&benchmark=SPY&window=20`)).body;
     expect(JSON.stringify(beta)).not.toMatch(/NaN|Infinity/);
+    // Tiny dataset: both symbols present, but only 1 row each — insufficient for window=20
     const tiny = saveDataset('tiny_dataset');
-    writeFileSync(tiny.files.csv, 'timestamp,symbol,timeframe,open,high,low,close,volume,provider,session\n2024-01-01T00:00:00.000Z,NFLX,1d,1,1,1,1,1,yahoo,RTH\n', 'utf8');
+    writeFileSync(
+      tiny.files.csv,
+      'timestamp,symbol,timeframe,open,high,low,close,volume,provider,session,sourceType,adjusted\n' +
+      '2024-01-01T00:00:00.000Z,NFLX,1d,1,1,1,1,1,yahoo,RTH,historical,false\n' +
+      '2024-01-01T00:00:00.000Z,SPY,1d,1,1,1,1,1,yahoo,RTH,historical,false\n',
+      'utf8',
+    );
     const notEnough = (await request(`/api/multi-asset/correlation?datasetId=${tiny.datasetId}&symbols=NFLX,SPY&window=20`)).body;
     expect(notEnough).toMatchObject({ status: 'not_enough_data', observations: 0, matrix: [] });
     const betaTiny = (await request(`/api/multi-asset/beta?datasetId=${tiny.datasetId}&symbol=NFLX&benchmark=SPY&window=20`)).body;

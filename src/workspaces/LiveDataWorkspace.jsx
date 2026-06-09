@@ -98,9 +98,15 @@ function formatOrderSide(levels) {
     .join(' | ');
 }
 
-export default function LiveDataWorkspace() {
+// Maps workspace ID to the initial tab so deep-linked entries start on the right view.
+const WORKSPACE_INITIAL_TAB = {
+  LiveData: 'market',
+  Providers: 'providers',
+};
+
+export default function LiveDataWorkspace({ workspaceId } = {}) {
   const store = useFeedStore(useShallow((s) => s));
-  const [tab, setTab] = useState('market');
+  const [tab, setTab] = useState(() => WORKSPACE_INITIAL_TAB[workspaceId] || 'market');
   const showDebug = import.meta.env.VITE_LIVE_DATA_DEBUG === 'true';
   const providerOrder = ['polygon', 'alphaVantage', 'ibkr', 'yahoo', 'fallback_demo'];
 
