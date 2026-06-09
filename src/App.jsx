@@ -86,7 +86,7 @@ function WorkspaceSwitch({ workspace, marketData }) {
     return <DefaultComponent marketData={marketData} />;
   }
 
-  return <WorkspaceComponent marketData={marketData} />;
+  return <WorkspaceComponent marketData={marketData} workspaceId={workspace} />;
 }
 
 export default function App() {

@@ -16,7 +16,7 @@ for (const [label, items] of by(workspaceDefinitions.filter((w) => w.desktopVisi
 }
 for (const workspace of workspaceDefinitions.filter((w) => w.implemented)) {
   if (workspace.desktopVisible && !workspace.mobileVisible) errors.push({ code: 'DESKTOP_WORKSPACE_MISSING_MOBILE', id: workspace.id, label: workspace.label });
-  if (workspace.mobileVisible && !workspace.desktopVisible && workspace.id !== 'Settings') warnings.push({ code: 'MOBILE_ONLY_WORKSPACE', id: workspace.id, label: workspace.label });
+  if (workspace.mobileVisible && !workspace.desktopVisible) warnings.push({ code: 'MOBILE_ONLY_WORKSPACE', id: workspace.id, label: workspace.label });
   if (!componentKeys.includes(workspace.componentKey)) errors.push({ code: 'UNRESOLVED_COMPONENT_KEY', id: workspace.id, componentKey: workspace.componentKey });
 }
 const mobileById = new Map(workspaceDefinitions.filter((w) => w.mobileVisible).map((w) => [w.id, w]));
@@ -25,15 +25,24 @@ for (const desktop of workspaceDefinitions.filter((w) => w.desktopVisible)) {
   if (mobile && mobile.componentKey !== desktop.componentKey) errors.push({ code: 'MOBILE_STALE_COMPONENT', id: desktop.id, desktopComponent: desktop.componentKey, mobileComponent: mobile.componentKey });
 }
 const visible = workspaceDefinitions.filter((w) => w.desktopVisible || w.mobileVisible);
+// Canonical duplicate checks — these patterns should never appear more than once
 const exactAiLab = visible.filter((w) => /^(AI Lab|ML)$/i.test(w.label));
 if (exactAiLab.length > 1) errors.push({ code: 'DUPLICATE_AI_LAB_MENU', ids: exactAiLab.map((w) => w.id) });
 const exactMacro = visible.filter((w) => /^Macro\s*\/\s*Multi-Asset$/i.test(w.label));
 if (exactMacro.length > 1) errors.push({ code: 'DUPLICATE_MACRO_MENU', ids: exactMacro.map((w) => w.id) });
 const exactBacktest = visible.filter((w) => /^Backtesting$/i.test(w.label));
 if (exactBacktest.length > 1) errors.push({ code: 'DUPLICATE_BACKTESTING_MENU', ids: exactBacktest.map((w) => w.id) });
+// Verify no stale removed component names are re-registered
 const staleNames = ['LegacyMLWorkspace', 'OldMacroWorkspace', 'BacktestPanel'];
 for (const stale of staleNames) {
   if (componentSource.includes(stale)) errors.push({ code: 'STALE_WORKSPACE_COMPONENT_REGISTERED', component: stale });
+}
+// Verify functional duplicates that were removed do not reappear as top-level workspace IDs
+const removedIds = ['VolumeProfile','Macro','Correlation','Beta','Credentials','StreamStatus',
+  'ProviderDiagnostics','MLChampionInference','MLModelCard','MLTrainingRuns','MLPredictions',
+  'MLDiagnosticsDrift','StrategyBuilder','Settings'];
+for (const id of removedIds) {
+  if (workspaceDefinitions.some((w) => w.id === id)) errors.push({ code: 'REMOVED_DUPLICATE_REREGISTERED', id });
 }
 if (!workspaceDefinitions.some((workspace) => workspace.id === DEFAULT_WORKSPACE_ID)) errors.push({ code: 'DEFAULT_WORKSPACE_MISSING', id: DEFAULT_WORKSPACE_ID });
 

@@ -175,11 +175,11 @@ describe('MobileBottomNav', () => {
     expect(useWorkspaceStore.getState().workspace).toBe('ChartOrderflow');
   });
 
-  it('clicking MARKETS tab switches to Macro workspace', () => {
+  it('clicking second primary tab switches to MacroMultiAsset workspace', () => {
     render(<MobileBottomNav />);
     const buttons = screen.getAllByRole('button');
     fireEvent.click(buttons[1]);
-    expect(useWorkspaceStore.getState().workspace).toBe('Macro');
+    expect(useWorkspaceStore.getState().workspace).toBe('MacroMultiAsset');
   });
 });
 

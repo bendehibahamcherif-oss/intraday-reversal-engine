@@ -30,8 +30,8 @@ import {
 // ── Registry shape ────────────────────────────────────────────────────────────
 
 describe('workspace registry', () => {
-  it('exports at least 20 workspaces', () => {
-    expect(sortedWorkspaces.length).toBeGreaterThanOrEqual(20);
+  it('exports at least 18 canonical workspaces', () => {
+    expect(sortedWorkspaces.length).toBeGreaterThanOrEqual(18);
   });
 
   it('every workspace has required fields', () => {

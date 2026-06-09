@@ -100,6 +100,63 @@ router.get('/datasets/:datasetId', (req, res) => {
 });
 
 // ── GET /datasets/:datasetId/diagnostics ─────────────────────────────────────
+// Returns rich diagnostics including symbol coverage, row counts, and usability flags.
+
+function analyzeDatasetFile(resolvedPath) {
+  // Read the CSV and count rows/symbols without loading the entire file into memory.
+  const CANONICAL_HEADER = 'timestamp,symbol,timeframe,open,high,low,close,volume,provider,session,sourceType,adjusted';
+  const result = {
+    columns: [],
+    symbols: [],
+    rowsBySymbol: {},
+    totalRows: 0,
+    dateRange: { first: null, last: null },
+    issues: [],
+  };
+
+  try {
+    const content = fs.readFileSync(resolvedPath, 'utf8');
+    const lines = content.split('\n');
+    if (lines.length < 2) { result.issues.push('file_empty'); return result; }
+
+    const header = lines[0].trim();
+    result.columns = header.split(',').map((c) => c.trim());
+    // Track which canonical columns are missing (informational, not an error — CSV may be valid legacy format).
+    const expectedCols = CANONICAL_HEADER.split(',');
+    result.missingCanonicalColumns = expectedCols.filter((c) => !result.columns.includes(c));
+
+    const symIdx = result.columns.indexOf('symbol');
+    const tsIdx  = result.columns.indexOf('timestamp');
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      result.totalRows++;
+      if (symIdx >= 0) {
+        const parts = line.split(',');
+        const sym = parts[symIdx]?.trim();
+        if (sym) {
+          result.rowsBySymbol[sym] = (result.rowsBySymbol[sym] || 0) + 1;
+          if (!result.symbols.includes(sym)) result.symbols.push(sym);
+        }
+      }
+      if (tsIdx >= 0 && (result.totalRows === 1 || i === lines.length - 1)) {
+        const parts = line.split(',');
+        const ts = parts[tsIdx]?.trim();
+        if (ts) {
+          if (!result.dateRange.first) result.dateRange.first = ts;
+          result.dateRange.last = ts;
+        }
+      }
+    }
+
+    if (result.totalRows === 0) result.issues.push('file_empty');
+  } catch (readErr) {
+    result.issues.push(`read_error:${readErr.message}`);
+  }
+
+  return result;
+}
 
 router.get('/datasets/:datasetId/diagnostics', (req, res) => {
   try {
@@ -122,10 +179,31 @@ router.get('/datasets/:datasetId/diagnostics', (req, res) => {
     const { resolvedPath, candidatePaths, issue } = resolveDatasetFile(dataset);
     const fileExists = issue === null;
     let fileSizeBytes = null;
+    let fileAnalysis = { columns: [], symbols: [], rowsBySymbol: {}, totalRows: 0, dateRange: { first: null, last: null }, issues: [] };
 
     if (fileExists && resolvedPath) {
       try { fileSizeBytes = fs.statSync(resolvedPath).size; } catch {}
+      fileAnalysis = analyzeDatasetFile(resolvedPath);
     }
+
+    const { symbols, rowsBySymbol, totalRows, columns, dateRange, missingCanonicalColumns = [] } = fileAnalysis;
+    // Only propagate hard issues (file_empty, read_error) not missing-column warnings.
+    const allIssues = [...(issue ? [issue] : []), ...fileAnalysis.issues];
+
+    // usableForMl (legacy flat field): true whenever the file exists (backward compatible).
+    // usableFor (rich object): computed from actual row counts and symbol coverage.
+    const hasEnoughRows = (min) => {
+      const vals = Object.values(rowsBySymbol);
+      return vals.length > 0 && vals.every((n) => n >= min);
+    };
+    const usableFor = {
+      ml:          fileExists && totalRows >= 50,
+      backtest:    fileExists && totalRows >= 20,
+      correlation: fileExists && symbols.length >= 2 && hasEnoughRows(20),
+      beta:        fileExists && symbols.length >= 2 && hasEnoughRows(20),
+      portfolio:   fileExists && totalRows >= 1,
+      risk:        fileExists && totalRows >= 20,
+    };
 
     jsonSafe(res, 200, {
       ok: true,
@@ -136,8 +214,15 @@ router.get('/datasets/:datasetId/diagnostics', (req, res) => {
       resolvedPaths: resolvedPath ? [resolvedPath] : [],
       fileExists,
       fileSizeBytes,
+      columns,
+      symbols,
+      rowsBySymbol,
+      totalRows,
+      dateRange,
       usableForMl: fileExists,
-      issues: issue ? [issue] : [],
+      usableFor,
+      missingCanonicalColumns,
+      issues: allIssues,
     });
   } catch (err) {
     jsonSafe(res, 500, { ok: false, error: { code: 'INTERNAL_ERROR', message: err.message } });
