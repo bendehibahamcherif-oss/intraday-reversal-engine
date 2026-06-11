@@ -413,10 +413,22 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
 }
 
 // ── Dataset detail / use panel ─────────────────────────────────────────────────
+const S_ACTION_BTN = (accent) => ({
+  ...S.btn(accent),
+  minHeight: 44,
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxSizing: 'border-box',
+  fontSize: 12,
+  fontWeight: accent ? 700 : 500,
+});
+
 function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, onUseForBacktest, onUseForCorrelation }) {
   if (!dataset) {
     return (
-      <div style={{ padding: 12, color: 'var(--t-text-3)', fontSize: 11 }}>
+      <div style={{ padding: 12, color: 'var(--t-text-3)', fontSize: 11 }} data-testid="dataset-detail-empty">
         Select a dataset from the list to view details and connect it to ML, Backtest, or Correlation.
       </div>
     );
@@ -427,9 +439,9 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
     : dataset.status === 'file_missing' || dataset.fileExists === false;
 
   return (
-    <div className="dataset-detail-card" style={{ padding: 12, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0 }}>
+    <div className="dataset-detail-card" data-testid="dataset-detail-panel" style={{ padding: 12, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0 }}>
       <div style={{ marginBottom: 10, minWidth: 0 }}>
-        <div className="historical-long-text" style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word', maxWidth: '100%' }}>{getDatasetId(dataset)}</div>
+        <div className="historical-long-text" data-testid="dataset-detail-id" style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word', maxWidth: '100%' }}>{getDatasetId(dataset)}</div>
 
         {fileMissing && (
           <div style={{
@@ -473,7 +485,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
             ].map(([k, v]) => (
               <tr key={k}>
                 <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, maxWidth: '38%', verticalAlign: 'top' }}>{k}</td>
-                <td className={`historical-long-text ${k === 'CSV File' || k === 'Warnings' ? 'historical-path-text' : ''}`} style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: k === 'CSV File' || k === 'Warnings' ? 'pre-wrap' : 'normal', minWidth: 0, maxWidth: '100%' }}>{v}</td>
+                <td className={`dataset-value-cell historical-long-text ${k === 'CSV File' || k === 'Warnings' ? 'historical-path-text' : ''}`} style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: k === 'CSV File' || k === 'Warnings' ? 'pre-wrap' : 'normal', minWidth: 0, maxWidth: '100%' }}>{v}</td>
               </tr>
             ))}
           </tbody>
@@ -482,7 +494,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
       </div>
 
       <div style={{ borderTop: '1px solid var(--t-border)', paddingTop: 10 }}>
-        <div style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <div style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           Use in
         </div>
         {fileMissing ? (
@@ -490,14 +502,15 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
             Dataset file missing on server. Re-download dataset to use it.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button className="historical-action-button" style={S.btn(true)} onClick={() => onUseForML(dataset)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="dataset-actions">
+            <button className="historical-action-button" style={S_ACTION_BTN(true)} onClick={() => onUseForML(dataset)} data-testid="btn-use-for-ml" aria-label="Use for ML Training">
               Use for ML Training
             </button>
-            <button className="historical-action-button" style={S.btn(false)} onClick={() => onUseForBacktest(dataset)}>
+            <button className="historical-action-button" style={S_ACTION_BTN(false)} onClick={() => onUseForBacktest(dataset)} data-testid="btn-use-for-backtest" aria-label="Use for Backtesting">
               Use for Backtesting
             </button>
-            <button className="historical-action-button" style={S.btn(false)} onClick={() => onUseForCorrelation(dataset)}>
+            <button className="historical-action-button" style={S_ACTION_BTN(false)} onClick={() => onUseForCorrelation(dataset)} data-testid="btn-use-for-correlation" aria-label="Use for Correlation">
+
               Use for Correlation
             </button>
           </div>
@@ -598,9 +611,9 @@ export default function HistoricalDataWorkspace() {
   };
 
   return (
-    <div className="historical-data-workspace" style={rootStyle}>
+    <div className="historical-data-workspace" data-testid="historical-data-workspace" style={rootStyle}>
       {/* Dataset list panel */}
-      <div style={panelStyle}>
+      <div style={panelStyle} data-testid="dataset-list-panel">
         <div style={S.header}>
           <span style={S.headerTitle}>Historical Datasets</span>
           <button
@@ -609,6 +622,7 @@ export default function HistoricalDataWorkspace() {
             onClick={() => store.fetchDatasets()}
             disabled={store.datasetsLoading}
             title="Refresh"
+            aria-label="Refresh datasets"
           >⟳</button>
         </div>
         {store.datasetsError && <div style={{ ...S.error, margin: 8 }}>{store.datasetsError}</div>}

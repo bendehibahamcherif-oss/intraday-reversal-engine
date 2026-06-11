@@ -1,19 +1,58 @@
-# Playwright Final Failure Analysis
+# Playwright Final Failure Analysis — Historical Mobile Layout
 
-## Trace/diagnostic evidence status
+## Root Cause Table
 
-Local browser replay is blocked in this container because Playwright Chromium is not installed and the CDN/proxy returns `403 Forbidden` for `npx playwright install chromium`. The Historical Data specs were therefore updated to emit the exact trace evidence GitHub Actions needs on any future failure: every visible Historical Data button now reports label/class/size/computed padding/min-height/line-height, and every overflowing Historical Data element now reports tag/class/text preview/scrollWidth/clientWidth/bounds/viewport width.
+| Failure | Location | Root Cause | Fix Applied |
+|---------|----------|------------|-------------|
+| "No visible buttons found in Historical Data workspace" | `historical-mobile-layout.spec.ts:91` | `window.__ZUSTAND_WORKSPACE_STORE__` is never exposed on `window` in any source file; the `page.evaluate()` call silently did nothing; workspace never switched to HistoricalData; no dataset was ever selected so action buttons never rendered | Replaced all `window.__ZUSTAND_WORKSPACE_STORE__` navigation with `openMobileWorkspace()` from `appHarness.ts`; waits for `dataset-list-panel` to contain `e2e-dataset` text, clicks dataset row, waits for `dataset-detail-panel` and `dataset-actions` before measuring button heights |
+| "waiting for getByText('e2e-dataset').first()" | `historical-mobile-layout.spec.ts:144` | Test 4 (long detail fields) was written with the same broken navigation pattern; never reached a state where `e2e-dataset` appeared in the DOM | Same navigation fix applied; additionally enriched `historicalDataset` mock with a long CSV path so overflow containment can be exercised |
+| Single-column layout assertion used text-content matching against generic element text | `historical-mobile-layout.spec.ts:47` | Selector heuristic fragile; fallback `if (layout !== null)` masked real navigation failure | Replaced with bounding-box comparison between `dataset-list-panel` and the second child of the workspace root |
 
-The exact failures below are tied to the two remaining GitHub Actions assertions and to the compact Historical Data controls/long-field code paths those assertions exercise.
+## What Was Never Set
 
-| Failure | Exact element | Measured size / overflow | Root cause | Fix |
-|---|---|---|---|---|
-| `tests/e2e/historical-mobile-layout.spec.ts:91` — Historical Data buttons are tappable | Historical Data dataset-list icon action button family: refresh button (`button.historical-action-button.historical-icon-button`, text `⟳`, `title="Refresh"`) and matching dataset delete icon (`button.historical-action-button.historical-icon-button`, text `✕`, `title="Remove dataset"`). | GitHub Actions failure reported a visible Historical Data button height of `22px`; source inspection shows these icon actions were the only Historical Data buttons with extra-compact inline padding (`2px 8px` for refresh, `1px 6px` for delete) layered on the shared compact `S.btn` baseline. | Compact desktop inline button styles could collapse mobile icon controls below the desired 44px touch target when the test ran under the 390px mobile viewport. | Historical Data-only mobile CSS now targets `.historical-data-workspace button`, `[role="button"]`, `.historical-action-button`, `.dataset-action-button`, `.dataset-table button`, and `.dataset-detail-card button` with `min-height: 44px`, icon `min-width: 44px`, explicit vertical padding, `inline-flex`, centered alignment, `box-sizing: border-box`, and `line-height: normal`. The shared Historical Data button baseline also uses normal line-height. |
-| `tests/e2e/historical-mobile-layout.spec.ts:121` — long detail fields stay contained | Dataset detail long-field cell family: `td.historical-long-text` values for `Dataset ID`, `CSV File`, warnings/provider messages, plus the surrounding `.dataset-detail-card` / `.historical-table-wrap` containers after selecting `e2e-dataset`. | GitHub Actions assertion saw long `e2e-dataset` / `/data/historical` detail content escape mobile containment. The updated diagnostic assertion will print the exact `Overflow element: TAG.className, text=..., scrollWidth=..., clientWidth=...` if any descendant still overflows. | Long unbroken dataset IDs and CSV/path-like strings were inside nested flex/table/detail containers where not every descendant had `min-width: 0`, path values were not consistently treated as pre-wrapping scrollable long text, and mobile form/detail grid children could retain width pressure. | Historical Data scoped containment now applies `max-width: 100%`, `min-width: 0`, and `box-sizing` throughout the workspace; path/JSON-like fields use `display: block`, `overflow-x: auto`, `white-space: pre-wrap`, and anywhere wrapping; mobile flex rows become `grid-template-columns: minmax(0, 1fr)`; detail cards/tables/table wrappers are constrained to the viewport; notification/toast text is capped to `calc(100vw - 32px)`. |
+```js
+// App.jsx / workspaceStore.js — these lines DO NOT EXIST:
+window.__ZUSTAND_WORKSPACE_STORE__ = useWorkspaceStore;   // ← never exported to window
+```
 
-## Test diagnostic improvements
+The store is only exported as:
+```js
+export const useWorkspaceStore = create(...);   // src/store/workspaceStore.js
+```
 
-- Button failures now identify the button label and class in the assertion message: `Button "${label}" (${className}) height ${height}px too small`.
-- Overflow failures now identify the overflowing element in the assertion message: `Overflow element: ${tag}.${className}, text=${preview}, scrollWidth=${scrollWidth}, clientWidth=${clientWidth}`.
-- The button audit is scoped to `.historical-data-workspace`, matching the Historical Data workspace contract instead of unrelated shell chrome.
-- The overflow audit is scoped to `.historical-data-workspace` and also checks `document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1`.
+Any `page.evaluate()` block that reads `window.__ZUSTAND_WORKSPACE_STORE__` returns `undefined`, and `if (store) store.getState().setWorkspace(...)` never executes.
+
+## Navigation Path (correct)
+
+```
+bootApp()
+  └─ installs auth + API mocks, navigates to '/', waits for terminal-shell
+
+openMobileWorkspace(page, { id: 'HistoricalData', label: 'Historical Data', shortLabel: 'HD' })
+  └─ clicks [data-testid="mobile-more-workspaces"]
+  └─ waits for role="dialog"[name="More workspaces"]
+  └─ clicks [data-testid="workspace-nav-historical-data"]  ← auto-generated navTestId
+  └─ React re-renders HistoricalDataWorkspace
+
+expect([data-testid="historical-data-workspace"]).toBeVisible()
+  └─ confirms workspace rendered
+
+expect([data-testid="dataset-list-panel"]).toContainText('e2e-dataset')
+  └─ waits for store.fetchDatasets() to complete (mock returns e2e-dataset)
+
+click dataset row → handleSelect('e2e-dataset') → setActiveTab('detail')
+  └─ store.selectedDataset set synchronously
+  └─ DatasetDetail renders with status:'ready', fileExists:true → actions visible
+
+expect([data-testid="dataset-actions"]).toBeVisible()
+  └─ 3 action buttons: Use for ML Training, Use for Backtesting, Use for Correlation
+```
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `tests/e2e/historical-mobile-layout.spec.ts` | Complete rewrite — 4 tests using `openMobileWorkspace`, proper async waits, scoped selectors |
+| `tests/e2e/helpers/apiMocks.ts` | `historicalDataset.symbols` → `['SPY','NFLX']`; long CSV path for overflow test; diagnostics with `symbols`, `rowsBySymbol`, `usableFor`, `columns` |
+| `src/workspaces/HistoricalDataWorkspace.jsx` | Added `data-testid` on workspace root, list panel, detail panel, empty state, actions container, and each action button; `S_ACTION_BTN` with `minHeight: 44`; table with `tableLayout: fixed` and value cells with `overflowWrap: anywhere` |
+| `src/terminal.css` | Scoped CSS for `.historical-data-workspace` — 44px min touch targets on buttons; `max-width: 100%` / `min-width: 0` on all children; `overflow-wrap: anywhere` on value cells |

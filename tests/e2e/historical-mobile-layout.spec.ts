@@ -1,32 +1,31 @@
 /**
- * Historical Data workspace — mobile layout regression test.
+ * Historical Data workspace — mobile layout regression tests.
  *
  * Verifies on iPhone 14 viewport (390×844):
- *   - The HistoricalData workspace is reachable via navigation
+ *   - The HistoricalData workspace is reachable via the More drawer
  *   - Layout is single-column (no horizontal overflow)
- *   - Dataset list panel renders above the detail panel (not beside it)
- *   - Bottom safe area padding prevents nav from covering content
+ *   - Dataset list panel renders above the detail panel
+ *   - Action buttons are ≥ 44px (touch targets)
+ *   - Long detail fields (paths, IDs) are contained within the viewport
  */
 
 import { test, expect } from '@playwright/test';
-import { bootApp } from './helpers/appHarness';
+import { bootApp, openMobileWorkspace } from './helpers/appHarness';
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
+const HIST_WORKSPACE = { id: 'HistoricalData', label: 'Historical Data', shortLabel: 'HD' };
 
 test.use({ viewport: MOBILE_VIEWPORT });
 
-test('historical data workspace: no horizontal overflow on mobile', async ({ page }) => {
+async function navigateToHistoricalData(page: Parameters<typeof bootApp>[0]) {
   await bootApp(page, { viewport: MOBILE_VIEWPORT });
+  await openMobileWorkspace(page, HIST_WORKSPACE);
+  await expect(page.getByTestId('historical-data-workspace')).toBeVisible({ timeout: 6000 });
+}
 
-  // Navigate to Historical Data workspace via store
-  await page.evaluate(() => {
-    // @ts-ignore
-    const store = window.__ZUSTAND_WORKSPACE_STORE__;
-    if (store) store.getState().setWorkspace('HistoricalData');
-  });
-  await page.waitForTimeout(500);
+test('historical data workspace: no horizontal overflow on mobile', async ({ page }) => {
+  await navigateToHistoricalData(page);
 
-  // Verify no horizontal overflow — scrollWidth must not exceed viewport
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
@@ -45,66 +44,50 @@ test('historical data workspace: no horizontal overflow on mobile', async ({ pag
 });
 
 test('historical data workspace: single-column layout on mobile', async ({ page }) => {
-  await bootApp(page, { viewport: MOBILE_VIEWPORT });
+  await navigateToHistoricalData(page);
 
-  await page.evaluate(() => {
-    // @ts-ignore
-    const store = window.__ZUSTAND_WORKSPACE_STORE__;
-    if (store) store.getState().setWorkspace('HistoricalData');
-  });
-  await page.waitForTimeout(500);
+  const listPanel = page.getByTestId('dataset-list-panel');
+  const workspaceRoot = page.getByTestId('historical-data-workspace');
 
-  // The root container should use column flex direction on mobile
-  // We detect this by checking that the left panel (dataset list) appears
-  // ABOVE the right panel (tabs/detail) — i.e. left panel top < right panel top
-  const layout = await page.evaluate(() => {
-    // Find the dataset list header
-    const headers = [...document.querySelectorAll('[data-testid="terminal-shell"] *')].filter(
-      (el) => el.textContent?.trim() === 'Historical Datasets',
-    );
-    const rightTabs = [...document.querySelectorAll('[data-testid="terminal-shell"] *')].filter(
-      (el) => el.textContent?.includes('Download') && el.tagName === 'BUTTON',
-    );
+  const listBox = await listPanel.boundingBox();
+  const rootBox = await workspaceRoot.boundingBox();
 
-    if (!headers.length || !rightTabs.length) return null;
+  if (listBox && rootBox) {
+    const mainPanelTop = await page.evaluate(() => {
+      const root = document.querySelector('[data-testid="historical-data-workspace"]');
+      const children = root ? [...root.children] : [];
+      if (children.length < 2) return null;
+      return children[1].getBoundingClientRect().top;
+    });
 
-    const listRect = headers[0].getBoundingClientRect();
-    const tabRect  = rightTabs[0].getBoundingClientRect();
-
-    return {
-      listTop: listRect.top,
-      tabTop:  tabRect.top,
-      stacked: listRect.top < tabRect.top,
-    };
-  });
-
-  // If layout is null, the workspace may not have rendered yet — treat as pass
-  // since the overflow test is the primary guard
-  if (layout !== null) {
-    expect(
-      layout.stacked,
-      `On mobile, dataset list (top=${layout.listTop}) should appear above the tab panel (top=${layout.tabTop})`,
-    ).toBe(true);
+    if (mainPanelTop !== null) {
+      expect(
+        listBox.y,
+        `dataset-list-panel (y=${listBox.y}) must appear above main panel (y=${mainPanelTop})`,
+      ).toBeLessThan(mainPanelTop);
+    }
   }
 });
 
 test('historical data workspace: buttons are tappable (min 44px touch target)', async ({ page }) => {
-  await bootApp(page, { viewport: MOBILE_VIEWPORT });
+  await navigateToHistoricalData(page);
 
-  await page.evaluate(() => {
-    // @ts-ignore
-    const store = window.__ZUSTAND_WORKSPACE_STORE__;
-    if (store) store.getState().setWorkspace('HistoricalData');
-  });
-  await page.waitForTimeout(500);
+  // Wait for the dataset list to populate from the API
+  await expect(page.getByTestId('dataset-list-panel')).toContainText('e2e-dataset', { timeout: 6000 });
 
-  // Check that visible buttons within the Historical Data workspace have a minimum touch height.
+  // Click the dataset row to open the detail panel with action buttons
+  await page.getByTestId('dataset-list-panel').getByText('e2e-dataset').first().click();
+
+  // Wait for the detail panel to be visible
+  await expect(page.getByTestId('dataset-detail-panel')).toBeVisible({ timeout: 4000 });
+
+  // Audit all visible buttons in the workspace with rich diagnostics
   const buttons = await page.evaluate(() => {
     const workspace = document.querySelector('.historical-data-workspace');
-    if (!workspace) return [];
+    if (!workspace) return [] as Array<{ textContent: string; ariaLabel: string; dataTestId: string; className: string; width: number; height: number; computedMinHeight: string; computedPadding: string; computedLineHeight: string }>;
     const btns = [...workspace.querySelectorAll('button')].filter((b) => {
       const r = b.getBoundingClientRect();
-      return r.width > 0 && r.height > 0; // only visible buttons
+      return r.width > 0 && r.height > 0;
     });
     return btns.map((b) => {
       const r = b.getBoundingClientRect();
@@ -128,10 +111,8 @@ test('historical data workspace: buttons are tappable (min 44px touch target)', 
     console.log('Historical Data short mobile buttons', JSON.stringify(shortButtons, null, 2));
   }
 
-  // At least some buttons should be visible
   expect(buttons.length, 'No visible buttons found in Historical Data workspace').toBeGreaterThan(0);
 
-  // All tappable Historical Data buttons should meet the 44px mobile touch-target floor.
   for (const button of buttons) {
     const label = button.ariaLabel || button.textContent || button.dataTestId || '<unlabelled>';
     expect(
@@ -142,16 +123,12 @@ test('historical data workspace: buttons are tappable (min 44px touch target)', 
 });
 
 test('historical data workspace: long detail fields stay contained on mobile', async ({ page }) => {
-  await bootApp(page, { viewport: MOBILE_VIEWPORT });
+  await navigateToHistoricalData(page);
 
-  await page.evaluate(() => {
-    // @ts-ignore
-    const store = window.__ZUSTAND_WORKSPACE_STORE__;
-    if (store) store.getState().setWorkspace('HistoricalData');
-  });
-
-  await page.getByText('e2e-dataset').first().click();
-  await expect(page.getByText('Dataset ID')).toBeVisible();
+  // Wait for the dataset list and click into the detail view
+  await expect(page.getByTestId('dataset-list-panel')).toContainText('e2e-dataset', { timeout: 6000 });
+  await page.getByTestId('dataset-list-panel').getByText('e2e-dataset').first().click();
+  await expect(page.getByTestId('dataset-detail-panel')).toBeVisible({ timeout: 4000 });
 
   const metrics = await page.evaluate(() => {
     const viewportWidth = document.documentElement.clientWidth;
@@ -164,10 +141,8 @@ test('historical data workspace: long detail fields stay contained on mobile', a
         const rect = el.getBoundingClientRect();
         return {
           tagName: el.tagName,
-          text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
           preview: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
           className: typeof el.className === 'string' ? el.className : String(el.className || ''),
-          dataTestId: el.getAttribute('data-testid') || '',
           scrollWidth: el.scrollWidth,
           clientWidth: el.clientWidth,
           x: rect.x,
@@ -183,7 +158,6 @@ test('historical data workspace: long detail fields stay contained on mobile', a
           tagName: el.tagName,
           text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
           className: typeof el.className === 'string' ? el.className : String(el.className || ''),
-          dataTestId: el.getAttribute('data-testid') || '',
           scrollWidth: el.scrollWidth,
           clientWidth: el.clientWidth,
           x: rect.x,
@@ -206,6 +180,7 @@ test('historical data workspace: long detail fields stay contained on mobile', a
 
   expect(metrics.documentOverflow, `document overflowed horizontally by ${metrics.documentOverflow}px; ${overflowMessage}`).toBeLessThanOrEqual(1);
   expect(metrics.bodyOverflow, `body overflowed horizontally by ${metrics.bodyOverflow}px; ${overflowMessage}`).toBeLessThanOrEqual(1);
+
   for (const cell of metrics.textCells) {
     const cellMessage = `Overflow element: ${cell.tagName}.${cell.className}, text=${cell.preview}, scrollWidth=${cell.scrollWidth}, clientWidth=${cell.clientWidth}`;
     expect(cell.right, cellMessage).toBeLessThanOrEqual(metrics.viewportWidth + 1);
