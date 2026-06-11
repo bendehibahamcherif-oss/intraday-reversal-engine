@@ -116,7 +116,7 @@ const S = {
     justifyContent: 'center',
     minHeight: 24,
     minWidth: 24,
-    lineHeight: 1.2,
+    lineHeight: 'normal',
     padding: '5px 12px',
     background: accent ? 'var(--t-accent)' : 'var(--t-bg-3)',
     color: accent ? 'white' : 'var(--t-text)',
@@ -159,7 +159,9 @@ const S = {
     overflowWrap: 'anywhere',
   }),
   tag: {
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 24,
     fontSize: 9,
     padding: '1px 5px',
     background: 'var(--t-bg-3)',
@@ -169,7 +171,9 @@ const S = {
     marginRight: 3,
   },
   chip: (color) => ({
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 24,
     fontSize: 9,
     padding: '1px 5px',
     background: color,
@@ -220,18 +224,18 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
             {ds.startDate} → {ds.endDate}
           </div>
           <div style={{ minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-            <span style={S.tag}>{ds.provider}</span>
-            <span style={S.tag}>{ds.session}</span>
-            <span style={S.tag}>{ds.purpose}</span>
-            {ds.rowCount != null && <span style={S.tag}>{ds.rowCount} rows</span>}
+            <span className="historical-status-text" style={S.tag}>{ds.provider}</span>
+            <span className="historical-status-text" style={S.tag}>{ds.session}</span>
+            <span className="historical-status-text" style={S.tag}>{ds.purpose}</span>
+            {ds.rowCount != null && <span className="historical-status-text" style={S.tag}>{ds.rowCount} rows</span>}
             {ds.status && (
-              <span style={S.chip(
+              <span className="historical-status-text" style={S.chip(
                 ds.status === 'ready' ? '#2a7' :
                 ds.status === 'file_missing' ? '#a44' : '#a72'
               )}>{ds.status}</span>
             )}
             {ds.fileExists === false && ds.status !== 'file_missing' && (
-              <span style={S.chip('#a44')}>file missing</span>
+              <span className="historical-status-text" style={S.chip('#a44')}>file missing</span>
             )}
           </div>
         </div>
@@ -423,7 +427,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
     : dataset.status === 'file_missing' || dataset.fileExists === false;
 
   return (
-    <div className="dataset-detail-card" style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0 }}>
+    <div className="dataset-detail-card" style={{ padding: 12, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0 }}>
       <div style={{ marginBottom: 10, minWidth: 0 }}>
         <div className="historical-long-text" style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word', maxWidth: '100%' }}>{getDatasetId(dataset)}</div>
 
@@ -469,7 +473,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
             ].map(([k, v]) => (
               <tr key={k}>
                 <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, maxWidth: '38%', verticalAlign: 'top' }}>{k}</td>
-                <td className="historical-long-text" style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0, maxWidth: '100%' }}>{v}</td>
+                <td className={`historical-long-text ${k === 'CSV File' || k === 'Warnings' ? 'historical-path-text' : ''}`} style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: k === 'CSV File' || k === 'Warnings' ? 'pre-wrap' : 'normal', minWidth: 0, maxWidth: '100%' }}>{v}</td>
               </tr>
             ))}
           </tbody>
@@ -578,6 +582,8 @@ export default function HistoricalDataWorkspace() {
   const panelStyle = {
     ...S.panel,
     width: isMobile ? '100%' : 320,
+    minWidth: 0,
+    maxWidth: '100%',
     maxHeight: isMobile ? 240 : undefined,
     borderRight: isMobile ? 'none' : '1px solid var(--t-border)',
     borderBottom: isMobile ? '1px solid var(--t-border)' : 'none',
@@ -586,6 +592,8 @@ export default function HistoricalDataWorkspace() {
   };
   const mainStyle = {
     ...S.main,
+    minWidth: 0,
+    maxWidth: '100%',
     paddingBottom: isMobile ? 80 : 0,
   };
 
@@ -632,7 +640,7 @@ export default function HistoricalDataWorkspace() {
             </button>
           ))}
           {notification && (
-            <span className="historical-long-text" style={{
+            <span className="historical-long-text historical-toast-text" style={{
               marginLeft: 'auto',
               fontSize: 10,
               padding: '2px 8px',

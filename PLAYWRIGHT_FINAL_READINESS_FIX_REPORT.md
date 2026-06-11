@@ -1,60 +1,39 @@
 # Playwright Final Readiness Fix Report
 
-## App crawler fix
+## Remaining failures fixed
 
-- Fixed the desktop app crawler duplicate-menu failure by ensuring the desktop sidebar renders only one visible control for each canonical workspace.
-- The canonical `Ops` workspace remains in the registry and legacy `Settings` still resolves to `Ops`, but the legacy bottom shortcut is not rendered when `Ops` is already present in `getDesktopWorkspaces()`.
-- Macro remains canonical as `MacroMultiAsset`; no Macro/Multi-Asset duplicate entry was introduced.
+### 1. Historical Data mobile touch targets
 
-## Desktop navigation fix
+- **Exact 22px button family:** Historical Data icon action buttons.
+- **Selector/class/text:** `button.historical-action-button.historical-icon-button`, refresh text `⟳`, `title="Refresh"`; matching dataset delete text `✕`, `title="Remove dataset"`.
+- **Measured failure:** GitHub Actions reported a visible Historical Data button height of `22px`, below the previous `24px` assertion floor and below the desired `44px` mobile touch target.
+- **Root cause:** The refresh/delete icon actions used compact inline padding (`2px 8px` / `1px 6px`) on top of the compact shared `S.btn` style. The previous broad fix was not strict enough at the exact Historical Data icon-button family and did not improve test diagnostics.
+- **Fix:** Added Historical Data-only mobile rules for `button`, `[role="button"]`, `.historical-action-button`, `.dataset-action-button`, `.dataset-table button`, and `.dataset-detail-card button`. Normal buttons now get `min-height: 44px`, adequate vertical padding, `inline-flex`, centered content, `box-sizing: border-box`, and `line-height: normal`; icon buttons also get `min-width: 44px`.
 
-- Desktop navigation now uses the canonical workspace registry without rendering the `Settings` alias as a second visible Operations control.
-- Added a regression assertion to `tests/e2e/navigation-accessibility.spec.ts` that every canonical desktop workspace has exactly one desktop navigation control by `data-testid` and exactly one matching sidebar `aria-label` button.
-- Aliases remain aliases and are not rendered as duplicate visible menu entries.
+### 2. Historical Data long detail field containment
 
-## Production journey fix
+- **Exact overflowing field family:** Dataset detail long text after selecting `e2e-dataset`.
+- **Selector/class/text preview:** `.dataset-detail-card` / `.historical-table-wrap` containing `td.historical-long-text` values such as `e2e-dataset...` and `/data/historical...` CSV/path fields.
+- **Root cause:** Long unbroken dataset IDs and file/path-like values were nested inside flex/table/detail containers that did not consistently enforce `min-width: 0`, `max-width: 100%`, or path-specific pre-wrapping/inner scrolling on every descendant.
+- **Fix:** Added scoped Historical Data containment across descendants, path/JSON/status/toast long-text classes, mobile single-column grid rows, constrained detail card/table wrappers, and `overflow-wrap: anywhere` / `word-break: break-word` / `white-space: pre-wrap` for path-like fields.
 
-- The production journey's initial duplicate-label contract is addressed by the same canonical desktop navigation fix.
-- The journey can still resolve the legacy `Settings` alias to canonical `Ops` through registry metadata while visible navigation remains deduplicated.
-- The Macro journey keeps using canonical `MacroMultiAsset`; no stale Macro duplicate is restored.
+## Test/spec improvements without weakening thresholds
 
-## Historical mobile touch-target fix
+- The Historical Data button test now audits only buttons inside `.historical-data-workspace` and requires `44px` height for every visible Historical Data button.
+- If a button fails again, the assertion prints the exact label, class, and measured height.
+- The long-field test now records every overflowing Historical Data descendant with tag, class, text preview, scroll/client width, x/width, and viewport width.
+- The long-field test now explicitly checks both document and body horizontal overflow against the `+1px` tolerance.
 
-- Added a `historical-data-workspace` root class and mobile-scoped CSS for buttons inside the Historical Data workspace.
-- On mobile (`max-width: 768px`), Historical Data buttons now have `min-height: 44px`, `min-width: 44px`, adequate padding, wrapping text, and stable line-height.
-- The fix is scoped to Historical Data mobile layouts and does not alter the desktop terminal navigation identity.
-
-## Historical mobile overflow fix
-
-- Added safe containment for long Historical Data content including dataset IDs, CSV paths, provider/status strings, notification text, and detail-table values.
-- Dataset list rows and detail fields now consistently use `minWidth: 0`, `maxWidth: 100%`, `overflow-wrap: anywhere`, and `word-break: break-word` where needed.
-- Mobile form rows wrap instead of widening the page, preserving all dataset information without horizontal document overflow.
-
-## Final command results
+## Validation result
 
 | Command | Result |
-| --- | --- |
+|---|---|
+| `npx playwright test tests/e2e/historical-mobile-layout.spec.ts --reporter=line` | Environment-blocked before assertions: Playwright Chromium executable is missing at `/root/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell`. |
 | `npm test` | Passed: 21 test files, 247 tests. |
-| `npm run build` | Passed with existing Vite chunk-size/dynamic-import warnings. |
-| `npm run frontend:build` | Passed with existing Vite chunk-size/dynamic-import warnings. |
+| `npm run build` | Passed with existing Vite warnings about mixed dynamic/static import of `aiLabStore.js` and chunk size over 500 kB. |
+| `npm run frontend:build` | Passed with the same existing Vite warnings. |
 | `node scripts/static-api-scanner.js` | Passed: 146 files scanned. |
 | `node scripts/detect-menu-duplicates.js` | Passed: 19 workspaces. |
-| `npx playwright test` | Environment-blocked: browser-backed tests cannot launch because Chromium is missing and browser installation is blocked by HTTP 403 in this container. Metadata/API tests that do not require browser launch executed before the browser-launch failures. |
-
-## Playwright environment limitation
-
-Local Playwright browser validation is blocked by the environment rather than by application assertions:
-
-- Missing executable: `/root/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell`
-- `npx playwright install chromium` failed with `403 Forbidden` from the Playwright CDN.
-- `apt-get install chromium` failed with `403 Forbidden` from the configured package repositories/proxy.
-
-## Final micro-fix: Historical Data mobile buttons and long fields
-
-- **Exact small button identified:** the Historical Data dataset-list refresh icon button (`title="Refresh"`, visible text `⟳`) used compact inline padding (`2px 8px`) on top of the shared compact Historical button style. The failing Playwright assertion reported this button path as a visible 22 px-high control before the micro-fix; the delete icon button used the same compact style family and was hardened at the same time.
-- **Measured height before fix:** 22 px in `tests/e2e/historical-mobile-layout.spec.ts` under the 390×844 mobile viewport, below the test's 24 px floor and below the desired 44 px mobile touch target.
-- **CSS/file fixed:** `src/terminal.css` now applies mobile-only Historical Data button rules with `display: inline-flex`, centered alignment, `min-height: 44px`, `min-width: 44px`, adequate padding, normal line-height, and `!important` protection so compact inline padding cannot collapse the mobile touch target. `src/workspaces/HistoricalDataWorkspace.jsx` also gives Historical action buttons explicit `historical-action-button` / `historical-icon-button` classes and a safe 24 px desktop baseline.
-- **Long field overflow root cause:** long dataset IDs and CSV/path-like values were inside nested flex/table/detail containers where some children had `max-width: 100%` but not consistent `min-width: 0`, and the detail table was not wrapped in an explicit constrained overflow container. Long text could therefore force a descendant box wider than the viewport even when the workspace root clipped horizontal overflow.
-- **Long field containment fix:** `src/terminal.css` now scopes `min-width: 0`, `max-width: 100%`, `overflow-wrap: anywhere`, `word-break: break-word`, normal white-space, and a constrained `.historical-table-wrap` to Historical Data. `src/workspaces/HistoricalDataWorkspace.jsx` wraps the detail table in `.historical-table-wrap`, marks the detail card, and makes the dataset row ID flex child shrink safely while preserving all field text.
-- **Targeted historical-mobile-layout result:** `npx playwright test tests/e2e/historical-mobile-layout.spec.ts --reporter=line` is still environment-blocked in this container before assertions execute because Chromium is missing at `/root/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell`.
-- **Full Playwright result:** `npx playwright test --reporter=line` imports and runs non-browser tests, but all browser-backed tests remain environment-blocked for the same missing Chromium executable. This environment also blocks remediation: `npx playwright install chromium` failed with CDN/proxy `403 Forbidden`, and `apt-get install chromium` failed with repository/proxy `403 Forbidden`.
+| `npx playwright test --reporter=line` | Environment-blocked for browser-backed tests by the missing Playwright Chromium executable; non-browser/API metadata specs completed before browser launch failures. Result: 4 passed, 2 skipped, 28 browser-launch failures. |
+| `npx playwright install chromium` | Environment-blocked by HTTP `403 Forbidden` from the Playwright CDN. |
+| `PLAYWRIGHT_DOWNLOAD_HOST=https://playwright.azureedge.net npx playwright install chromium` | Environment-blocked by HTTP `403 Forbidden` from the alternate Playwright CDN host. |
