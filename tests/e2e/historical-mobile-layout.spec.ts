@@ -117,3 +117,35 @@ test('historical data workspace: buttons are tappable (min 44px touch target)', 
     expect(h, `Button height ${h}px too small — should be at least 24px`).toBeGreaterThanOrEqual(24);
   }
 });
+
+test('historical data workspace: long detail fields stay contained on mobile', async ({ page }) => {
+  await bootApp(page, { viewport: MOBILE_VIEWPORT });
+
+  await page.evaluate(() => {
+    // @ts-ignore
+    const store = window.__ZUSTAND_WORKSPACE_STORE__;
+    if (store) store.getState().setWorkspace('HistoricalData');
+  });
+
+  await page.getByText('e2e-dataset').first().click();
+  await expect(page.getByText('Dataset ID')).toBeVisible();
+
+  const metrics = await page.evaluate(() => {
+    const bodyOverflow = document.body.scrollWidth - document.documentElement.clientWidth;
+    const shell = document.querySelector('[data-testid="terminal-shell"]') || document.body;
+    const textCells = [...shell.querySelectorAll('td, div, span')]
+      .filter((el) => /e2e-dataset|\/data\/historical/.test(el.textContent || ''))
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        return { text: el.textContent, right: rect.right, left: rect.left, width: rect.width };
+      });
+    const viewportWidth = document.documentElement.clientWidth;
+    return { bodyOverflow, textCells, viewportWidth };
+  });
+
+  expect(metrics.bodyOverflow, `body overflowed horizontally by ${metrics.bodyOverflow}px`).toBeLessThanOrEqual(1);
+  for (const cell of metrics.textCells) {
+    expect(cell.right, `long detail field escaped viewport: ${cell.text}`).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+    expect(cell.left, `long detail field started off-screen: ${cell.text}`).toBeGreaterThanOrEqual(-1);
+  }
+});

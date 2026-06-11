@@ -31,6 +31,7 @@ const S = {
   root: {
     display: 'flex',
     height: '100%',
+    maxWidth: '100%',
     overflow: 'hidden',
     background: 'var(--t-bg)',
     color: 'var(--t-text)',
@@ -47,6 +48,8 @@ const S = {
   },
   main: {
     flex: 1,
+    minWidth: 0,
+    maxWidth: '100%',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -70,6 +73,8 @@ const S = {
   body: {
     flex: 1,
     overflow: 'auto',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     padding: 12,
   },
   label: {
@@ -407,9 +412,9 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
     : dataset.status === 'file_missing' || dataset.fileExists === false;
 
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{getDatasetId(dataset)}</div>
+    <div style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      <div style={{ marginBottom: 10, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(dataset)}</div>
 
         {fileMissing && (
           <div style={{
@@ -430,7 +435,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
         )}
 
 
-        <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%' }}>
+        <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
           <tbody>
             {[
               ['Dataset ID', getDatasetId(dataset)],
@@ -451,8 +456,8 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
               ['Warnings',   (dataset.warnings || []).join(', ') || '—'],
             ].map(([k, v]) => (
               <tr key={k}>
-                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap' }}>{k}</td>
-                <td style={{ paddingBottom: 2 }}>{v}</td>
+                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, verticalAlign: 'top' }}>{k}</td>
+                <td style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>{v}</td>
               </tr>
             ))}
           </tbody>
@@ -554,7 +559,8 @@ export default function HistoricalDataWorkspace() {
   const rootStyle = {
     ...S.root,
     flexDirection: isMobile ? 'column' : 'row',
-    overflow: isMobile ? 'auto' : 'hidden',
+    overflowX: 'hidden',
+    overflowY: isMobile ? 'auto' : 'hidden',
   };
   const panelStyle = {
     ...S.panel,
@@ -616,6 +622,9 @@ export default function HistoricalDataWorkspace() {
               fontSize: 10,
               padding: '2px 8px',
               color: notification.isError ? 'var(--t-red,#f44)' : 'var(--t-green,#4f4)',
+              overflowWrap: 'anywhere',
+              minWidth: 0,
+              maxWidth: isMobile ? '55%' : '70%',
             }}>
               {notification.msg}
             </span>
