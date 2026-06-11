@@ -147,6 +147,10 @@ const S = {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    overflowWrap: 'anywhere',
   }),
   tag: {
     display: 'inline-block',
@@ -189,26 +193,26 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
     );
   }
   return (
-    <div style={{ overflow: 'auto', flex: 1 }}>
+    <div style={{ overflow: 'auto', flex: 1, minWidth: 0, maxWidth: '100%' }}>
       {datasets.map((ds) => (
         <div
           key={getDatasetId(ds)}
           style={S.datasetRow(getDatasetId(ds) === selectedDatasetId)}
           onClick={() => onSelect(getDatasetId(ds))}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700, fontSize: 11 }}>{getDatasetId(ds)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0, maxWidth: '100%' }}>
+            <span style={{ fontWeight: 700, fontSize: 11, minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(ds)}</span>
             <button
               style={{ ...S.btn(false), padding: '1px 6px', fontSize: 10 }}
               onClick={(e) => { e.stopPropagation(); onDelete(getDatasetId(ds)); }}
               title="Remove dataset"
             >✕</button>
           </div>
-          <div style={{ color: 'var(--t-text-3)', fontSize: 10 }}>
+          <div style={{ color: 'var(--t-text-3)', fontSize: 10, minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {(ds.symbols || []).join(', ')} &nbsp;·&nbsp; {ds.timeframe} &nbsp;·&nbsp;
             {ds.startDate} → {ds.endDate}
           </div>
-          <div>
+          <div style={{ minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             <span style={S.tag}>{ds.provider}</span>
             <span style={S.tag}>{ds.session}</span>
             <span style={S.tag}>{ds.purpose}</span>
@@ -289,7 +293,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
   ];
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: 12 }}>
+    <form onSubmit={handleSubmit} style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       {(localError || error) && <div style={S.error}>{localError || error}</div>}
       {result && result.ok && (
         <div style={S.success}>
@@ -319,7 +323,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+      <div className="historical-responsive-row" style={{ display: 'flex', gap: 8, marginBottom: 10, minWidth: 0 }}>
         <div style={{ flex: 1 }}>
           <label style={S.label}>Timeframe</label>
           <select style={S.select} value={form.timeframe} onChange={(e) => setField('timeframe', e.target.value)}>
@@ -334,7 +338,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+      <div className="historical-responsive-row" style={{ display: 'flex', gap: 8, marginBottom: 10, minWidth: 0 }}>
         <div style={{ flex: 1 }}>
           <label style={S.label}>Start Date</label>
           <input
@@ -414,7 +418,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
   return (
     <div style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       <div style={{ marginBottom: 10, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(dataset)}</div>
+        <div className="historical-long-text" style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word', maxWidth: '100%' }}>{getDatasetId(dataset)}</div>
 
         {fileMissing && (
           <div style={{
@@ -456,8 +460,8 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
               ['Warnings',   (dataset.warnings || []).join(', ') || '—'],
             ].map(([k, v]) => (
               <tr key={k}>
-                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, verticalAlign: 'top' }}>{k}</td>
-                <td style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>{v}</td>
+                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, maxWidth: '38%', verticalAlign: 'top' }}>{k}</td>
+                <td className="historical-long-text" style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0, maxWidth: '100%' }}>{v}</td>
               </tr>
             ))}
           </tbody>
@@ -577,7 +581,7 @@ export default function HistoricalDataWorkspace() {
   };
 
   return (
-    <div style={rootStyle}>
+    <div className="historical-data-workspace" style={rootStyle}>
       {/* Dataset list panel */}
       <div style={panelStyle}>
         <div style={S.header}>
@@ -617,12 +621,13 @@ export default function HistoricalDataWorkspace() {
             </button>
           ))}
           {notification && (
-            <span style={{
+            <span className="historical-long-text" style={{
               marginLeft: 'auto',
               fontSize: 10,
               padding: '2px 8px',
               color: notification.isError ? 'var(--t-red,#f44)' : 'var(--t-green,#4f4)',
               overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
               minWidth: 0,
               maxWidth: isMobile ? '55%' : '70%',
             }}>
