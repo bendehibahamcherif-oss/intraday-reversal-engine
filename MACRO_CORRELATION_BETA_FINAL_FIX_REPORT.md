@@ -139,3 +139,9 @@ Changes are committed on the current branch and ready for PR. Production deploym
 - `npx playwright test` runs the full 34-test suite and the non-browser metadata/API contract tests execute, but this container cannot launch Chromium because `/root/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell` is missing.
 - `npx playwright install chromium` was attempted and failed with CDN/proxy `403 Forbidden`; `apt-get install chromium` was also blocked by repository/proxy `403 Forbidden`.
 - Therefore local Playwright browser validation remains environment-blocked here; all non-browser validation commands pass after the readiness fixes.
+
+## Final Historical Data-only Playwright micro-fix note
+
+- The final remaining Production Readiness failures addressed in this pass were Historical Data mobile CSS/layout issues only: compact Historical Data action buttons could render as 22 px-high controls on mobile, and long dataset detail/path fields needed stronger containment inside flex/table parents.
+- No Macro, Multi-Asset, workspace registry, navigation architecture, backend, or API logic was changed in this pass.
+- Macro correlation/beta regression coverage remained green under `npm test` after the Historical Data CSS/layout-only fix.
