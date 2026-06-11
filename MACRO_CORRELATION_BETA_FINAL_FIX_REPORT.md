@@ -108,3 +108,34 @@ The separate backend repository `bendehibahamcherif-oss/reversal` is not checked
 ## Deployment status
 
 Changes are committed on the current branch and ready for PR. Production deployment is pending merge/deploy of the frontend changes and propagation of the same backend route changes into `bendehibahamcherif-oss/reversal` if that repo is managed separately.
+
+## Remaining Playwright readiness fixes after Macro metadata
+
+### Remaining Playwright failures found
+
+- `tests/e2e/app-crawler.spec.ts` failed its duplicate-menu contract because the desktop sidebar exposed the canonical Operations workspace twice.
+- `tests/e2e/navigation-accessibility.spec.ts` failed because the duplicated Operations controls meant there was not exactly one desktop control per canonical workspace.
+- `tests/e2e/production-user-journey.spec.ts` failed at the initial duplicate-label gate for the same duplicated Operations/Settings control.
+- `tests/e2e/historical-mobile-layout.spec.ts` failed mobile touch-target checks because Historical Data buttons used compact desktop padding with no mobile minimum size.
+- `tests/e2e/historical-mobile-layout.spec.ts` failed mobile containment checks because long Historical Data identifiers/paths could widen flex/table cells beyond the viewport.
+
+### Root cause for each
+
+- Operations was included in the canonical desktop registry and then rendered again as a legacy bottom Settings shortcut that resolves to the same `Ops` workspace.
+- Historical Data had no workspace-scoped mobile touch-target CSS, so refresh/delete/tabs/download/use-action buttons could render below 44 px on 390 px mobile viewports.
+- Historical Data list/detail fields had long unbroken dataset IDs and CSV paths inside flex/table containers without consistent `min-width: 0`, `max-width: 100%`, and `overflow-wrap: anywhere` containment.
+
+### Exact files fixed
+
+- `src/TerminalSidebar.jsx`
+- `src/workspaces/HistoricalDataWorkspace.jsx`
+- `src/terminal.css`
+- `tests/e2e/navigation-accessibility.spec.ts`
+- `PLAYWRIGHT_FINAL_FAILURE_ANALYSIS.md`
+- `PLAYWRIGHT_FINAL_READINESS_FIX_REPORT.md`
+
+### Final Playwright result
+
+- `npx playwright test` runs the full 34-test suite and the non-browser metadata/API contract tests execute, but this container cannot launch Chromium because `/root/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell` is missing.
+- `npx playwright install chromium` was attempted and failed with CDN/proxy `403 Forbidden`; `apt-get install chromium` was also blocked by repository/proxy `403 Forbidden`.
+- Therefore local Playwright browser validation remains environment-blocked here; all non-browser validation commands pass after the readiness fixes.
