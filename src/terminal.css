@@ -84,3 +84,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Historical Data workspace — mobile touch targets & overflow containment ─ */
+
+.historical-data-workspace button,
+.historical-data-workspace [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.historical-data-workspace,
+.historical-data-workspace * {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.historical-data-workspace .dataset-value-cell,
+.historical-data-workspace code,
+.historical-data-workspace pre,
+.historical-data-workspace td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}

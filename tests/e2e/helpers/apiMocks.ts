@@ -64,16 +64,16 @@ const credentials = { ok: true, credentials: [], providers: [], configured: {}, 
 const historicalDataset = {
   datasetId: 'e2e-dataset',
   id: 'e2e-dataset',
-  symbols: ['SPY'],
+  symbols: ['SPY', 'NFLX'],
   timeframe: '1d',
   startDate: '2025-01-02',
   endDate: '2025-12-31',
   provider: 'e2e_mock',
   session: 'RTH',
   purpose: 'general',
-  rowCount: 480,
-  rowsBySymbol: { SPY: 480 },
-  files: { csv: '/data/historical/e2e-dataset.csv' },
+  rowCount: 960,
+  rowsBySymbol: { SPY: 480, NFLX: 480 },
+  files: { csv: '/data/historical/very-long-path-name/e2e-dataset-SPY_NFLX-1d-2025-01-02-to-2025-12-31-RTH-general.csv' },
   fileStatus: 'ready',
   fileExists: true,
   status: 'ready',
@@ -168,7 +168,7 @@ export function mockedApiBody(path: string, method: string) {
   if (method === 'GET' && path === '/api/providers/active') return { body: { ok: true, activeProviders: [], providerOrder: [], symbols: [] }, known: true };
   if (method === 'GET' && path === '/api/historical/providers') return { body: { ok: true, providers: [], status: 'empty' }, known: true };
   if (method === 'GET' && path === '/api/historical/datasets') return { body: { ok: true, datasets: [historicalDataset], files: [], status: 'ready' }, known: true };
-  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+\/diagnostics$/.test(path)) return { body: { ok: true, datasetId: historicalDataset.datasetId, fileExists: true, fileSizeBytes: 491520, status: 'ready', issues: [] }, known: true };
+  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+\/diagnostics$/.test(path)) return { body: { ok: true, datasetId: historicalDataset.datasetId, fileExists: true, fileSizeBytes: 982016, status: 'ready', issues: [], symbols: historicalDataset.symbols, rowsBySymbol: historicalDataset.rowsBySymbol, usableFor: ['ml', 'backtest', 'correlation'], columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume', 'symbol'] }, known: true };
   if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, dataset: historicalDataset }, known: true };
   if (method === 'POST' && path === '/api/historical/download') return { body: { ok: true, dataset: historicalDataset, datasetId: historicalDataset.datasetId, rowCount: historicalDataset.rowCount, totalRows: historicalDataset.rowCount, status: 'ready' }, known: true };
   if (method === 'DELETE' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, status: 'deleted' }, known: true };
