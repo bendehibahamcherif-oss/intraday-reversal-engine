@@ -4,7 +4,8 @@ import { attachNetworkGuards } from './helpers/networkGuards';
 import { bootApp, expectScreenSane, openDesktopWorkspace } from './helpers/appHarness';
 import { desktopWorkspaces, duplicateLabels, requiredWorkspaceLabels, workspaceById } from './helpers/workspaceData';
 
-const majorLabels = requiredWorkspaceLabels(['ChartOrderflow', 'Macro', 'LiveData', 'Providers', 'Credentials', 'HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk', 'Ops']);
+const majorWorkspaceIds = ['ChartOrderflow', 'MacroMultiAsset', 'LiveData', 'Providers', 'HistoricalData', 'AILab', 'Backtesting', 'Portfolio', 'Risk', 'Ops'];
+const majorLabels = requiredWorkspaceLabels(majorWorkspaceIds);
 
 function byLabel(label: string) {
   return desktopWorkspaces.find((workspace) => workspace.label === label || workspace.aliases?.includes(label));
@@ -63,7 +64,7 @@ test('desktop production user journey keeps datasets, ML, backtesting, macro, po
   await expectScreenSane(page);
 
   const settingsWorkspace = workspaceById('Settings');
-  expect(settingsWorkspace?.desktopVisible, 'Settings / More is a mobile-only More item, not a desktop workspace').toBe(false);
+  expect(settingsWorkspace?.id, 'legacy Settings resolves to canonical Operations workspace').toBe('Ops');
   expect(byLabel('Operations'), 'desktop Settings/More journey uses canonical Operations workspace').toBeTruthy();
 
   fs.writeFileSync('PRODUCTION_USER_JOURNEY_RESULTS.json', JSON.stringify({ generatedAt: new Date().toISOString(), labels, apiRequests: guard.apiRequests }, null, 2));

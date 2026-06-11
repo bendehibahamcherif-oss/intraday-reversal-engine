@@ -15,6 +15,15 @@ for (const [label, items] of by(workspaceDefinitions.filter((w) => w.desktopVisi
   if (items.length > 1 && !items.every((item) => Array.isArray(item.aliases) && item.aliases.includes(label))) errors.push({ code: 'DUPLICATE_VISIBLE_LABEL', label, ids: items.map((item) => item.id) });
 }
 for (const workspace of workspaceDefinitions.filter((w) => w.implemented)) {
+  for (const field of ['id','label','route','component','componentKey','category','group','testId','navTestId','ariaLabel','canonicalCapability']) {
+    if (!workspace[field]) errors.push({ code: 'WORKSPACE_METADATA_MISSING', id: workspace.id, field });
+  }
+  if (workspace.route !== `/workspace/${workspace.id}`) errors.push({ code: 'WORKSPACE_ROUTE_MISMATCH', id: workspace.id, route: workspace.route });
+  if (workspace.component !== workspace.componentKey) errors.push({ code: 'WORKSPACE_COMPONENT_ALIAS_MISMATCH', id: workspace.id, component: workspace.component, componentKey: workspace.componentKey });
+  if (workspace.category !== workspace.group) errors.push({ code: 'WORKSPACE_CATEGORY_MISMATCH', id: workspace.id, category: workspace.category, group: workspace.group });
+  if (workspace.testId !== workspace.navTestId) errors.push({ code: 'WORKSPACE_TEST_ID_MISMATCH', id: workspace.id, testId: workspace.testId, navTestId: workspace.navTestId });
+  if (workspace.canonicalCapability !== workspace.id) errors.push({ code: 'WORKSPACE_CAPABILITY_MISMATCH', id: workspace.id, canonicalCapability: workspace.canonicalCapability });
+  if (!Array.isArray(workspace.aliases)) errors.push({ code: 'WORKSPACE_ALIASES_MISSING', id: workspace.id });
   if (workspace.desktopVisible && !workspace.mobileVisible) errors.push({ code: 'DESKTOP_WORKSPACE_MISSING_MOBILE', id: workspace.id, label: workspace.label });
   if (workspace.mobileVisible && !workspace.desktopVisible) warnings.push({ code: 'MOBILE_ONLY_WORKSPACE', id: workspace.id, label: workspace.label });
   if (!componentKeys.includes(workspace.componentKey)) errors.push({ code: 'UNRESOLVED_COMPONENT_KEY', id: workspace.id, componentKey: workspace.componentKey });
@@ -43,6 +52,22 @@ const removedIds = ['VolumeProfile','Macro','Correlation','Beta','Credentials','
   'MLDiagnosticsDrift','StrategyBuilder','Settings'];
 for (const id of removedIds) {
   if (workspaceDefinitions.some((w) => w.id === id)) errors.push({ code: 'REMOVED_DUPLICATE_REREGISTERED', id });
+}
+const aliasOwners = new Map();
+for (const workspace of workspaceDefinitions) {
+  for (const alias of workspace.aliases ?? []) {
+    if (alias === workspace.id) continue;
+    const owner = aliasOwners.get(alias);
+    if (owner && owner !== workspace.id) errors.push({ code: 'DUPLICATE_WORKSPACE_ALIAS', alias, ids: [owner, workspace.id] });
+    aliasOwners.set(alias, workspace.id);
+  }
+}
+const macro = workspaceDefinitions.find((workspace) => workspace.id === 'MacroMultiAsset');
+if (!macro) errors.push({ code: 'CANONICAL_MACRO_MISSING' });
+else {
+  for (const alias of ['Macro', 'macro', 'MACRO', 'MA', 'MultiAsset', 'macroMultiAsset', 'MacroMultiAsset']) {
+    if (alias !== macro.id && !macro.aliases.includes(alias)) errors.push({ code: 'MACRO_ALIAS_MISSING', alias });
+  }
 }
 if (!workspaceDefinitions.some((workspace) => workspace.id === DEFAULT_WORKSPACE_ID)) errors.push({ code: 'DEFAULT_WORKSPACE_MISSING', id: DEFAULT_WORKSPACE_ID });
 
