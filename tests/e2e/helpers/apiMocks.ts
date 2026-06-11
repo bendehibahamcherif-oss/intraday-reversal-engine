@@ -80,6 +80,26 @@ const historicalDataset = {
   warnings: [],
 };
 
+const historicalNflxDataset = {
+  ...historicalDataset,
+  datasetId: 'e2e-dataset-nflx',
+  id: 'e2e-dataset-nflx',
+  symbols: ['NFLX'],
+  rowsBySymbol: { NFLX: 480 },
+  files: { csv: '/data/historical/e2e-dataset-nflx.csv' },
+};
+
+const historicalDatasets = [historicalDataset, historicalNflxDataset];
+
+function historicalDatasetByPath(path: string) {
+  const raw = decodeURIComponent(path.split('/').filter(Boolean).at(-1) || historicalDataset.datasetId);
+  if (raw === 'diagnostics') {
+    const parts = path.split('/').filter(Boolean);
+    return historicalDatasets.find((dataset) => dataset.datasetId === decodeURIComponent(parts.at(-2) || '')) || historicalDataset;
+  }
+  return historicalDatasets.find((dataset) => dataset.datasetId === raw) || historicalDataset;
+}
+
 function mlSignal(path: string) {
   const symbol = symbolFromPath(path);
   return {
@@ -167,9 +187,9 @@ export function mockedApiBody(path: string, method: string) {
   if (method === 'GET' && path === '/api/providers/credentials') return { body: credentials, known: true };
   if (method === 'GET' && path === '/api/providers/active') return { body: { ok: true, activeProviders: [], providerOrder: [], symbols: [] }, known: true };
   if (method === 'GET' && path === '/api/historical/providers') return { body: { ok: true, providers: [], status: 'empty' }, known: true };
-  if (method === 'GET' && path === '/api/historical/datasets') return { body: { ok: true, datasets: [historicalDataset], files: [], status: 'ready' }, known: true };
-  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+\/diagnostics$/.test(path)) return { body: { ok: true, datasetId: historicalDataset.datasetId, fileExists: true, fileSizeBytes: 491520, status: 'ready', issues: [] }, known: true };
-  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, dataset: historicalDataset }, known: true };
+  if (method === 'GET' && path === '/api/historical/datasets') return { body: { ok: true, datasets: historicalDatasets, files: [], status: 'ready' }, known: true };
+  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+\/diagnostics$/.test(path)) { const dataset = historicalDatasetByPath(path); return { body: { ok: true, registryFound: true, datasetId: dataset.datasetId, dataset, symbols: dataset.symbols, rowsBySymbol: dataset.rowsBySymbol, columns: ['timestamp', 'symbol', 'open', 'high', 'low', 'close', 'volume'], fileExists: true, fileSizeBytes: 491520, status: 'ready', issues: [] }, known: true }; }
+  if (method === 'GET' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, dataset: historicalDatasetByPath(path) }, known: true };
   if (method === 'POST' && path === '/api/historical/download') return { body: { ok: true, dataset: historicalDataset, datasetId: historicalDataset.datasetId, rowCount: historicalDataset.rowCount, totalRows: historicalDataset.rowCount, status: 'ready' }, known: true };
   if (method === 'DELETE' && /^\/api\/historical\/datasets\/[^/]+$/.test(path)) return { body: { ok: true, status: 'deleted' }, known: true };
   if (method === 'POST' && /^\/api\/historical\/use-for-(ml|backtest|correlation)$/.test(path)) return { body: { ok: true, dataset: historicalDataset, datasetId: historicalDataset.datasetId, status: 'selected' }, known: true };
@@ -177,8 +197,8 @@ export function mockedApiBody(path: string, method: string) {
   if (path === '/api/alerts' || path.startsWith('/api/alerts/')) { const body = alertsBody(path, method); if (body) return { body, known: true }; }
   if (method === 'POST' && path === '/api/backtest/run') return { body: { ok: true, status: 'accepted', result: null, rows: [], message: 'E2E mock accepted backtest request without simulating profitability.' }, known: true };
   if (method === 'GET' && path === '/api/backtest/runs') return { body: { ok: true, runs: [], rows: [], status: 'empty' }, known: true };
-  if (method === 'GET' && (path === '/api/macro/beta' || path === '/api/multi-asset/beta')) return { body: { ok: true, beta: null, r2: null, status: 'not_enough_data' }, known: true };
-  if (method === 'GET' && (path === '/api/macro/correlation' || path === '/api/multi-asset/correlation')) return { body: { ok: true, matrix: [], correlations: [], status: 'not_enough_data' }, known: true };
+  if (method === 'GET' && (path === '/api/macro/beta' || path === '/api/multi-asset/beta')) return { body: { ok: true, beta: 1.08, r2: 0.64, symbol: 'NFLX', benchmark: 'SPY', symbols: ['SPY', 'NFLX'], datasetIds: ['e2e-dataset', 'e2e-dataset-nflx'], datasetsBySymbol: { SPY: 'e2e-dataset', NFLX: 'e2e-dataset-nflx' }, resolution: 'multi_dataset', status: 'ready_multi_dataset', observations: 480 }, known: true };
+  if (method === 'GET' && (path === '/api/macro/correlation' || path === '/api/multi-asset/correlation')) return { body: { ok: true, symbols: ['SPY', 'NFLX'], matrix: [[1, 0.42], [0.42, 1]], correlations: [{ x: 'SPY', y: 'NFLX', correlation: 0.42 }], datasetIds: ['e2e-dataset', 'e2e-dataset-nflx'], datasetsBySymbol: { SPY: 'e2e-dataset', NFLX: 'e2e-dataset-nflx' }, resolution: 'multi_dataset', status: 'ready_multi_dataset', alignedRows: 480, observations: 480 }, known: true };
   if (method === 'GET' && (path === '/api/macro/sector-rotation' || path === '/api/multi-asset/sector-rotation')) return { body: { ok: true, sectors: [], rotation: [], status: 'not_enough_data' }, known: true };
   if (method === 'GET' && (path === '/api/macro/volatility-heatmap' || path === '/api/multi-asset/volatility')) return { body: { ok: true, heatmap: [], volatility: [], status: 'not_enough_data' }, known: true };
   if (method === 'GET' && path === '/api/portfolio/summary') return { body: { ok: true, summary: { equity: 0, cash: 0, realizedPnl: 0, unrealizedPnl: 0 }, status: 'empty' }, known: true };

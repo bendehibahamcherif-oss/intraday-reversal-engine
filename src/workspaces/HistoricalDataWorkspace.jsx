@@ -32,6 +32,7 @@ const S = {
     display: 'flex',
     height: '100%',
     maxWidth: '100%',
+    boxSizing: 'border-box',
     overflow: 'hidden',
     background: 'var(--t-bg)',
     color: 'var(--t-text)',
@@ -111,7 +112,9 @@ const S = {
     marginBottom: 10,
   },
   btn: (accent) => ({
-    padding: '5px 12px',
+    minHeight: 44,
+    minWidth: 44,
+    padding: '8px 12px',
     background: accent ? 'var(--t-accent)' : 'var(--t-bg-3)',
     color: accent ? 'white' : 'var(--t-text)',
     border: '1px solid var(--t-border)',
@@ -120,6 +123,8 @@ const S = {
     fontSize: 11,
     cursor: 'pointer',
     fontWeight: accent ? 700 : 400,
+    boxSizing: 'border-box',
+    touchAction: 'manipulation',
   }),
   error: {
     color: 'var(--t-red, #f44)',
@@ -129,6 +134,8 @@ const S = {
     border: '1px solid rgba(255,60,60,.2)',
     borderRadius: 2,
     marginBottom: 8,
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
   },
   success: {
     color: 'var(--t-green, #4f4)',
@@ -138,6 +145,8 @@ const S = {
     border: '1px solid rgba(60,255,60,.2)',
     borderRadius: 2,
     marginBottom: 8,
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
   },
   datasetRow: (selected) => ({
     padding: '6px 10px',
@@ -147,9 +156,15 @@ const S = {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
+    minWidth: 0,
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
   }),
   tag: {
     display: 'inline-block',
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
     fontSize: 9,
     padding: '1px 5px',
     background: 'var(--t-bg-3)',
@@ -157,6 +172,7 @@ const S = {
     borderRadius: 2,
     color: 'var(--t-text-3)',
     marginRight: 3,
+    marginBottom: 3,
   },
   chip: (color) => ({
     display: 'inline-block',
@@ -189,22 +205,22 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
     );
   }
   return (
-    <div style={{ overflow: 'auto', flex: 1 }}>
+    <div style={{ overflow: 'auto', flex: 1, minWidth: 0, maxWidth: '100%' }}>
       {datasets.map((ds) => (
         <div
           key={getDatasetId(ds)}
           style={S.datasetRow(getDatasetId(ds) === selectedDatasetId)}
           onClick={() => onSelect(getDatasetId(ds))}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700, fontSize: 11 }}>{getDatasetId(ds)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0, maxWidth: '100%' }}>
+            <span style={{ fontWeight: 700, fontSize: 11, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(ds)}</span>
             <button
-              style={{ ...S.btn(false), padding: '1px 6px', fontSize: 10 }}
+              style={{ ...S.btn(false), padding: '8px 10px', fontSize: 10, flexShrink: 0 }}
               onClick={(e) => { e.stopPropagation(); onDelete(getDatasetId(ds)); }}
               title="Remove dataset"
             >✕</button>
           </div>
-          <div style={{ color: 'var(--t-text-3)', fontSize: 10 }}>
+          <div style={{ color: 'var(--t-text-3)', fontSize: 10, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {(ds.symbols || []).join(', ')} &nbsp;·&nbsp; {ds.timeframe} &nbsp;·&nbsp;
             {ds.startDate} → {ds.endDate}
           </div>
@@ -289,7 +305,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
   ];
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: 12 }}>
+    <form onSubmit={handleSubmit} style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       {(localError || error) && <div style={S.error}>{localError || error}</div>}
       {result && result.ok && (
         <div style={S.success}>
@@ -319,14 +335,14 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 140px', minWidth: 0 }}>
           <label style={S.label}>Timeframe</label>
           <select style={S.select} value={form.timeframe} onChange={(e) => setField('timeframe', e.target.value)}>
             {TIMEFRAMES.map((tf) => <option key={tf} value={tf}>{tf}</option>)}
           </select>
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: '1 1 140px', minWidth: 0 }}>
           <label style={S.label}>Session</label>
           <select style={S.select} value={form.session} onChange={(e) => setField('session', e.target.value)}>
             {SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -334,8 +350,8 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 140px', minWidth: 0 }}>
           <label style={S.label}>Start Date</label>
           <input
             type="date"
@@ -345,7 +361,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
             required
           />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: '1 1 140px', minWidth: 0 }}>
           <label style={S.label}>End Date</label>
           <input
             type="date"
@@ -366,9 +382,9 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
 
       <div style={S.fieldGroup}>
         <label style={S.label}>Output Format</label>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {FORMATS.map((fmt) => (
-            <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, cursor: 'pointer' }}>
+            <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 4, minHeight: 44, fontSize: 11, cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={form.formats.includes(fmt)}
@@ -380,7 +396,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         </div>
       </div>
 
-      <div style={{ ...S.fieldGroup, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ ...S.fieldGroup, display: 'flex', alignItems: 'center', gap: 6, minHeight: 44 }}>
         <input
           type="checkbox"
           id="forceRefresh"
@@ -412,7 +428,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
     : dataset.status === 'file_missing' || dataset.fileExists === false;
 
   return (
-    <div style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0, overflowWrap: 'anywhere' }}>
       <div style={{ marginBottom: 10, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(dataset)}</div>
 
@@ -435,7 +451,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
         )}
 
 
-        <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
+        <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
           <tbody>
             {[
               ['Dataset ID', getDatasetId(dataset)],
@@ -456,8 +472,8 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
               ['Warnings',   (dataset.warnings || []).join(', ') || '—'],
             ].map(([k, v]) => (
               <tr key={k}>
-                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, verticalAlign: 'top' }}>{k}</td>
-                <td style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>{v}</td>
+                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 96, verticalAlign: 'top' }}>{k}</td>
+                <td style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0, maxWidth: 0 }}>{v}</td>
               </tr>
             ))}
           </tbody>
@@ -561,10 +577,13 @@ export default function HistoricalDataWorkspace() {
     flexDirection: isMobile ? 'column' : 'row',
     overflowX: 'hidden',
     overflowY: isMobile ? 'auto' : 'hidden',
+    width: '100%',
   };
   const panelStyle = {
     ...S.panel,
     width: isMobile ? '100%' : 320,
+    minWidth: 0,
+    boxSizing: 'border-box',
     maxHeight: isMobile ? 240 : undefined,
     borderRight: isMobile ? 'none' : '1px solid var(--t-border)',
     borderBottom: isMobile ? '1px solid var(--t-border)' : 'none',
@@ -574,6 +593,8 @@ export default function HistoricalDataWorkspace() {
   const mainStyle = {
     ...S.main,
     paddingBottom: isMobile ? 80 : 0,
+    minWidth: 0,
+    maxWidth: '100%',
   };
 
   return (
@@ -583,7 +604,7 @@ export default function HistoricalDataWorkspace() {
         <div style={S.header}>
           <span style={S.headerTitle}>Historical Datasets</span>
           <button
-            style={{ ...S.btn(false), marginLeft: 'auto', padding: '2px 8px', fontSize: 10 }}
+            style={{ ...S.btn(false), marginLeft: 'auto', padding: '8px 10px', fontSize: 10 }}
             onClick={() => store.fetchDatasets()}
             disabled={store.datasetsLoading}
             title="Refresh"
@@ -631,7 +652,7 @@ export default function HistoricalDataWorkspace() {
           )}
         </div>
 
-        <div style={S.body}>
+        <div style={{ ...S.body, minWidth: 0 }}>
           {activeTab === 'download' && (
             <DownloadForm
               providers={store.providers}

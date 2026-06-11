@@ -108,3 +108,33 @@ The separate backend repository `bendehibahamcherif-oss/reversal` is not checked
 ## Deployment status
 
 Changes are committed on the current branch and ready for PR. Production deployment is pending merge/deploy of the frontend changes and propagation of the same backend route changes into `bendehibahamcherif-oss/reversal` if that repo is managed separately.
+
+## Final readiness follow-up
+
+### Remaining Playwright failures found
+
+- GitHub Actions still reported failures in app crawler, desktop navigation accessibility, production user journey, and Historical Data mobile touch/overflow checks after the prior Macro metadata fix.
+- Local browser-backed reproduction is blocked in this container because Playwright Chromium is not installed and browser download is denied by CDN `403 Forbidden`; metadata-only Playwright assertions still execute.
+
+### Root cause for each
+
+- App crawler/navigation: desktop sidebar rendered canonical `Ops` and a legacy Settings shortcut as two visible controls for the same canonical Operations workspace.
+- Production journey: duplicate desktop Operations control could break duplicate-label assertions, and the E2E historical mock registry had no compatible NFLX dataset for Macro's canonical `SPY,NFLX` two-asset path.
+- Historical mobile touch targets: Historical action buttons and mobile top-bar Logout were below the requested 44px tappable target.
+- Historical mobile overflow: dense terminal table/list styles did not consistently constrain long dataset IDs and CSV paths on a 390px viewport, and the mobile top bar retained desktop fixed-width assumptions.
+
+### Exact files fixed
+
+- `src/TerminalSidebar.jsx`
+- `src/TerminalTopBar.jsx`
+- `src/workspaces/HistoricalDataWorkspace.jsx`
+- `tests/e2e/helpers/apiMocks.ts`
+- `tests/e2e/navigation-accessibility.spec.ts`
+- `PLAYWRIGHT_FINAL_FAILURE_ANALYSIS.md`
+- `PLAYWRIGHT_FINAL_READINESS_FIX_REPORT.md`
+
+### Final Playwright result
+
+- `npx playwright test` result in this environment: 4 passed, 2 skipped, 28 failed at browser launch due to missing Chromium executable.
+- Browser installation command `npx playwright install chromium` failed with CDN `403 Forbidden`, so full local Playwright green cannot be proven inside this container.
+- The code-level fixes preserve the prior Macro correlation/beta behavior and keep the deterministic SPY/NFLX multi-dataset route covered by unit/static checks and E2E mock contracts.

@@ -67,6 +67,16 @@ const selectStyle = {
   paddingRight: 4,
 };
 
+function useIsCompactTouch() {
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setCompact(window.innerWidth <= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return compact;
+}
+
 export default function TerminalTopBar({ user, onLogout }) {
   const { symbol, setSymbol } = useActiveSymbolStore();
   const { timeframe, setTimeframe } = useChartStore();
@@ -74,6 +84,7 @@ export default function TerminalTopBar({ user, onLogout }) {
   const { connected, stale, latency } = useSocketStore();
 
   const [localSymbol, setLocalSymbol] = useState(symbol || '');
+  const compactTouch = useIsCompactTouch();
   const [session, setSession] = useState(getMarketSession());
 
   // Keep local symbol in sync when store changes externally
@@ -134,6 +145,7 @@ export default function TerminalTopBar({ user, onLogout }) {
         position: 'relative',
         zIndex: 50,
         userSelect: 'none',
+        overflowX: 'hidden',
       }}
     >
       {/* ── LEFT ── */}
@@ -142,8 +154,9 @@ export default function TerminalTopBar({ user, onLogout }) {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          minWidth: 240,
-          padding: '0 10px',
+          minWidth: compactTouch ? 0 : 240,
+          flexShrink: compactTouch ? 1 : 0,
+          padding: compactTouch ? '0 6px' : '0 10px',
         }}
       >
         {/* Logo */}
@@ -173,7 +186,7 @@ export default function TerminalTopBar({ user, onLogout }) {
           onChange={(e) => setLocalSymbol(e.target.value.toUpperCase())}
           onKeyDown={handleSymbolKeyDown}
           onBlur={handleSymbolBlur}
-          style={{ ...inputStyle, width: 100, textTransform: 'uppercase' }}
+          style={{ ...inputStyle, width: compactTouch ? 72 : 100, textTransform: 'uppercase' }}
           placeholder="SYMBOL"
           spellCheck={false}
           autoComplete="off"
@@ -183,7 +196,7 @@ export default function TerminalTopBar({ user, onLogout }) {
         <select
           value={timeframe}
           onChange={(e) => setTimeframe(e.target.value)}
-          style={selectStyle}
+          style={{ ...selectStyle, width: compactTouch ? 52 : 60 }}
         >
           {TIMEFRAMES.map((tf) => (
             <option key={tf} value={tf}>{tf}</option>
@@ -195,9 +208,9 @@ export default function TerminalTopBar({ user, onLogout }) {
       <div
         style={{
           flex: 1,
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          display: compactTouch ? 'none' : 'flex',
         }}
       >
         <span
@@ -218,8 +231,9 @@ export default function TerminalTopBar({ user, onLogout }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
-          paddingRight: 12,
+          gap: compactTouch ? 6 : 12,
+          paddingRight: compactTouch ? 6 : 12,
+          flexShrink: 0,
         }}
       >
         {/* Connection Pill */}
@@ -246,7 +260,7 @@ export default function TerminalTopBar({ user, onLogout }) {
         </span>
 
         {/* Latency */}
-        {latency != null && (
+        {!compactTouch && latency != null && (
           <span
             style={{
               fontSize: 10,
@@ -271,21 +285,25 @@ export default function TerminalTopBar({ user, onLogout }) {
         </span>
 
         {/* User email */}
-        <span
-          style={{
-            fontSize: 11,
-            color: 'var(--t-text-2)',
-          }}
-        >
-          {truncateEmail(user?.email)}
-        </span>
+        {!compactTouch && (
+          <span
+            style={{
+              fontSize: 11,
+              color: 'var(--t-text-2)',
+            }}
+          >
+            {truncateEmail(user?.email)}
+          </span>
+        )}
 
         {/* Logout Button */}
         <button
           onClick={handleLogout}
           style={{
-            height: 24,
-            padding: '0 8px',
+            minHeight: compactTouch ? 44 : 24,
+            minWidth: compactTouch ? 44 : undefined,
+            height: compactTouch ? 44 : 24,
+            padding: compactTouch ? '0 12px' : '0 8px',
             background: 'transparent',
             border: '1px solid var(--t-border)',
             color: 'var(--t-text-2)',
