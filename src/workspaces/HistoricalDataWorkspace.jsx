@@ -111,6 +111,12 @@ const S = {
     marginBottom: 10,
   },
   btn: (accent) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 24,
+    minWidth: 24,
+    lineHeight: 1.2,
     padding: '5px 12px',
     background: accent ? 'var(--t-accent)' : 'var(--t-bg-3)',
     color: accent ? 'white' : 'var(--t-text)',
@@ -200,10 +206,11 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
           style={S.datasetRow(getDatasetId(ds) === selectedDatasetId)}
           onClick={() => onSelect(getDatasetId(ds))}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0, maxWidth: '100%' }}>
-            <span style={{ fontWeight: 700, fontSize: 11, minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(ds)}</span>
+          <div className="historical-detail-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0, maxWidth: '100%' }}>
+            <span className="historical-long-text" style={{ flex: '1 1 auto', fontWeight: 700, fontSize: 11, minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(ds)}</span>
             <button
-              style={{ ...S.btn(false), padding: '1px 6px', fontSize: 10 }}
+              className="historical-action-button historical-icon-button"
+              style={{ ...S.btn(false), flex: '0 0 auto', padding: '1px 6px', fontSize: 10 }}
               onClick={(e) => { e.stopPropagation(); onDelete(getDatasetId(ds)); }}
               title="Remove dataset"
             >✕</button>
@@ -394,7 +401,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         <label htmlFor="forceRefresh" style={{ fontSize: 11, cursor: 'pointer' }}>Force re-download</label>
       </div>
 
-      <button type="submit" style={S.btn(true)} disabled={loading}>
+      <button type="submit" className="historical-action-button" style={S.btn(true)} disabled={loading}>
         {loading ? 'Downloading…' : 'Download'}
       </button>
     </form>
@@ -416,7 +423,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
     : dataset.status === 'file_missing' || dataset.fileExists === false;
 
   return (
-    <div style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+    <div className="dataset-detail-card" style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0 }}>
       <div style={{ marginBottom: 10, minWidth: 0 }}>
         <div className="historical-long-text" style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word', maxWidth: '100%' }}>{getDatasetId(dataset)}</div>
 
@@ -439,7 +446,8 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
         )}
 
 
-        <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
+        <div className="historical-table-wrap" style={{ maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
+        <table className="historical-detail-table" style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
           <tbody>
             {[
               ['Dataset ID', getDatasetId(dataset)],
@@ -466,6 +474,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div style={{ borderTop: '1px solid var(--t-border)', paddingTop: 10 }}>
@@ -478,13 +487,13 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button style={S.btn(true)} onClick={() => onUseForML(dataset)}>
+            <button className="historical-action-button" style={S.btn(true)} onClick={() => onUseForML(dataset)}>
               Use for ML Training
             </button>
-            <button style={S.btn(false)} onClick={() => onUseForBacktest(dataset)}>
+            <button className="historical-action-button" style={S.btn(false)} onClick={() => onUseForBacktest(dataset)}>
               Use for Backtesting
             </button>
-            <button style={S.btn(false)} onClick={() => onUseForCorrelation(dataset)}>
+            <button className="historical-action-button" style={S.btn(false)} onClick={() => onUseForCorrelation(dataset)}>
               Use for Correlation
             </button>
           </div>
@@ -587,6 +596,7 @@ export default function HistoricalDataWorkspace() {
         <div style={S.header}>
           <span style={S.headerTitle}>Historical Datasets</span>
           <button
+            className="historical-action-button historical-icon-button"
             style={{ ...S.btn(false), marginLeft: 'auto', padding: '2px 8px', fontSize: 10 }}
             onClick={() => store.fetchDatasets()}
             disabled={store.datasetsLoading}
@@ -611,6 +621,7 @@ export default function HistoricalDataWorkspace() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              className="historical-action-button"
               style={{
                 ...S.btn(activeTab === tab.id),
                 padding: '3px 10px',
