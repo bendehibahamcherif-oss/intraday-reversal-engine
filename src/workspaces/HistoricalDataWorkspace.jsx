@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react';
 import { safeHistoricalError, useHistoricalDataStore } from '../store/historicalDataStore.js';
 import { getDatasetId } from '../utils/datasets.js';
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return mobile;
+}
+
 // ── Constants (mirrors backend canonicalSchema) ───────────────────────────────
 const TIMEFRAMES  = ['1m', '5m', '15m', '30m', '1h', '1d'];
 const SESSIONS    = ['RTH', 'EXTENDED', 'ALL'];
@@ -478,6 +488,7 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function HistoricalDataWorkspace() {
   const store = useHistoricalDataStore();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('download'); // 'download' | 'detail'
   const [notification, setNotification] = useState(null);
 
@@ -540,10 +551,29 @@ export default function HistoricalDataWorkspace() {
     { id: 'detail',   label: 'Detail' },
   ];
 
+  const rootStyle = {
+    ...S.root,
+    flexDirection: isMobile ? 'column' : 'row',
+    overflow: isMobile ? 'auto' : 'hidden',
+  };
+  const panelStyle = {
+    ...S.panel,
+    width: isMobile ? '100%' : 320,
+    maxHeight: isMobile ? 240 : undefined,
+    borderRight: isMobile ? 'none' : '1px solid var(--t-border)',
+    borderBottom: isMobile ? '1px solid var(--t-border)' : 'none',
+    flexShrink: isMobile ? 0 : 0,
+    overflow: 'auto',
+  };
+  const mainStyle = {
+    ...S.main,
+    paddingBottom: isMobile ? 80 : 0,
+  };
+
   return (
-    <div style={S.root}>
-      {/* Left panel: dataset list */}
-      <div style={S.panel}>
+    <div style={rootStyle}>
+      {/* Dataset list panel */}
+      <div style={panelStyle}>
         <div style={S.header}>
           <span style={S.headerTitle}>Historical Datasets</span>
           <button
@@ -565,8 +595,8 @@ export default function HistoricalDataWorkspace() {
         />
       </div>
 
-      {/* Right panel */}
-      <div style={S.main}>
+      {/* Detail / download panel */}
+      <div style={mainStyle}>
         <div style={S.header}>
           {tabs.map((tab) => (
             <button
