@@ -4,6 +4,17 @@ import { isKnownE2eMockedApiRequest, mockedApiBody } from './helpers/apiMocks';
 import { bootApp, expectScreenSane, openDesktopWorkspace } from './helpers/appHarness';
 import { desktopWorkspaces, requiredWorkspaceLabels, requiredWorkspaceNavLabels, workspaceById } from './helpers/workspaceData';
 
+
+test('workspace metadata helper resolves canonical Macro id and legacy alias without duplicate entries', async () => {
+  const canonical = workspaceById('MacroMultiAsset');
+  const legacy = workspaceById('Macro');
+  expect(canonical?.id).toBe('MacroMultiAsset');
+  expect(legacy?.id).toBe('MacroMultiAsset');
+  expect(requiredWorkspaceLabels(['MacroMultiAsset'])).toEqual(['Macro / Multi-Asset']);
+  expect(requiredWorkspaceLabels(['Macro'])).toEqual(['Macro / Multi-Asset']);
+  expect(desktopWorkspaces.filter((workspace) => /macro|multi-asset/i.test(workspace.label)).map((workspace) => workspace.id)).toEqual(['MacroMultiAsset']);
+});
+
 test('e2e API mock coverage: app boot has zero unmocked /api requests', async ({ page }) => {
   const guard = attachNetworkGuards(page);
   await bootApp(page);
@@ -45,7 +56,7 @@ test('workspace label consistency: required journey labels come from canonical r
   const labels = requiredWorkspaceLabels(['HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk']);
   const navLabels = requiredWorkspaceNavLabels(['HistoricalData', 'AILab', 'Backtesting', 'MacroMultiAsset', 'Portfolio', 'Risk']);
   expect(labels).toEqual(labels.map((label) => desktopWorkspaces.find((workspace) => workspace.label === label)?.label));
-  expect(navLabels).toEqual(['Historical Data', 'AI Lab', 'Backtesting', 'Macro', 'Portfolio', 'Risk']);
+  expect(navLabels).toEqual(['Historical Data', 'AI Lab', 'Backtesting', 'Macro / Multi-Asset', 'Portfolio', 'Risk']);
 });
 
 test('mocked API routes: every known route returns non-empty valid JSON without NaN/Infinity/undefined and status < 400', async () => {
@@ -143,14 +154,15 @@ test('mocked API routes: every known route returns non-empty valid JSON without 
   }
 });
 
-test('Settings / More is validated separately from desktop workspace label lookup', async ({ page }) => {
+test('legacy Settings alias resolves to the canonical Operations workspace without duplicate entries', async ({ page }) => {
   const settings = workspaceById('Settings');
-  expect(settings?.label).toBe('Settings / More');
-  expect(settings?.desktopVisible).toBe(false);
+  expect(settings?.id).toBe('Ops');
+  expect(settings?.label).toBe('Operations');
+  expect(desktopWorkspaces.filter((workspace) => workspace.label === 'Operations')).toHaveLength(1);
 
   await bootApp(page, { viewport: { width: 390, height: 844 } });
   await page.getByTestId('mobile-more-workspaces').click();
   const moreDialog = page.getByRole('dialog', { name: /more workspaces/i });
   await expect(moreDialog).toBeVisible();
-  await expect(moreDialog.getByRole('button', { name: settings!.label, exact: true })).toBeVisible();
+  await expect(moreDialog.getByRole('button', { name: settings!.ariaLabel || settings!.label, exact: true })).toBeVisible();
 });

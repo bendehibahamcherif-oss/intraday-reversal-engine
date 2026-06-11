@@ -83,14 +83,23 @@ Beta:
 
 ## Validation results
 
-- `npm test` — passed: 21 files, 245 tests.
+- `npm test` — passed: 21 files, 247 tests.
 - `npm run build` — passed, with existing Vite chunk-size/dynamic-import warnings.
 - `npm run frontend:build` — passed, with existing Vite chunk-size/dynamic-import warnings.
 - `node scripts/static-api-scanner.js` — passed.
 - `node scripts/detect-menu-duplicates.js` — passed.
-- `npx playwright test tests/e2e/historical-mobile-layout.spec.ts` — blocked by missing Playwright Chromium browser.
+- `npx playwright test tests/e2e/historical-mobile-layout.spec.ts` — previously blocked by missing Playwright Chromium browser.
 - `npx playwright install chromium` — blocked by CDN 403 in this environment.
-- `npx playwright test` — failed before browser launch because the existing e2e metadata helper reports missing workspace metadata for `Macro`.
+- `npx playwright test` — no longer fails during spec import with `Missing implemented workspace metadata for Macro`; the metadata-only Playwright assertions pass, then browser-backed tests are blocked because Chromium is not installed in this environment.
+
+
+## Playwright Macro workspace metadata fix
+
+- **Root cause of `Missing implemented workspace metadata for Macro`:** `tests/e2e/production-user-journey.spec.ts` requested workspace metadata with the removed legacy id `Macro`. The canonical registry intentionally removed `Macro` as a duplicate top-level workspace and kept one visible Macro capability under `MacroMultiAsset`, so the E2E helper's canonical-id-only lookup returned no implemented workspace for the legacy id.
+- **Canonical Macro workspace id:** `MacroMultiAsset`.
+- **Aliases supported:** `Macro`, `macro`, `MACRO`, `MA`, `MultiAsset`, `macroMultiAsset`, `Live Markets`, `Correlation`, and `Beta` resolve to `MacroMultiAsset` where alias resolution is supported. `Settings` similarly resolves to the canonical `Ops` workspace instead of reintroducing a duplicate Settings entry.
+- **Files changed:** `src/config/workspaces.js`, `src/test/workspaceRegistryCanonical.test.js`, `tests/e2e/helpers/workspaceData.ts`, `tests/e2e/api-mock-coverage.spec.ts`, `tests/e2e/production-user-journey.spec.ts`, `scripts/detect-menu-duplicates.js`, and this report.
+- **Final Playwright result:** `npx playwright test` imports the suite and passes the metadata-only Macro alias regression before browser launch. The remaining browser-backed tests cannot launch locally because `/root/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell` is absent, and `npx playwright install chromium` is blocked by a CDN `403 Forbidden` response in this environment.
 
 ## Backend validation status
 
