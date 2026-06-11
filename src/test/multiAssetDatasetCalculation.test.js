@@ -82,6 +82,20 @@ function createOneSymbolDataset(tmpDir, rowsPerSymbol = 60) {
   return { csvPath, symbols: ['SPY'], rowCount: rowsPerSymbol };
 }
 
+function createNflxOnlyDataset(tmpDir, rowsPerSymbol = 60) {
+  // Same date range as one_symbol so they overlap for correlation
+  const dates = generateDateRange(rowsPerSymbol);
+  const nflxPrices = generatePrices(rowsPerSymbol, 600, 0.0004);
+
+  const rows = [CANONICAL_HEADER];
+  for (let i = 0; i < rowsPerSymbol; i++) {
+    rows.push(makeCsvRow(dates[i], 'NFLX', nflxPrices[i]));
+  }
+  const csvPath = path.join(tmpDir, 'nflx_only.csv');
+  fs.writeFileSync(csvPath, rows.join('\n'));
+  return { csvPath, symbols: ['NFLX'], rowCount: rowsPerSymbol };
+}
+
 function createTinyDataset(tmpDir) {
   // Only 2 rows per symbol — insufficient for a window=20
   const dates = generateDateRange(3);
@@ -103,6 +117,7 @@ let tmpDir;
 let twoDatasetId;
 let oneDatasetId;
 let tinyDatasetId;
+let nflxDatasetId;
 
 function hasInvalid(value, seen = new WeakSet()) {
   if (typeof value === 'number') return !Number.isFinite(value);
@@ -121,19 +136,30 @@ beforeAll(async () => {
   const twoDs  = createTwoSymbolDataset(tmpDir, 60);
   const oneDs  = createOneSymbolDataset(tmpDir, 60);
   const tinyDs = createTinyDataset(tmpDir);
+  const nflxDs = createNflxOnlyDataset(tmpDir, 60);
 
   twoDatasetId  = 'test_two_symbol';
   oneDatasetId  = 'test_one_symbol';
   tinyDatasetId = 'test_tiny';
+  nflxDatasetId = 'test_nflx_only';
 
   // Monkey-patch registry.get to return our fixture datasets
   const origGet = registry.get.bind(registry);
   registry.get = (id) => {
-    if (id === twoDatasetId)  return { datasetId: id, symbols: twoDs.symbols,  files: { csv: twoDs.csvPath,  json: null }, rowCount: twoDs.rowCount };
-    if (id === oneDatasetId)  return { datasetId: id, symbols: oneDs.symbols,  files: { csv: oneDs.csvPath,  json: null }, rowCount: oneDs.rowCount };
-    if (id === tinyDatasetId) return { datasetId: id, symbols: tinyDs.symbols, files: { csv: tinyDs.csvPath, json: null }, rowCount: tinyDs.rowCount };
+    if (id === twoDatasetId)  return { datasetId: id, symbols: twoDs.symbols,  timeframe: '1d', files: { csv: twoDs.csvPath,  json: null }, rowCount: twoDs.rowCount };
+    if (id === oneDatasetId)  return { datasetId: id, symbols: oneDs.symbols,  timeframe: '1d', files: { csv: oneDs.csvPath,  json: null }, rowCount: oneDs.rowCount };
+    if (id === tinyDatasetId) return { datasetId: id, symbols: tinyDs.symbols, timeframe: '1d', files: { csv: tinyDs.csvPath, json: null }, rowCount: tinyDs.rowCount };
+    if (id === nflxDatasetId) return { datasetId: id, symbols: nflxDs.symbols, timeframe: '1d', files: { csv: nflxDs.csvPath, json: null }, rowCount: nflxDs.rowCount };
     return origGet(id);
   };
+
+  // Also patch registry.list() so auto-discovery finds our fixture datasets
+  registry.list = () => [
+    { datasetId: twoDatasetId,  symbols: twoDs.symbols,  timeframe: '1d', files: { csv: twoDs.csvPath,  json: null }, rowCount: twoDs.rowCount },
+    { datasetId: oneDatasetId,  symbols: oneDs.symbols,  timeframe: '1d', files: { csv: oneDs.csvPath,  json: null }, rowCount: oneDs.rowCount },
+    { datasetId: tinyDatasetId, symbols: tinyDs.symbols, timeframe: '1d', files: { csv: tinyDs.csvPath, json: null }, rowCount: tinyDs.rowCount },
+    { datasetId: nflxDatasetId, symbols: nflxDs.symbols, timeframe: '1d', files: { csv: nflxDs.csvPath, json: null }, rowCount: nflxDs.rowCount },
+  ];
 
   const multiAssetRoutes = require('../../server-deliverables/api/multiAssetRoutes');
   const app = express();
@@ -180,12 +206,22 @@ describe('correlation — dataset-backed', () => {
     expect(hasInvalid(body)).toBe(false);
   });
 
-  it('returns missing_symbols when NFLX absent from SPY-only dataset', async () => {
+  it('auto-discovers NFLX when SPY-only dataset selected (registry has NFLX-only)', async () => {
+    // With auto-discovery enabled, this should now succeed via multi-dataset resolution
     const { response, body } = await getJson(`/api/macro/correlation?symbols=SPY,NFLX&window=20&datasetId=${oneDatasetId}`);
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(['ok', 'not_enough_data']).toContain(body.status);
+    expect(body.resolution).toBe('multi_dataset');
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('returns missing_symbols when symbol is absent from all known datasets', async () => {
+    const { response, body } = await getJson(`/api/macro/correlation?symbols=SPY,AAPL&window=20&datasetId=${oneDatasetId}`);
     expect(response.status).toBe(200);
     expect(body.ok).toBe(false);
     expect(body.status).toBe('missing_symbols');
-    expect(body.missingSymbols).toContain('NFLX');
+    expect(body.missingSymbols).toContain('AAPL');
     expect(body.availableSymbols).toContain('SPY');
     expect(hasInvalid(body)).toBe(false);
   });
@@ -224,12 +260,22 @@ describe('beta — dataset-backed', () => {
     expect(hasInvalid(body)).toBe(false);
   });
 
-  it('returns missing_symbols when NFLX absent from SPY-only dataset', async () => {
+  it('auto-discovers NFLX dataset for beta when SPY-only dataset selected', async () => {
+    // With auto-discovery enabled, this should succeed via multi-dataset resolution
     const { response, body } = await getJson(`/api/macro/beta?symbol=NFLX&benchmark=SPY&window=20&datasetId=${oneDatasetId}`);
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(['ok', 'not_enough_data']).toContain(body.status);
+    expect(body.resolution).toBe('multi_dataset');
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('returns missing_symbols for beta when symbol absent from all known datasets', async () => {
+    const { response, body } = await getJson(`/api/macro/beta?symbol=AAPL&benchmark=SPY&window=20&datasetId=${oneDatasetId}`);
     expect(response.status).toBe(200);
     expect(body.ok).toBe(false);
     expect(body.status).toBe('missing_symbols');
-    expect(body.missingSymbols).toContain('NFLX');
+    expect(body.missingSymbols).toContain('AAPL');
     expect(hasInvalid(body)).toBe(false);
   });
 
@@ -300,6 +346,90 @@ describe('sector rotation', () => {
     expect(body.ok).toBe(true);
     // Live store is empty in test — so either not_enough_data or available
     expect(['not_enough_data', 'available']).toContain(body.status);
+    expect(hasInvalid(body)).toBe(false);
+  });
+});
+
+// ── Multi-dataset auto-discovery tests ────────────────────────────────────────
+
+describe('correlation — multi-dataset auto-discovery', () => {
+  it('auto-discovers NFLX-only dataset when SPY-only dataset is primary and NFLX missing', async () => {
+    // oneDatasetId is SPY-only. registry.list() includes nflxDatasetId (NFLX-only, same 1d timeframe).
+    // Backend should auto-discover nflxDatasetId for the missing NFLX symbol.
+    const { response, body } = await getJson(
+      `/api/macro/correlation?symbols=SPY,NFLX&window=20&timeframe=1d&datasetId=${oneDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ok');
+    expect(body.resolution).toBe('multi_dataset');
+    expect(body.datasetsBySymbol).toBeDefined();
+    expect(body.datasetsBySymbol['SPY']).toBe(oneDatasetId);
+    // NFLX should be resolved to any compatible dataset (twoDatasetId or nflxDatasetId both valid)
+    expect([twoDatasetId, nflxDatasetId]).toContain(body.datasetsBySymbol['NFLX']);
+    expect(body.symbols).toEqual(['SPY', 'NFLX']);
+    expect(Array.isArray(body.matrix)).toBe(true);
+    expect(body.matrix.length).toBe(2);
+    expect(Number.isFinite(body.matrix[0][1])).toBe(true);
+    expect(body.observations).toBeGreaterThanOrEqual(2);
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('returns missing_symbols when no compatible dataset found for an unknown symbol', async () => {
+    // AAPL is not in any fixture dataset
+    const { response, body } = await getJson(
+      `/api/macro/correlation?symbols=SPY,AAPL&window=20&timeframe=1d&datasetId=${oneDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(false);
+    expect(body.status).toBe('missing_symbols');
+    expect(body.missingSymbols).toContain('AAPL');
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('auto-discovery with not_enough_data from non-overlapping dates', async () => {
+    // tinyDatasetId has SPY+NFLX but only 2 rows — not enough for window=20
+    const { response, body } = await getJson(
+      `/api/macro/correlation?symbols=SPY,NFLX&window=20&timeframe=1d&datasetId=${tinyDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('not_enough_data');
+    expect(body.observations).toBeLessThan(20);
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('no NaN/Infinity in multi-dataset auto-discovered correlation response', async () => {
+    const { body } = await getJson(
+      `/api/macro/correlation?symbols=SPY,NFLX&window=20&timeframe=1d&datasetId=${oneDatasetId}`,
+    );
+    expect(hasInvalid(body), `NaN/Infinity in response: ${JSON.stringify(body).slice(0, 200)}`).toBe(false);
+  });
+});
+
+describe('beta — multi-dataset auto-discovery', () => {
+  it('auto-discovers NFLX-only dataset when SPY-only is primary and NFLX missing', async () => {
+    const { response, body } = await getJson(
+      `/api/macro/beta?symbol=NFLX&benchmark=SPY&window=20&timeframe=1d&datasetId=${oneDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ok');
+    expect(body.resolution).toBe('multi_dataset');
+    expect(body.datasetsBySymbol).toBeDefined();
+    expect(typeof body.beta).toBe('number');
+    expect(Number.isFinite(body.beta)).toBe(true);
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('returns missing_symbols for unknown symbol not in any dataset', async () => {
+    const { response, body } = await getJson(
+      `/api/macro/beta?symbol=AAPL&benchmark=SPY&window=20&timeframe=1d&datasetId=${oneDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(false);
+    expect(body.status).toBe('missing_symbols');
+    expect(body.missingSymbols).toContain('AAPL');
     expect(hasInvalid(body)).toBe(false);
   });
 });

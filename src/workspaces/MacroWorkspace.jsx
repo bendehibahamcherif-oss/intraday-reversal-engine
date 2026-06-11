@@ -76,6 +76,9 @@ function CorrelationMatrix({ correlation, loading, error }) {
         <div style={{ color: TEXT, marginBottom: 2 }}>Missing: <strong style={{ color: RED }}>{(correlation.missingSymbols || []).join(', ')}</strong></div>
         <div style={{ color: MUTED }}>Available in dataset: {(correlation.availableSymbols || []).join(', ') || '(none)'}</div>
         <div style={{ color: MUTED, marginTop: 6 }}>Select a dataset that includes all requested symbols, or remove the missing symbols from the Symbols input.</div>
+        {correlation.autoDiscovered && Object.keys(correlation.autoDiscovered).length > 0 && (
+          <div style={{ color: MUTED, marginTop: 4 }}>Auto-discovered datasets for: {Object.entries(correlation.autoDiscovered).map(([s, id]) => `${s} → ${id}`).join(', ')}</div>
+        )}
       </div>
     );
   }
@@ -93,6 +96,19 @@ function CorrelationMatrix({ correlation, loading, error }) {
   const { symbols, matrix } = correlation;
   if (!Array.isArray(matrix) || !matrix.length || !symbols?.length) return <div style={{ color: MUTED, fontSize: 12 }}>Empty result.</div>;
 
+  const multiDatasetBanner = correlation.resolution === 'multi_dataset' && correlation.datasetsBySymbol && (
+    <div style={{ fontSize: 11, color: MUTED, marginBottom: 8, padding: '4px 8px', background: '#0a1628', borderRadius: 4, border: `1px solid ${BLUE}44` }}>
+      <span style={{ color: BLUE, fontWeight: 700, marginRight: 4 }}>Multi-dataset:</span>
+      {Object.entries(correlation.datasetsBySymbol).map(([sym, id]) => (
+        <span key={sym} style={{ marginRight: 8 }}>
+          <span style={{ color: TEXT }}>{sym}</span>
+          <span style={{ color: MUTED }}> → </span>
+          <span style={{ color: MUTED, fontFamily: 'monospace' }}>{String(id).slice(0, 40)}{String(id).length > 40 ? '…' : ''}</span>
+        </span>
+      ))}
+    </div>
+  );
+
   const cellW = Math.max(54, Math.min(80, Math.floor(600 / (symbols.length + 1))));
   const cellStyle = {
     width: cellW, minWidth: cellW, textAlign: 'center',
@@ -103,6 +119,7 @@ function CorrelationMatrix({ correlation, loading, error }) {
 
   return (
     <div style={{ overflowX: 'auto' }}>
+      {multiDatasetBanner}
       <table style={{ borderCollapse: 'separate', borderSpacing: 3 }}>
         <thead>
           <tr>
@@ -159,6 +176,19 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
     );
   }
 
+  const betaMultiDatasetBanner = beta?.resolution === 'multi_dataset' && beta?.datasetsBySymbol && (
+    <div style={{ fontSize: 11, color: MUTED, marginBottom: 8, padding: '4px 8px', background: '#0a1628', borderRadius: 4, border: `1px solid ${BLUE}44` }}>
+      <span style={{ color: BLUE, fontWeight: 700, marginRight: 4 }}>Multi-dataset:</span>
+      {Object.entries(beta.datasetsBySymbol).map(([sym, id]) => (
+        <span key={sym} style={{ marginRight: 8 }}>
+          <span style={{ color: TEXT }}>{sym}</span>
+          <span style={{ color: MUTED }}> → </span>
+          <span style={{ color: MUTED, fontFamily: 'monospace' }}>{String(id).slice(0, 40)}{String(id).length > 40 ? '…' : ''}</span>
+        </span>
+      ))}
+    </div>
+  );
+
   const betaVal = finiteNumber(beta?.beta);
   const r2Val   = finiteNumber(beta?.r2);
 
@@ -179,6 +209,7 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
 
   return (
     <div>
+      {betaMultiDatasetBanner}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
         <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} style={iStyle}>
           {symbols.map((s) => <option key={s} value={s}>{s}</option>)}
