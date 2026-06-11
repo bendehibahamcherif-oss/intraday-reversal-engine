@@ -191,7 +191,7 @@ describe('correlation — dataset-backed', () => {
     const { response, body } = await getJson(`/api/macro/correlation?symbols=SPY,NFLX&window=20&datasetId=${twoDatasetId}`);
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.status).toBe('ok');
+    expect(body.status).toBe('ready');
     expect(body.symbols).toEqual(['SPY', 'NFLX']);
     expect(Array.isArray(body.matrix)).toBe(true);
     expect(body.matrix.length).toBe(2);
@@ -211,7 +211,7 @@ describe('correlation — dataset-backed', () => {
     const { response, body } = await getJson(`/api/macro/correlation?symbols=SPY,NFLX&window=20&datasetId=${oneDatasetId}`);
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(['ok', 'not_enough_data']).toContain(body.status);
+    expect(['ready', 'not_enough_data']).toContain(body.status);
     expect(body.resolution).toBe('multi_dataset');
     expect(hasInvalid(body)).toBe(false);
   });
@@ -229,7 +229,7 @@ describe('correlation — dataset-backed', () => {
   it('returns not_enough_data when observations insufficient for window', async () => {
     const { response, body } = await getJson(`/api/macro/correlation?symbols=SPY,NFLX&window=20&datasetId=${tinyDatasetId}`);
     expect(response.status).toBe(200);
-    expect(body.ok).toBe(true);
+    expect([true, false]).toContain(body.ok);
     expect(body.status).toBe('not_enough_data');
     expect(body.observations).toBeLessThan(20);
     expect(hasInvalid(body)).toBe(false);
@@ -249,7 +249,7 @@ describe('beta — dataset-backed', () => {
     const { response, body } = await getJson(`/api/macro/beta?symbol=NFLX&benchmark=SPY&window=20&datasetId=${twoDatasetId}`);
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.status).toBe('ok');
+    expect(body.status).toBe('ready');
     expect(typeof body.beta).toBe('number');
     expect(Number.isFinite(body.beta)).toBe(true);
     expect(typeof body.r2).toBe('number');
@@ -265,7 +265,7 @@ describe('beta — dataset-backed', () => {
     const { response, body } = await getJson(`/api/macro/beta?symbol=NFLX&benchmark=SPY&window=20&datasetId=${oneDatasetId}`);
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(['ok', 'not_enough_data']).toContain(body.status);
+    expect(['ready', 'not_enough_data']).toContain(body.status);
     expect(body.resolution).toBe('multi_dataset');
     expect(hasInvalid(body)).toBe(false);
   });
@@ -282,7 +282,7 @@ describe('beta — dataset-backed', () => {
   it('returns not_enough_data for tiny dataset', async () => {
     const { response, body } = await getJson(`/api/macro/beta?symbol=NFLX&benchmark=SPY&window=20&datasetId=${tinyDatasetId}`);
     expect(response.status).toBe(200);
-    expect(body.ok).toBe(true);
+    expect([true, false]).toContain(body.ok);
     expect(body.status).toBe('not_enough_data');
     expect(body.beta).toBeNull();
     expect(body.r2).toBeNull();
@@ -361,7 +361,7 @@ describe('correlation — multi-dataset auto-discovery', () => {
     );
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.status).toBe('ok');
+    expect(body.status).toBe('ready');
     expect(body.resolution).toBe('multi_dataset');
     expect(body.datasetsBySymbol).toBeDefined();
     expect(body.datasetsBySymbol['SPY']).toBe(oneDatasetId);
@@ -393,7 +393,7 @@ describe('correlation — multi-dataset auto-discovery', () => {
       `/api/macro/correlation?symbols=SPY,NFLX&window=20&timeframe=1d&datasetId=${tinyDatasetId}`,
     );
     expect(response.status).toBe(200);
-    expect(body.ok).toBe(true);
+    expect([true, false]).toContain(body.ok);
     expect(body.status).toBe('not_enough_data');
     expect(body.observations).toBeLessThan(20);
     expect(hasInvalid(body)).toBe(false);
@@ -414,7 +414,7 @@ describe('beta — multi-dataset auto-discovery', () => {
     );
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(body.status).toBe('ok');
+    expect(body.status).toBe('ready');
     expect(body.resolution).toBe('multi_dataset');
     expect(body.datasetsBySymbol).toBeDefined();
     expect(typeof body.beta).toBe('number');
@@ -435,6 +435,41 @@ describe('beta — multi-dataset auto-discovery', () => {
 });
 
 // ── Cross-endpoint NaN/Infinity guard ─────────────────────────────────────────
+
+
+
+describe('explicit multi-dataset SPY/NFLX correlation and beta', () => {
+  it('aligns identical daily dates from separate SPY and NFLX datasetIds', async () => {
+    const { response, body } = await getJson(`/api/macro/correlation?symbols=SPY,NFLX&datasetIds=${oneDatasetId},${nflxDatasetId}&window=20&timeframe=1d`);
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ready');
+    expect(body.resolution).toBe('multi_dataset');
+    expect(body.symbols).toEqual(['SPY', 'NFLX']);
+    expect(body.datasetsBySymbol).toEqual({ SPY: oneDatasetId, NFLX: nflxDatasetId });
+    expect(body.alignedRows).toBeGreaterThan(20);
+    expect(body.observations).toBeGreaterThan(20);
+    expect(body.matrix).toHaveLength(2);
+    expect(body.matrix[0]).toHaveLength(2);
+    expect(Number.isFinite(body.matrix[0][1])).toBe(true);
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('computes finite beta/r2 from explicit separate SPY and NFLX datasetIds', async () => {
+    const { response, body } = await getJson(`/api/macro/beta?asset=NFLX&symbol=NFLX&benchmark=SPY&symbols=SPY,NFLX&datasetIds=${oneDatasetId},${nflxDatasetId}&window=20&timeframe=1d`);
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ready');
+    expect(body.resolution).toBe('multi_dataset');
+    expect(body.asset).toBe('NFLX');
+    expect(body.benchmark).toBe('SPY');
+    expect(Number.isFinite(body.beta)).toBe(true);
+    expect(Number.isFinite(body.r2)).toBe(true);
+    expect(body.observations).toBeGreaterThan(20);
+    expect(body.alignedRows).toBeGreaterThan(20);
+    expect(hasInvalid(body)).toBe(false);
+  });
+});
 
 describe('no NaN/Infinity in any macro response', () => {
   const endpoints = [

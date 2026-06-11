@@ -933,11 +933,12 @@ export const api = {
     return fetch(`${API_BASE}/api/multi-asset/correlation?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMultiAssetBeta: async (options = {}) => {
-    const { symbol = 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d' } = options;
+    const { symbol = options.asset || 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d', symbols = [] } = options;
     const datasetId = Object.prototype.hasOwnProperty.call(options, 'datasetId') ? options.datasetId : null;
     if (datasetId === undefined) throw new Error('datasetId must not be undefined');
     const datasetIds = Array.isArray(options.datasetIds) && options.datasetIds.length ? options.datasetIds : null;
-    const p = new URLSearchParams({ symbol, benchmark, window: String(window), timeframe });
+    const p = new URLSearchParams({ symbol, asset: symbol, benchmark, window: String(window), timeframe });
+    if (symbols.length) p.set('symbols', symbols.join(','));
     if (datasetId) p.set('datasetId', datasetId);
     if (datasetIds) p.set('datasetIds', datasetIds.join(','));
     return fetch(`${API_BASE}/api/multi-asset/beta?${p}`, { method: 'GET', headers: headers() }).then(handle);
