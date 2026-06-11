@@ -10,7 +10,15 @@ export const mobilePrimaryWorkspaces = mobileWorkspaces.filter((workspace) => wo
 export const mobileMoreWorkspaces = mobileWorkspaces.filter((workspace) => !workspace.mobilePrimary);
 
 export function workspaceById(id: string) {
-  return implementedWorkspaces.find((workspace) => workspace.id === id);
+  const canonicalMatch = implementedWorkspaces.find((workspace) => workspace.id === id);
+  if (canonicalMatch) return canonicalMatch;
+
+  const aliasMatches = implementedWorkspaces.filter((workspace) => workspace.aliases?.includes(id));
+  if (aliasMatches.length > 1) {
+    throw new Error(`Workspace alias "${id}" maps to multiple implemented workspaces: ${aliasMatches.map((workspace) => workspace.id).join(', ')}`);
+  }
+
+  return aliasMatches[0];
 }
 
 export function requiredWorkspaceLabels(ids: string[]) {

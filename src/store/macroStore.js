@@ -1,27 +1,79 @@
 import { create } from 'zustand';
 import { api } from '../api.js';
 import { getDatasetId, normalizeDataset } from '../utils/datasets.js';
+import { resolveDataRequirement, normalizeRequirementSymbols } from '../services/dataRequirementResolver.js';
 
 const errMsg = (e) => e?.message || 'Multi-asset error';
 
-const DEFAULT_SYMBOLS = ['SPY', 'QQQ', 'IWM', 'DIA', 'TLT', 'GLD'];
+const DEFAULT_SYMBOLS = ['SPY', 'NFLX'];
+export const MACRO_SELECTED_DATASET_STORAGE_KEY = 'reversal-macro-selected-correlation-dataset-id';
+export const MACRO_SYMBOLS_STORAGE_KEY = 'reversal-macro-symbols';
+
+function safeGetStorage(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function safeSetStorage(key, value) { try { localStorage.setItem(key, value); } catch {} }
+function safeRemoveStorage(key) { try { localStorage.removeItem(key); } catch {} }
+
+export function parseMacroSymbols(value, fallback = DEFAULT_SYMBOLS) {
+  const raw = Array.isArray(value) ? value.join(',') : String(value || '');
+  const symbols = normalizeRequirementSymbols(raw.split(/[\s,]+/)).slice(0, 12);
+  return symbols.length >= 2 ? symbols : fallback;
+}
+
+function initialSymbols() {
+  const persisted = safeGetStorage(MACRO_SYMBOLS_STORAGE_KEY);
+  if (persisted) return parseMacroSymbols(persisted, DEFAULT_SYMBOLS);
+  try {
+    const legacy = JSON.parse(safeGetStorage('reversal-macro') || 'null');
+    const state = legacy?.state || legacy;
+    if (state?.symbolsInput || state?.symbols) return parseMacroSymbols(state.symbolsInput || state.symbols, DEFAULT_SYMBOLS);
+  } catch {}
+  return DEFAULT_SYMBOLS;
+}
+
+function normalizeBetaSelection(symbols, selectedAsset, benchmark) {
+  const list = parseMacroSymbols(symbols, DEFAULT_SYMBOLS);
+  let bm = String(benchmark || list[0]).trim().toUpperCase();
+  if (!list.includes(bm)) bm = list[0];
+  let asset = String(selectedAsset || list[1] || list[0]).trim().toUpperCase();
+  if (!list.includes(asset)) asset = list.find((s) => s !== bm) || list[0];
+  if (list.length >= 2 && asset === bm) asset = list.find((s) => s !== bm) || list[1];
+  return { selectedAsset: asset, benchmark: bm };
+}
+
+async function resolveMacroDatasets({ symbols, timeframe, window, selectedDatasetId }) {
+  const resolution = await resolveDataRequirement({
+    moduleId: 'MacroMultiAsset',
+    purpose: 'correlation',
+    symbols,
+    timeframe,
+    selectedDatasetId,
+    minimumRows: Number(window) + 1,
+  });
+  return resolution;
+}
+
+const bootSymbols = initialSymbols();
+const bootBeta = normalizeBetaSelection(bootSymbols, 'NFLX', 'SPY');
 
 export const useMacroStore = create((set, get) => ({
   // ── Config ────────────────────────────────────────────────────────────────
-  symbols:       DEFAULT_SYMBOLS,
-  symbolsInput:  DEFAULT_SYMBOLS.join(', '),
-  benchmark:     'SPY',
+  symbols:       bootSymbols,
+  symbolsInput:  bootSymbols.join(', '),
+  benchmark:     bootBeta.benchmark,
   window:        20,
   timeframe:     '1d',
-  selectedAsset: 'QQQ',
+  selectedAsset: bootBeta.selectedAsset,
 
   // ── Correlation matrix ────────────────────────────────────────────────────
   correlation:        null,
   correlationLoading: false,
   correlationError:   '',
-  correlationDatasetId: null,
-  selectedCorrelationDatasetId: null,
+  correlationDatasetId: safeGetStorage(MACRO_SELECTED_DATASET_STORAGE_KEY),
+  selectedCorrelationDatasetId: safeGetStorage(MACRO_SELECTED_DATASET_STORAGE_KEY),
   selectedCorrelationDataset: null,
+  lastResolution: null,
+  lastRequest: null,
+  clearedStaleDatasetId: false,
 
   // ── Rolling beta ──────────────────────────────────────────────────────────
   beta:        null,
@@ -41,47 +93,87 @@ export const useMacroStore = create((set, get) => ({
   // ── Setters ───────────────────────────────────────────────────────────────
   setSymbolsInput: (v) => set({ symbolsInput: v }),
   applySymbols: () => {
-    const { symbolsInput } = get();
-    const symbols = symbolsInput
-      .split(/[,\s]+/)
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean)
-      .slice(0, 12);
-    if (symbols.length >= 2) set({ symbols });
+    const symbols = parseMacroSymbols(get().symbolsInput, DEFAULT_SYMBOLS);
+    const beta = normalizeBetaSelection(symbols, get().selectedAsset, get().benchmark);
+    safeSetStorage(MACRO_SYMBOLS_STORAGE_KEY, symbols.join(','));
+    set({ symbols, symbolsInput: symbols.join(', '), ...beta, correlation: null, correlationError: '', beta: null, betaError: '', lastResolution: null, lastRequest: null });
+    get().refreshAll();
   },
-  setBenchmark:     (v) => set({ benchmark: v }),
+  setBenchmark: (v) => {
+    const next = normalizeBetaSelection(get().symbols, get().selectedAsset, v);
+    set(next);
+  },
   setWindow:        (v) => set({ window: Math.max(5, Math.min(252, Number(v) || 20)) }),
   setTimeframe:     (v) => set({ timeframe: v }),
-  setSelectedAsset: (v) => set({ selectedAsset: v }),
+  setSelectedAsset: (v) => {
+    const next = normalizeBetaSelection(get().symbols, v, get().benchmark);
+    set(next);
+  },
   clearErrors: () => set({ correlationError: '', betaError: '', sectorRotationError: '', volatilityError: '' }),
 
   // ── Data loaders ──────────────────────────────────────────────────────────
   setCorrelationDatasetId: (datasetId, dataset = null) => {
     const id = datasetId || getDatasetId(dataset);
     if (!id) return set({ correlationError: 'Dataset ID missing. Reload dataset registry.' });
-    set({ correlationDatasetId: id, selectedCorrelationDatasetId: id, selectedCorrelationDataset: dataset ? normalizeDataset(dataset) : get().selectedCorrelationDataset });
+    safeSetStorage(MACRO_SELECTED_DATASET_STORAGE_KEY, id);
+    set({ correlationDatasetId: id, selectedCorrelationDatasetId: id, selectedCorrelationDataset: dataset ? normalizeDataset(dataset) : get().selectedCorrelationDataset, clearedStaleDatasetId: false });
   },
-  clearCorrelationDatasetId: () => set({ correlationDatasetId: null, selectedCorrelationDatasetId: null, selectedCorrelationDataset: null }),
+  clearCorrelationDatasetId: () => {
+    safeRemoveStorage(MACRO_SELECTED_DATASET_STORAGE_KEY);
+    set({ correlationDatasetId: null, selectedCorrelationDatasetId: null, selectedCorrelationDataset: null });
+  },
+  validateSelectedCorrelationDataset: (datasets = []) => {
+    const id = get().correlationDatasetId || safeGetStorage(MACRO_SELECTED_DATASET_STORAGE_KEY);
+    if (!id) return false;
+    const exists = (datasets || []).some((dataset) => getDatasetId(dataset) === id);
+    if (!exists) {
+      safeRemoveStorage(MACRO_SELECTED_DATASET_STORAGE_KEY);
+      set({ correlationDatasetId: null, selectedCorrelationDatasetId: null, selectedCorrelationDataset: null, clearedStaleDatasetId: true });
+      return true;
+    }
+    return false;
+  },
 
   loadCorrelation: async () => {
-    const { symbols, window: w, timeframe, correlationDatasetId } = get();
-    set({ correlationLoading: true, correlationError: '' });
+    const symbols = parseMacroSymbols(get().symbolsInput, get().symbols);
+    const { window: w, timeframe, correlationDatasetId } = get();
+    set({ symbols, correlationLoading: true, correlationError: '' });
     try {
-      const params = { symbols, window: w, timeframe };
-      if (correlationDatasetId) params.datasetId = correlationDatasetId;
+      const resolution = await resolveMacroDatasets({ symbols, timeframe, window: w, selectedDatasetId: correlationDatasetId });
+      set({ lastResolution: resolution });
+      if (!['ready', 'ready_multi_dataset'].includes(resolution.status)) {
+        if (!(correlationDatasetId && getDatasetId(get().selectedCorrelationDataset) === correlationDatasetId)) {
+          set({ correlation: resolution, correlationLoading: false });
+          return;
+        }
+      }
+      const params = { symbols, window: w, timeframe, datasetIds: resolution.datasetIds, datasetId: resolution.resolution === 'single_dataset' ? resolution.datasetId : correlationDatasetId || null };
+      set({ lastRequest: { type: 'correlation', ...params } });
       const data = await api.getMultiAssetCorrelation(params);
-      set({ correlation: data, correlationLoading: false });
+      set({ correlation: { ...data, symbols, datasetsBySymbol: data.datasetsBySymbol || resolution.datasetsBySymbol, resolution: data.resolution || resolution.resolution }, correlationLoading: false });
     } catch (e) {
       set({ correlationLoading: false, correlationError: errMsg(e) });
     }
   },
 
   loadBeta: async () => {
-    const { selectedAsset, benchmark, window: w, timeframe, correlationDatasetId } = get();
-    set({ betaLoading: true, betaError: '' });
+    const symbols = parseMacroSymbols(get().symbolsInput, get().symbols);
+    const betaSelection = normalizeBetaSelection(symbols, get().selectedAsset, get().benchmark);
+    const { window: w, timeframe, correlationDatasetId } = get();
+    set({ symbols, ...betaSelection, betaLoading: true, betaError: '' });
     try {
-      const data = await api.getMultiAssetBeta({ symbol: selectedAsset, benchmark, window: w, timeframe, datasetId: correlationDatasetId || null });
-      set({ beta: data, betaLoading: false });
+      const resolution = await resolveMacroDatasets({ symbols, timeframe, window: w, selectedDatasetId: correlationDatasetId });
+      set({ lastResolution: resolution });
+      if (!['ready', 'ready_multi_dataset'].includes(resolution.status)) {
+        if (!(correlationDatasetId && getDatasetId(get().selectedCorrelationDataset) === correlationDatasetId)) {
+          set({ beta: resolution, betaLoading: false });
+          return;
+        }
+      }
+      const params = { symbol: betaSelection.selectedAsset, asset: betaSelection.selectedAsset, benchmark: betaSelection.benchmark, symbols, window: w, timeframe, datasetIds: resolution.datasetIds, datasetId: resolution.resolution === 'single_dataset' ? resolution.datasetId : correlationDatasetId || null };
+      set({ lastRequest: { type: 'beta', ...params } });
+      const data = await api.getMultiAssetBeta(params);
+      set({ beta: { ...data, datasetsBySymbol: data.datasetsBySymbol || resolution.datasetsBySymbol, resolution: data.resolution || resolution.resolution }, betaLoading: false });
     } catch (e) {
       set({ betaLoading: false, betaError: errMsg(e) });
     }
@@ -110,6 +202,9 @@ export const useMacroStore = create((set, get) => ({
   },
 
   refreshAll: () => {
+    const symbols = parseMacroSymbols(get().symbolsInput, get().symbols);
+    const beta = normalizeBetaSelection(symbols, get().selectedAsset, get().benchmark);
+    set({ symbols, symbolsInput: symbols.join(', '), ...beta });
     const s = get();
     s.loadCorrelation();
     s.loadBeta();

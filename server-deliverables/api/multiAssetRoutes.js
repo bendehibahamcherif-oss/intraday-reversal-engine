@@ -26,17 +26,43 @@ function safeNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
-function loadDatasetCandles(dataset) {
+
+function normalizeCandleDate(value, timeframe = '1d') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (timeframe === '1d') {
+    const isoLike = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoLike) return isoLike[1];
+    const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slash) return `${slash[3]}-${slash[1].padStart(2, '0')}-${slash[2].padStart(2, '0')}`;
+  }
+  return raw;
+}
+
+function parseCsvLine(line) {
+  return String(line || '').split(',').map((part) => part.trim());
+}
+
+function loadDatasetCandles(dataset, timeframe = '1d') {
   // Canonical CSV format: timestamp,symbol,timeframe,open,high,low,close,volume,provider,session,sourceType,adjusted
   if (dataset.files?.csv && fs.existsSync(dataset.files.csv)) {
     const lines = fs.readFileSync(dataset.files.csv, 'utf8').split('\n').filter(Boolean);
+    const header = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
+    const idx = (name, fallback) => {
+      const found = header.indexOf(name);
+      return found >= 0 ? found : fallback;
+    };
+    const timestampIdx = idx('timestamp', idx('date', 0));
+    const symbolIdx = idx('symbol', 1);
+    const closeIdx = idx('close', 6);
     return lines.slice(1).map((line) => {
-      const parts = line.split(',');
-      return { timestamp: parts[0], symbol: String(parts[1] || '').toUpperCase(), close: safeNumber(parts[6]) };
+      const parts = parseCsvLine(line);
+      const timestamp = normalizeCandleDate(parts[timestampIdx], timeframe);
+      return { timestamp, symbol: String(parts[symbolIdx] || '').toUpperCase(), close: safeNumber(parts[closeIdx]) };
     }).filter((c) => c.timestamp && c.symbol && c.close !== null);
   }
   if (dataset.files?.json && fs.existsSync(dataset.files.json)) {
-    return JSON.parse(fs.readFileSync(dataset.files.json, 'utf8')).map((c) => ({ timestamp: c.timestamp, symbol: String(c.symbol || '').toUpperCase(), close: safeNumber(c.close) })).filter((c) => c.timestamp && c.symbol && c.close !== null);
+    return JSON.parse(fs.readFileSync(dataset.files.json, 'utf8')).map((c) => ({ timestamp: normalizeCandleDate(c.timestamp || c.date, timeframe), symbol: String(c.symbol || '').toUpperCase(), close: safeNumber(c.close) })).filter((c) => c.timestamp && c.symbol && c.close !== null);
   }
   return null;
 }
@@ -90,7 +116,8 @@ function alignedPair(aReturns, bReturns, window) {
       if (Number.isFinite(r.value) && Number.isFinite(bv)) { a.push(r.value); b.push(bv); }
     }
   }
-  return [a.slice(-window), b.slice(-window)];
+  void window;
+  return [a, b];
 }
 
 function safeCorrelation(a, b) {
@@ -105,10 +132,10 @@ function parseWindow(val, min = 5, max = 252, def = 20) {
 }
 
 // Merge candles from multiple datasets (one per symbol mapping)
-function mergeMultiDatasetCandles(datasetsBySymbol) {
+function mergeMultiDatasetCandles(datasetsBySymbol, timeframe = '1d') {
   const merged = [];
   for (const [symbol, dataset] of Object.entries(datasetsBySymbol)) {
-    const candles = loadDatasetCandles(dataset);
+    const candles = loadDatasetCandles(dataset, timeframe);
     if (candles) {
       for (const c of candles) {
         // Override symbol to the requested key (dataset may contain single symbol)
@@ -161,7 +188,7 @@ router.get('/correlation', async (req, res) => {
         if (!dataset) {
           return res.status(404).json({ ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId });
         }
-        const candles = loadDatasetCandles(dataset);
+        const candles = loadDatasetCandles(dataset, timeframe);
         if (!candles) {
           return res.status(404).json({ ok: false, status: 'dataset_file_missing', message: 'Historical dataset exists but no usable CSV/JSON file was found.', datasetId });
         }
@@ -170,32 +197,37 @@ router.get('/correlation', async (req, res) => {
 
       const parsedSymbols = req.query.symbols ? parseSymbols(req.query.symbols) : [];
 
-      // If explicit datasetIds provided, load each and merge
+      // If explicit datasetIds provided, load each requested symbol from its compatible dataset.
       if (datasetIdsParam) {
-        const ids = datasetIdsParam.split(',').map((s) => s.trim()).filter(Boolean);
+        const ids = datasetIdsParam.split(',').map((value) => value.trim()).filter(Boolean);
         const datasetsBySymbol = {};
         const extraCandles = [];
-        for (const id of ids) {
+        const symbolList = parsedSymbols.length ? parsedSymbols : ids.flatMap((id) => registry.get(id)?.symbols || []);
+        for (let i = 0; i < ids.length; i += 1) {
+          const id = ids[i];
           const ds = registry.get(id);
           if (!ds) continue;
-          const candles = loadDatasetCandles(ds);
+          const candles = loadDatasetCandles(ds, timeframe);
           if (!candles) continue;
-          for (const sym of (ds.symbols || [])) {
-            if (!datasetsBySymbol[sym]) {
-              datasetsBySymbol[sym] = ds.datasetId || id;
-              extraCandles.push(...candles.map((c) => ({ ...c, symbol: sym })));
-            }
+          const requestedSymbol = symbolList[i] || (ds.symbols || [])[0];
+          const datasetSymbols = new Set((ds.symbols || []).map((sym) => String(sym).toUpperCase()));
+          const mappedSymbols = requestedSymbol && datasetSymbols.has(String(requestedSymbol).toUpperCase())
+            ? [String(requestedSymbol).toUpperCase()]
+            : [...datasetSymbols].filter((sym) => symbolList.includes(sym));
+          for (const sym of mappedSymbols) {
+            if (!datasetsBySymbol[sym]) datasetsBySymbol[sym] = ds.datasetId || id;
+            extraCandles.push(...candles.filter((c) => c.symbol === sym).map((c) => ({ ...c, symbol: sym })));
           }
         }
         primaryCandles = [...primaryCandles, ...extraCandles];
-        const allSymbols = parsedSymbols.length ? parsedSymbols : Object.keys(datasetsBySymbol);
+        const allSymbols = symbolList.filter((sym, index, arr) => arr.indexOf(sym) === index);
         const { missingSymbols } = detectMissingSymbols(primaryCandles, allSymbols);
         if (missingSymbols.length > 0) {
           return res.json(sanitizeJson({
             ok: false, status: 'missing_symbols',
             message: `Even after loading all provided datasetIds, missing symbols: ${missingSymbols.join(', ')}.`,
             datasetId, datasetIds: ids, requestedSymbols: allSymbols,
-            availableSymbols: allSymbols.filter((s) => !missingSymbols.includes(s)),
+            availableSymbols: allSymbols.filter((sym) => !missingSymbols.includes(sym)),
             missingSymbols,
           }));
         }
@@ -236,7 +268,7 @@ router.get('/correlation', async (req, res) => {
 
         const mergedCandles = [...primaryCandles];
         for (const [sym, ds] of Object.entries(compatibleFound)) {
-          const extraCandles = loadDatasetCandles(ds);
+          const extraCandles = loadDatasetCandles(ds, timeframe);
           if (extraCandles) mergedCandles.push(...extraCandles.map((c) => ({ ...c, symbol: sym })));
         }
 
@@ -258,8 +290,55 @@ router.get('/correlation', async (req, res) => {
   }
 });
 
+function candleDiagnostics(candles, symbols, datasetsBySymbol = {}) {
+  const out = {};
+  for (const symbol of symbols) {
+    const rows = candles.filter((c) => c.symbol === symbol).sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+    const dates = rows.map((c) => c.timestamp).filter(Boolean);
+    out[symbol] = {
+      datasetId: datasetsBySymbol[symbol] || null,
+      rowCount: rows.length,
+      validCloseCount: rows.filter((c) => Number.isFinite(c.close)).length,
+      firstDate: dates[0] || null,
+      lastDate: dates[dates.length - 1] || null,
+      sampleDates: dates.slice(0, 3).concat(dates.length > 3 ? dates.slice(-3) : []),
+    };
+  }
+  return out;
+}
+
+function commonCloseDates(candles, symbols) {
+  const sets = symbols.map((symbol) => new Set(candles.filter((c) => c.symbol === symbol && Number.isFinite(c.close)).map((c) => c.timestamp)));
+  if (!sets.length) return [];
+  return [...sets[0]].filter((date) => sets.every((set) => set.has(date))).sort();
+}
+
+function notEnoughDataPayload({ datasetId, symbols, observations, alignedRows, requiredRows, window, timeframe, candles, extra }) {
+  const datasetsBySymbol = extra?.datasetsBySymbol || {};
+  return sanitizeJson({
+    ok: false,
+    datasetId,
+    symbols,
+    matrix: [],
+    observations,
+    alignedRows,
+    requiredRows,
+    window,
+    timeframe,
+    status: 'not_enough_data',
+    message: `Not enough overlapping observations for window ${window}. Aligned rows: ${alignedRows}. Required rows: ${requiredRows}. Increase date range or reduce window.`,
+    diagnostics: {
+      symbols: candleDiagnostics(candles, symbols, datasetsBySymbol),
+      commonDateCount: alignedRows,
+    },
+    ...extra,
+  });
+}
+
 function computeAndReturnCorrelation(res, candles, symbols, window, timeframe, datasetId, extra = {}) {
   const returns = returnsBySymbol(candles, symbols);
+  const commonDates = commonCloseDates(candles, symbols);
+  const alignedRows = commonDates.length;
   let observations = 0;
   const matrix = symbols.map((a) => symbols.map((b) => {
     if (a === b) return 1;
@@ -268,8 +347,8 @@ function computeAndReturnCorrelation(res, candles, symbols, window, timeframe, d
     return safeCorrelation(ra, rb);
   }));
 
-  if (observations < 2) {
-    return res.json(sanitizeJson({ ok: true, datasetId, symbols, matrix: [], observations: 0, window, timeframe, status: 'not_enough_data', message: `Not enough overlapping observations for window ${window}. Got ${observations}. Increase date range or reduce window.`, ...extra }));
+  if (observations < window) {
+    return res.json(notEnoughDataPayload({ datasetId, symbols, observations, alignedRows, requiredRows: window, window, timeframe, candles, extra }));
   }
 
   const pairs = [];
@@ -279,14 +358,16 @@ function computeAndReturnCorrelation(res, candles, symbols, window, timeframe, d
     }
   }
 
-  return res.json(sanitizeJson({ ok: true, status: 'ok', datasetId, symbols, matrix, pairs, observations, window, timeframe, ...extra }));
+  return res.json(sanitizeJson({ ok: true, status: 'ready', datasetId, symbols, matrix, pairs, observations, alignedRows, window, timeframe, ...extra }));
 }
 
 function computeBetaFromCandles(candles, symbol, benchmark, window, timeframe, datasetId, extra = {}) {
-  const returns = returnsBySymbol(candles, [symbol, benchmark]);
+  const symbols = [symbol, benchmark];
+  const returns = returnsBySymbol(candles, symbols);
   const [assetReturns, benchmarkReturns] = alignedPair(returns[symbol] || [], returns[benchmark] || [], window);
-  if (assetReturns.length < 2 || benchmarkReturns.length < 2) {
-    return { ok: true, datasetId, asset: symbol, symbol, benchmark, beta: null, r2: null, observations: assetReturns.length, status: 'not_enough_data', message: `Not enough overlapping observations for window ${window}. Got ${assetReturns.length}. Increase date range or reduce window.`, ...extra };
+  const alignedRows = commonCloseDates(candles, symbols).length;
+  if (assetReturns.length < window || benchmarkReturns.length < window) {
+    return notEnoughDataPayload({ datasetId, symbols, observations: assetReturns.length, alignedRows, requiredRows: window, window, timeframe, candles, extra: { asset: symbol, symbol, benchmark, beta: null, r2: null, ...extra } });
   }
   const corr = safeCorrelation(assetReturns, benchmarkReturns);
   const meanFn = (arr) => arr.reduce((sum, v) => sum + v, 0) / arr.length;
@@ -295,10 +376,10 @@ function computeBetaFromCandles(candles, symbol, benchmark, window, timeframe, d
   const variance = benchmarkReturns.reduce((sum, v) => sum + ((v - bm) ** 2), 0);
   const covariance = assetReturns.reduce((sum, v, i) => sum + ((v - am) * (benchmarkReturns[i] - bm)), 0);
   const beta = variance > 0 ? covariance / variance : null;
-  return sanitizeJson({ ok: true, status: beta !== null ? 'ok' : 'not_enough_data', datasetId, asset: symbol, symbol, benchmark, beta: Number.isFinite(beta) ? Number(beta.toFixed(4)) : null, r2: corr !== null ? Number((corr * corr).toFixed(4)) : null, observations: assetReturns.length, window, timeframe, ...(beta === null ? { message: 'Not enough variance in benchmark returns.' } : {}), ...extra });
+  return sanitizeJson({ ok: true, status: beta !== null ? 'ready' : 'not_enough_data', datasetId, asset: symbol, symbol, benchmark, beta: Number.isFinite(beta) ? Number(beta.toFixed(4)) : null, r2: corr !== null ? Number((corr * corr).toFixed(4)) : null, observations: assetReturns.length, alignedRows, window, timeframe, ...(beta === null ? { message: 'Not enough variance in benchmark returns.' } : {}), ...extra });
 }
 
-// GET /api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d[&datasetId=...]
+// GET /api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d[&datasetId=...][&datasetIds=id1,id2]
 router.get('/beta', async (req, res) => {
   try {
     const symbol    = (req.query.symbol    || 'QQQ').toUpperCase();
@@ -306,11 +387,37 @@ router.get('/beta', async (req, res) => {
     const window    = parseWindow(req.query.window);
     const timeframe = req.query.timeframe || '1d';
     const datasetId = req.query.datasetId || null;
-    if (datasetId) {
+    const datasetIdsParam = req.query.datasetIds || null;
+    if (datasetId || datasetIdsParam) {
       const registry = require('../historical/historicalDatasetRegistry');
+      if (datasetIdsParam) {
+        const ids = datasetIdsParam.split(',').map((value) => value.trim()).filter(Boolean);
+        const requestedSymbols = parseSymbols(req.query.symbols || `${benchmark},${symbol}`, [benchmark, symbol]);
+        const datasetsBySymbolMap = {};
+        let mergedCandles = [];
+        for (let i = 0; i < ids.length; i += 1) {
+          const id = ids[i];
+          const ds = registry.get(id);
+          if (!ds) continue;
+          const dsCandles = loadDatasetCandles(ds, timeframe);
+          if (!dsCandles) continue;
+          const dsSymbols = new Set((ds.symbols || []).map((sym) => String(sym).toUpperCase()));
+          const requestedSymbol = requestedSymbols[i];
+          const mappedSymbols = requestedSymbol && dsSymbols.has(requestedSymbol) ? [requestedSymbol] : [symbol, benchmark].filter((sym) => dsSymbols.has(sym));
+          for (const sym of mappedSymbols) {
+            if (!datasetsBySymbolMap[sym]) datasetsBySymbolMap[sym] = ds.datasetId || id;
+            mergedCandles = [...mergedCandles, ...dsCandles.filter((c) => c.symbol === sym).map((c) => ({ ...c, symbol: sym }))];
+          }
+        }
+        const { missingSymbols, availableSymbols } = detectMissingSymbols(mergedCandles, [symbol, benchmark]);
+        if (missingSymbols.length > 0) {
+          return res.json(sanitizeJson(missingSymbolsResponse(null, [symbol, benchmark], availableSymbols, missingSymbols)));
+        }
+        return res.json(computeBetaFromCandles(mergedCandles, symbol, benchmark, window, timeframe, null, { resolution: 'multi_dataset', datasetsBySymbol: datasetsBySymbolMap }));
+      }
       const dataset = registry.get(datasetId);
       if (!dataset) return res.status(404).json({ ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId });
-      let candles = loadDatasetCandles(dataset);
+      let candles = loadDatasetCandles(dataset, timeframe);
       if (!candles) return res.status(404).json({ ok: false, status: 'dataset_file_missing', message: 'Historical dataset exists but no usable CSV/JSON file was found.', datasetId });
 
       const { missingSymbols, availableSymbols } = detectMissingSymbols(candles, [symbol, benchmark]);
@@ -325,7 +432,7 @@ router.get('/beta', async (req, res) => {
         for (const s of availableSymbols) datasetsBySymbolMap[s] = datasetId;
         for (const [sym, ds] of Object.entries(compatibleFound)) {
           datasetsBySymbolMap[sym] = ds.datasetId || ds.id;
-          const extra = loadDatasetCandles(ds);
+          const extra = loadDatasetCandles(ds, timeframe);
           if (extra) candles = [...candles, ...extra.map((c) => ({ ...c, symbol: sym }))];
         }
         return res.json(computeBetaFromCandles(candles, symbol, benchmark, window, timeframe, datasetId, { resolution: 'multi_dataset', datasetsBySymbol: datasetsBySymbolMap }));
@@ -389,7 +496,7 @@ async function handleVolatility(req, res) {
         return res.status(404).json({ ok: false, status: 'dataset_not_found', message: 'Historical dataset not found.', datasetId });
       }
 
-      const candles = loadDatasetCandles(dataset);
+      const candles = loadDatasetCandles(dataset, timeframe);
       if (!candles) {
         return res.status(404).json({ ok: false, status: 'dataset_file_missing', message: 'Historical dataset exists but no usable CSV/JSON file was found.', datasetId });
       }

@@ -13,7 +13,7 @@
  *   - No removed-duplicate IDs present
  */
 import { describe, it, expect } from 'vitest';
-import { workspaceDefinitions, workspaceById, sortedWorkspaces, DEFAULT_WORKSPACE_ID } from '../config/workspaces.js';
+import { workspaceDefinitions, workspaceById, sortedWorkspaces, DEFAULT_WORKSPACE_ID, getWorkspace, normalizeWorkspaceId } from '../config/workspaces.js';
 import { workspaceComponents } from '../config/workspaceComponents.jsx';
 
 // ── IDs that must NOT appear in the canonical registry ──────────────────────
@@ -117,8 +117,36 @@ describe('canonical workspace registry', () => {
     expect(primaries.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('MacroMultiAsset has mobilePrimary:true (canonical Macro module)', () => {
-    expect(workspaceById['MacroMultiAsset']?.mobilePrimary).toBe(true);
+  it('MacroMultiAsset has complete canonical metadata (canonical Macro module)', () => {
+    const macro = workspaceById['MacroMultiAsset'];
+    expect(macro?.mobilePrimary).toBe(true);
+    expect(macro).toMatchObject({
+      id: 'MacroMultiAsset',
+      label: 'Macro / Multi-Asset',
+      route: '/workspace/MacroMultiAsset',
+      component: 'Macro',
+      componentKey: 'Macro',
+      category: 'Markets',
+      group: 'Markets',
+      testId: 'workspace-nav-macro',
+      navTestId: 'workspace-nav-macro',
+      ariaLabel: 'Macro / Multi-Asset',
+      mobilePriority: 20,
+      implemented: true,
+      canonicalCapability: 'MacroMultiAsset',
+    });
+  });
+
+  it('workspace lookup resolves the canonical Macro id before aliases', () => {
+    expect(getWorkspace('MacroMultiAsset').id).toBe('MacroMultiAsset');
+    expect(normalizeWorkspaceId('MacroMultiAsset')).toBe('MacroMultiAsset');
+  });
+
+  it('workspace lookup resolves legacy Macro aliases to the canonical Macro workspace', () => {
+    for (const alias of ['Macro', 'macro', 'MACRO', 'MA', 'MultiAsset', 'macroMultiAsset']) {
+      expect(getWorkspace(alias).id).toBe('MacroMultiAsset');
+      expect(normalizeWorkspaceId(alias)).toBe('MacroMultiAsset');
+    }
   });
 
   it('Providers and LiveData are both present as separate canonical entries', () => {
@@ -146,7 +174,14 @@ describe('canonical workspace registry', () => {
       expect(w.order,        `${w.id} missing order`).toBeGreaterThan(0);
       expect(w.componentKey, `${w.id} missing componentKey`).toBeTruthy();
       expect(w.navTestId,    `${w.id} missing navTestId`).toBeTruthy();
+      expect(w.testId,       `${w.id} missing testId`).toBe(w.navTestId);
       expect(w.ariaLabel,    `${w.id} missing ariaLabel`).toBeTruthy();
+      expect(w.route,        `${w.id} missing route`).toBe(`/workspace/${w.id}`);
+      expect(w.component,    `${w.id} missing component`).toBe(w.componentKey);
+      expect(w.category,     `${w.id} missing category`).toBe(w.group);
+      expect(w.canonicalCapability, `${w.id} missing canonicalCapability`).toBe(w.id);
+      expect(Array.isArray(w.aliases), `${w.id} missing aliases array`).toBe(true);
+      if (w.mobilePrimary) expect(w.mobilePriority, `${w.id} missing mobilePriority`).toBe(w.order);
     }
   });
 });

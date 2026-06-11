@@ -37,7 +37,7 @@ const toNavTestId = (workspaceId) => `workspace-nav-${workspaceId.replace(/([a-z
 const baseWorkspaceDefinitions = [
   // ── Primary ────────────────────────────────────────────────────────────────
   { id: 'ChartOrderflow', label: 'Chart',               shortLabel: 'CH', icon: '▤', componentKey: 'ChartOrderflow', group: 'Primary', mobileVisible: true, desktopVisible: true, implemented: true, order: 10, mobilePrimary: true, aliases: ['Chart / Orderflow'] },
-  { id: 'MacroMultiAsset',label: 'Macro / Multi-Asset', shortLabel: 'MA', icon: '◎', componentKey: 'Macro',           group: 'Markets', mobileVisible: true, desktopVisible: true, implemented: true, order: 20, mobilePrimary: true, aliases: ['Macro', 'Live Markets', 'Correlation', 'Beta'] },
+  { id: 'MacroMultiAsset',label: 'Macro / Multi-Asset', shortLabel: 'MA', icon: '◎', componentKey: 'Macro',           group: 'Markets', mobileVisible: true, desktopVisible: true, implemented: true, order: 20, mobilePrimary: true, aliases: ['Macro', 'macro', 'MACRO', 'MA', 'MultiAsset', 'multiAsset', 'MacroMultiAsset', 'macroMultiAsset', 'Live Markets', 'Correlation', 'Beta'] },
   { id: 'Alerts',          label: 'Alerts',              shortLabel: 'AL', icon: '▲', componentKey: 'Alerts',          group: 'Primary', mobileVisible: true, desktopVisible: true, implemented: true, order: 30, mobilePrimary: true },
   { id: 'AILab',           label: 'AI Lab',              shortLabel: 'AI', icon: '◆', componentKey: 'AILab',           group: 'ML',      mobileVisible: true, desktopVisible: true, implemented: true, order: 40, mobilePrimary: true, aliases: ['ML Champion Inference'] },
   { id: 'Risk',            label: 'Risk',                shortLabel: 'RK', icon: '◇', componentKey: 'Risk',            group: 'Risk',    mobileVisible: true, desktopVisible: true, implemented: true, order: 50, aliases: ['Dashboard / Risk', 'Risk / Dashboard'] },
@@ -62,18 +62,51 @@ const baseWorkspaceDefinitions = [
   { id: 'Ops',             label: 'Operations',          shortLabel: 'OP', icon: '⚙', componentKey: 'Ops',              group: 'System',  mobileVisible: true, desktopVisible: true, implemented: true, order: 190, aliases: ['Settings / More', 'Settings'] },
 ];
 
-export const workspaceDefinitions = baseWorkspaceDefinitions.map((workspace) => ({
-  ...workspace,
-  ariaLabel: workspaceNavigationOverrides[workspace.id]?.ariaLabel ?? workspace.label,
-  navTestId: workspaceNavigationOverrides[workspace.id]?.navTestId ?? toNavTestId(workspace.id),
-}));
+export const workspaceDefinitions = baseWorkspaceDefinitions.map((workspace) => {
+  const ariaLabel = workspaceNavigationOverrides[workspace.id]?.ariaLabel ?? workspace.label;
+  const navTestId = workspaceNavigationOverrides[workspace.id]?.navTestId ?? toNavTestId(workspace.id);
+
+  return {
+    ...workspace,
+    route: `/workspace/${workspace.id}`,
+    component: workspace.componentKey,
+    category: workspace.group,
+    testId: navTestId,
+    ariaLabel,
+    navTestId,
+    mobilePriority: workspace.mobilePrimary ? workspace.order : null,
+    canonicalCapability: workspace.id,
+    aliases: workspace.aliases ?? [],
+  };
+});
 
 export const sortedWorkspaces = [...workspaceDefinitions].sort((a, b) => a.order - b.order);
 export const workspaceIds = new Set(workspaceDefinitions.map((workspace) => workspace.id));
 export const workspaceById = Object.fromEntries(workspaceDefinitions.map((workspace) => [workspace.id, workspace]));
-export const isValidWorkspaceId = (workspaceId) => workspaceIds.has(workspaceId);
-export const getWorkspace = (workspaceId) => workspaceById[workspaceId] ?? workspaceById[DEFAULT_WORKSPACE_ID];
-export const normalizeWorkspaceId = (workspaceId) => isValidWorkspaceId(workspaceId) ? workspaceId : DEFAULT_WORKSPACE_ID;
+
+const workspaceAliasEntries = workspaceDefinitions.flatMap((workspace) =>
+  (workspace.aliases ?? [])
+    .filter((alias) => alias && alias !== workspace.id)
+    .map((alias) => [alias, workspace])
+);
+
+export const workspaceAliases = workspaceAliasEntries.reduce((aliases, [alias, workspace]) => {
+  const existing = aliases[alias];
+  if (existing && existing.id !== workspace.id) {
+    throw new Error(`Workspace alias "${alias}" maps to multiple canonical workspaces: ${existing.id}, ${workspace.id}`);
+  }
+  aliases[alias] = workspace;
+  return aliases;
+}, {});
+
+export const resolveWorkspaceId = (workspaceId) => {
+  if (workspaceById[workspaceId]) return workspaceId;
+  return workspaceAliases[workspaceId]?.id;
+};
+
+export const isValidWorkspaceId = (workspaceId) => Boolean(resolveWorkspaceId(workspaceId));
+export const getWorkspace = (workspaceId) => workspaceById[resolveWorkspaceId(workspaceId)] ?? workspaceById[DEFAULT_WORKSPACE_ID];
+export const normalizeWorkspaceId = (workspaceId) => resolveWorkspaceId(workspaceId) ?? DEFAULT_WORKSPACE_ID;
 export const getDesktopWorkspaces = () => sortedWorkspaces.filter((workspace) => workspace.desktopVisible);
 export const getMobilePrimaryWorkspaces = () => sortedWorkspaces.filter((workspace) => workspace.mobileVisible && workspace.mobilePrimary);
 export const getMobileMoreWorkspaces = () => sortedWorkspaces.filter((workspace) => workspace.mobileVisible && !workspace.mobilePrimary);

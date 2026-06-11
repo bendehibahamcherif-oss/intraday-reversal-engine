@@ -31,6 +31,7 @@ const S = {
   root: {
     display: 'flex',
     height: '100%',
+    maxWidth: '100%',
     overflow: 'hidden',
     background: 'var(--t-bg)',
     color: 'var(--t-text)',
@@ -47,6 +48,8 @@ const S = {
   },
   main: {
     flex: 1,
+    minWidth: 0,
+    maxWidth: '100%',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -70,6 +73,8 @@ const S = {
   body: {
     flex: 1,
     overflow: 'auto',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     padding: 12,
   },
   label: {
@@ -106,6 +111,12 @@ const S = {
     marginBottom: 10,
   },
   btn: (accent) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 24,
+    minWidth: 24,
+    lineHeight: 'normal',
     padding: '5px 12px',
     background: accent ? 'var(--t-accent)' : 'var(--t-bg-3)',
     color: accent ? 'white' : 'var(--t-text)',
@@ -142,9 +153,15 @@ const S = {
     display: 'flex',
     flexDirection: 'column',
     gap: 2,
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    overflowWrap: 'anywhere',
   }),
   tag: {
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 24,
     fontSize: 9,
     padding: '1px 5px',
     background: 'var(--t-bg-3)',
@@ -154,7 +171,9 @@ const S = {
     marginRight: 3,
   },
   chip: (color) => ({
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 24,
     fontSize: 9,
     padding: '1px 5px',
     background: color,
@@ -184,38 +203,39 @@ function DatasetList({ datasets, selectedDatasetId, onSelect, onDelete }) {
     );
   }
   return (
-    <div style={{ overflow: 'auto', flex: 1 }}>
+    <div style={{ overflow: 'auto', flex: 1, minWidth: 0, maxWidth: '100%' }}>
       {datasets.map((ds) => (
         <div
           key={getDatasetId(ds)}
           style={S.datasetRow(getDatasetId(ds) === selectedDatasetId)}
           onClick={() => onSelect(getDatasetId(ds))}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700, fontSize: 11 }}>{getDatasetId(ds)}</span>
+          <div className="historical-detail-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0, maxWidth: '100%' }}>
+            <span className="historical-long-text" style={{ flex: '1 1 auto', fontWeight: 700, fontSize: 11, minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{getDatasetId(ds)}</span>
             <button
-              style={{ ...S.btn(false), padding: '1px 6px', fontSize: 10 }}
+              className="historical-action-button historical-icon-button"
+              style={{ ...S.btn(false), flex: '0 0 auto', padding: '1px 6px', fontSize: 10 }}
               onClick={(e) => { e.stopPropagation(); onDelete(getDatasetId(ds)); }}
               title="Remove dataset"
             >✕</button>
           </div>
-          <div style={{ color: 'var(--t-text-3)', fontSize: 10 }}>
+          <div style={{ color: 'var(--t-text-3)', fontSize: 10, minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {(ds.symbols || []).join(', ')} &nbsp;·&nbsp; {ds.timeframe} &nbsp;·&nbsp;
             {ds.startDate} → {ds.endDate}
           </div>
-          <div>
-            <span style={S.tag}>{ds.provider}</span>
-            <span style={S.tag}>{ds.session}</span>
-            <span style={S.tag}>{ds.purpose}</span>
-            {ds.rowCount != null && <span style={S.tag}>{ds.rowCount} rows</span>}
+          <div style={{ minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+            <span className="historical-status-text" style={S.tag}>{ds.provider}</span>
+            <span className="historical-status-text" style={S.tag}>{ds.session}</span>
+            <span className="historical-status-text" style={S.tag}>{ds.purpose}</span>
+            {ds.rowCount != null && <span className="historical-status-text" style={S.tag}>{ds.rowCount} rows</span>}
             {ds.status && (
-              <span style={S.chip(
+              <span className="historical-status-text" style={S.chip(
                 ds.status === 'ready' ? '#2a7' :
                 ds.status === 'file_missing' ? '#a44' : '#a72'
               )}>{ds.status}</span>
             )}
             {ds.fileExists === false && ds.status !== 'file_missing' && (
-              <span style={S.chip('#a44')}>file missing</span>
+              <span className="historical-status-text" style={S.chip('#a44')}>file missing</span>
             )}
           </div>
         </div>
@@ -284,7 +304,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
   ];
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: 12 }}>
+    <form onSubmit={handleSubmit} style={{ padding: 12, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
       {(localError || error) && <div style={S.error}>{localError || error}</div>}
       {result && result.ok && (
         <div style={S.success}>
@@ -314,7 +334,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+      <div className="historical-responsive-row" style={{ display: 'flex', gap: 8, marginBottom: 10, minWidth: 0 }}>
         <div style={{ flex: 1 }}>
           <label style={S.label}>Timeframe</label>
           <select style={S.select} value={form.timeframe} onChange={(e) => setField('timeframe', e.target.value)}>
@@ -329,7 +349,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+      <div className="historical-responsive-row" style={{ display: 'flex', gap: 8, marginBottom: 10, minWidth: 0 }}>
         <div style={{ flex: 1 }}>
           <label style={S.label}>Start Date</label>
           <input
@@ -385,7 +405,7 @@ export function DownloadForm({ providers, onDownload, loading, error, result, on
         <label htmlFor="forceRefresh" style={{ fontSize: 11, cursor: 'pointer' }}>Force re-download</label>
       </div>
 
-      <button type="submit" style={S.btn(true)} disabled={loading}>
+      <button type="submit" className="historical-action-button" style={S.btn(true)} disabled={loading}>
         {loading ? 'Downloading…' : 'Download'}
       </button>
     </form>
@@ -419,11 +439,9 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
     : dataset.status === 'file_missing' || dataset.fileExists === false;
 
   return (
-    <div style={{ padding: 12 }} data-testid="dataset-detail-panel">
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, wordBreak: 'break-word' }} data-testid="dataset-detail-id">
-          {getDatasetId(dataset)}
-        </div>
+    <div className="dataset-detail-card" data-testid="dataset-detail-panel" style={{ padding: 12, width: '100%', maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden', minWidth: 0 }}>
+      <div style={{ marginBottom: 10, minWidth: 0 }}>
+        <div className="historical-long-text" data-testid="dataset-detail-id" style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, overflowWrap: 'anywhere', wordBreak: 'break-word', maxWidth: '100%' }}>{getDatasetId(dataset)}</div>
 
         {fileMissing && (
           <div style={{
@@ -443,11 +461,9 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
           <div style={{ fontSize: 10, color: 'var(--t-text-3)', marginBottom: 6 }}>Checking file…</div>
         )}
 
-        <table style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
-          <colgroup>
-            <col style={{ width: 90 }} />
-            <col />
-          </colgroup>
+
+        <div className="historical-table-wrap" style={{ maxWidth: '100%', minWidth: 0, overflowX: 'auto' }}>
+        <table className="historical-detail-table" style={{ fontSize: 11, borderCollapse: 'collapse', width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
           <tbody>
             {[
               ['Dataset ID', getDatasetId(dataset)],
@@ -468,12 +484,13 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
               ['Warnings',   (dataset.warnings || []).join(', ') || '—'],
             ].map(([k, v]) => (
               <tr key={k}>
-                <td style={{ color: 'var(--t-text-3)', paddingRight: 8, paddingBottom: 2, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{k}</td>
-                <td style={{ paddingBottom: 2, wordBreak: 'break-word', overflowWrap: 'anywhere', minWidth: 0, maxWidth: 0 }} className="dataset-value-cell">{v}</td>
+                <td style={{ color: 'var(--t-text-3)', paddingRight: 10, paddingBottom: 2, whiteSpace: 'nowrap', width: 112, maxWidth: '38%', verticalAlign: 'top' }}>{k}</td>
+                <td className={`dataset-value-cell historical-long-text ${k === 'CSV File' || k === 'Warnings' ? 'historical-path-text' : ''}`} style={{ paddingBottom: 2, overflowWrap: 'anywhere', wordBreak: 'break-word', whiteSpace: k === 'CSV File' || k === 'Warnings' ? 'pre-wrap' : 'normal', minWidth: 0, maxWidth: '100%' }}>{v}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div style={{ borderTop: '1px solid var(--t-border)', paddingTop: 10 }}>
@@ -485,29 +502,15 @@ function DatasetDetail({ dataset, diagnostics, diagnosticsLoading, onUseForML, o
             Dataset file missing on server. Re-download dataset to use it.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="dataset-actions">
-            <button
-              style={S_ACTION_BTN(true)}
-              onClick={() => onUseForML(dataset)}
-              data-testid="btn-use-for-ml"
-              aria-label="Use for ML Training"
-            >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} data-testid="dataset-actions">
+            <button className="historical-action-button" style={S_ACTION_BTN(true)} onClick={() => onUseForML(dataset)} data-testid="btn-use-for-ml" aria-label="Use for ML Training">
               Use for ML Training
             </button>
-            <button
-              style={S_ACTION_BTN(false)}
-              onClick={() => onUseForBacktest(dataset)}
-              data-testid="btn-use-for-backtest"
-              aria-label="Use for Backtesting"
-            >
+            <button className="historical-action-button" style={S_ACTION_BTN(false)} onClick={() => onUseForBacktest(dataset)} data-testid="btn-use-for-backtest" aria-label="Use for Backtesting">
               Use for Backtesting
             </button>
-            <button
-              style={S_ACTION_BTN(false)}
-              onClick={() => onUseForCorrelation(dataset)}
-              data-testid="btn-use-for-correlation"
-              aria-label="Use for Correlation"
-            >
+            <button className="historical-action-button" style={S_ACTION_BTN(false)} onClick={() => onUseForCorrelation(dataset)} data-testid="btn-use-for-correlation" aria-label="Use for Correlation">
+
               Use for Correlation
             </button>
           </div>
@@ -586,11 +589,14 @@ export default function HistoricalDataWorkspace() {
   const rootStyle = {
     ...S.root,
     flexDirection: isMobile ? 'column' : 'row',
-    overflow: isMobile ? 'auto' : 'hidden',
+    overflowX: 'hidden',
+    overflowY: isMobile ? 'auto' : 'hidden',
   };
   const panelStyle = {
     ...S.panel,
     width: isMobile ? '100%' : 320,
+    minWidth: 0,
+    maxWidth: '100%',
     maxHeight: isMobile ? 240 : undefined,
     borderRight: isMobile ? 'none' : '1px solid var(--t-border)',
     borderBottom: isMobile ? '1px solid var(--t-border)' : 'none',
@@ -599,6 +605,8 @@ export default function HistoricalDataWorkspace() {
   };
   const mainStyle = {
     ...S.main,
+    minWidth: 0,
+    maxWidth: '100%',
     paddingBottom: isMobile ? 80 : 0,
   };
 
@@ -609,6 +617,7 @@ export default function HistoricalDataWorkspace() {
         <div style={S.header}>
           <span style={S.headerTitle}>Historical Datasets</span>
           <button
+            className="historical-action-button historical-icon-button"
             style={{ ...S.btn(false), marginLeft: 'auto', padding: '2px 8px', fontSize: 10 }}
             onClick={() => store.fetchDatasets()}
             disabled={store.datasetsLoading}
@@ -634,6 +643,7 @@ export default function HistoricalDataWorkspace() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              className="historical-action-button"
               style={{
                 ...S.btn(activeTab === tab.id),
                 padding: '3px 10px',
@@ -644,11 +654,15 @@ export default function HistoricalDataWorkspace() {
             </button>
           ))}
           {notification && (
-            <span style={{
+            <span className="historical-long-text historical-toast-text" style={{
               marginLeft: 'auto',
               fontSize: 10,
               padding: '2px 8px',
               color: notification.isError ? 'var(--t-red,#f44)' : 'var(--t-green,#4f4)',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+              minWidth: 0,
+              maxWidth: isMobile ? '55%' : '70%',
             }}>
               {notification.msg}
             </span>

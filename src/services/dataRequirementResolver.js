@@ -22,6 +22,69 @@
  */
 
 import { api } from '../api.js';
+import { useHistoricalDataStore } from '../store/historicalDataStore.js';
+import { getDatasetId } from '../utils/datasets.js';
+
+export function normalizeRequirementSymbols(symbols = []) {
+  return [...new Set((symbols || []).map((s) => String(s || '').trim().toUpperCase()).filter(Boolean))];
+}
+
+function datasetHasSymbol(dataset, symbol) {
+  return (dataset?.symbols || []).map((s) => String(s).toUpperCase()).includes(symbol);
+}
+
+function datasetRowsForSymbol(dataset, symbol) {
+  const rowsBySymbol = dataset?.rowsBySymbol || {};
+  return Number(rowsBySymbol[symbol] ?? dataset?.rowCount ?? 0);
+}
+
+function datesOverlap(a, b) {
+  if (!a || !b || !a.startDate || !a.endDate || !b.startDate || !b.endDate) return true;
+  return String(a.startDate) <= String(b.endDate) && String(b.startDate) <= String(a.endDate);
+}
+
+function datasetCompatible(a, b, timeframe) {
+  if (!a || !b) return false;
+  if (timeframe && a.timeframe && a.timeframe !== timeframe) return false;
+  if (timeframe && b.timeframe && b.timeframe !== timeframe) return false;
+  if (a.provider && b.provider && a.provider !== b.provider) return false;
+  if (a.session && b.session && a.session !== b.session) return false;
+  return datesOverlap(a, b);
+}
+
+export function resolveCompatibleDatasetsFromRegistry({ symbols = [], timeframe = '1d', minimumRows = 2, selectedDatasetId = null, datasets = [] } = {}) {
+  const normalizedSymbols = normalizeRequirementSymbols(symbols);
+  const readyDatasets = (datasets || []).filter((dataset) => getDatasetId(dataset));
+  const selected = readyDatasets.find((dataset) => getDatasetId(dataset) === selectedDatasetId) || null;
+  const datasetsBySymbol = {};
+  const datasetRecordsBySymbol = {};
+
+  for (const symbol of normalizedSymbols) {
+    const candidates = readyDatasets.filter((dataset) => {
+      if (!datasetHasSymbol(dataset, symbol)) return false;
+      if (timeframe && dataset.timeframe && dataset.timeframe !== timeframe) return false;
+      if (minimumRows > 1 && datasetRowsForSymbol(dataset, symbol) < minimumRows) return false;
+      return true;
+    });
+    const preferred = candidates.find((dataset) => getDatasetId(dataset) === selectedDatasetId) || candidates[0] || null;
+    if (preferred) {
+      datasetsBySymbol[symbol] = getDatasetId(preferred);
+      datasetRecordsBySymbol[symbol] = preferred;
+    }
+  }
+
+  const missingSymbols = normalizedSymbols.filter((symbol) => !datasetsBySymbol[symbol]);
+  if (missingSymbols.length > 0) return { ok: false, missingSymbols, datasetsBySymbol, datasetRecordsBySymbol };
+
+  const records = Object.values(datasetRecordsBySymbol);
+  const anchor = selected && records.some((dataset) => getDatasetId(dataset) === getDatasetId(selected)) ? selected : records[0];
+  const incompatible = records.filter((dataset) => !datasetCompatible(anchor, dataset, timeframe));
+  if (incompatible.length > 0) return { ok: false, incompatibleDatasets: incompatible.map(getDatasetId), datasetsBySymbol, datasetRecordsBySymbol };
+
+  const datasetIds = normalizedSymbols.map((symbol) => datasetsBySymbol[symbol]);
+  const uniqueIds = [...new Set(datasetIds)];
+  return { ok: true, symbols: normalizedSymbols, datasetIds, datasetsBySymbol, datasetRecordsBySymbol, resolution: uniqueIds.length > 1 ? 'multi_dataset' : 'single_dataset' };
+}
 
 /**
  * @param {object} opts
@@ -52,13 +115,33 @@ export async function resolveDataRequirement({
     throw new Error('resolveDataRequirement: symbols must be an array of non-empty strings');
   }
 
+  const normalizedSymbols = normalizeRequirementSymbols(symbols);
+  const availableDatasets = useHistoricalDataStore.getState().datasets || [];
+  if (normalizedSymbols.length) {
+    const compatible = resolveCompatibleDatasetsFromRegistry({ symbols: normalizedSymbols, timeframe, minimumRows, selectedDatasetId, datasets: availableDatasets });
+    if (compatible.ok) {
+      return {
+        status: compatible.resolution === 'multi_dataset' ? 'ready_multi_dataset' : 'ready',
+        moduleId,
+        purpose,
+        symbols: compatible.symbols,
+        timeframe,
+        datasetId: compatible.datasetIds[0] || null,
+        datasetIds: compatible.datasetIds,
+        datasetsBySymbol: compatible.datasetsBySymbol,
+        resolution: compatible.resolution,
+        message: compatible.resolution === 'multi_dataset' ? `Using compatible datasets: ${compatible.symbols.join(', ')}` : 'Dataset ready.',
+      };
+    }
+  }
+
   if (!selectedDatasetId) {
     if (autoCreate && symbols.length >= 2) {
       return {
         status: 'auto_create_available',
         moduleId,
         purpose,
-        symbols,
+        symbols: normalizedSymbols,
         timeframe,
         message: `No dataset selected. Create a dataset for ${symbols.join(', ')} to enable ${purpose}.`,
         action: { type: 'create_dataset', symbols, timeframe },
@@ -68,7 +151,7 @@ export async function resolveDataRequirement({
       status: 'dataset_required',
       moduleId,
       purpose,
-      symbols,
+      symbols: normalizedSymbols,
       message: `Select a historical dataset that contains ${symbols.join(', ')} to enable ${purpose}.`,
       action: { type: 'select_dataset' },
     };
@@ -118,7 +201,7 @@ export async function resolveDataRequirement({
           moduleId,
           purpose,
           datasetId: selectedDatasetId,
-          symbols,
+          symbols: normalizedSymbols,
           availableSymbols,
           missingSymbols: missing,
           message: `Dataset "${selectedDatasetId}" is missing: ${missing.join(', ')}. Create a new dataset with all required symbols.`,
@@ -130,7 +213,7 @@ export async function resolveDataRequirement({
         moduleId,
         purpose,
         datasetId: selectedDatasetId,
-        symbols,
+        symbols: normalizedSymbols,
         availableSymbols,
         missingSymbols: missing,
         message: `Dataset "${selectedDatasetId}" does not contain: ${missing.join(', ')}. Available: ${availableSymbols.join(', ') || '(none)'}.`,
@@ -152,7 +235,7 @@ export async function resolveDataRequirement({
         moduleId,
         purpose,
         datasetId: selectedDatasetId,
-        symbols,
+        symbols: normalizedSymbols,
         rowsBySymbol,
         minimumRows,
         message: `Dataset "${selectedDatasetId}" does not have enough rows for ${purpose} (need ${minimumRows} per symbol). Symbols with insufficient data: ${symbolsWithTooFewRows.join(', ')}.`,
@@ -184,7 +267,7 @@ export async function resolveDataRequirement({
     moduleId,
     purpose,
     datasetId: selectedDatasetId,
-    symbols,
+    symbols: normalizedSymbols,
     availableSymbols,
     rowsBySymbol,
     dataset: diagnostics?.dataset || null,

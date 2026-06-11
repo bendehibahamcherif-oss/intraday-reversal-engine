@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { api } from '../api.js';
 import { assertDatasetId, getDatasetId, normalizeDataset } from '../utils/datasets.js';
+import { useMacroStore } from './macroStore.js';
 
 const errMsg = (e) => (e instanceof Error ? e.message : String(e));
 
@@ -97,7 +98,10 @@ export const useHistoricalDataStore = create(
         datasets: s.datasets.filter((d) => getDatasetId(d) !== datasetId),
         selectedDatasetId: s.selectedDatasetId === datasetId ? null : s.selectedDatasetId,
         selectedDataset:   s.selectedDatasetId === datasetId ? null : s.selectedDataset,
+        selectedCorrelationDatasetId: s.selectedCorrelationDatasetId === datasetId ? null : s.selectedCorrelationDatasetId,
+        selectedCorrelationDataset:   s.selectedCorrelationDatasetId === datasetId ? null : s.selectedCorrelationDataset,
       }));
+      if (useMacroStore.getState().correlationDatasetId === datasetId) useMacroStore.getState().clearCorrelationDatasetId?.();
     } catch (e) {
       set({ datasetsError: safeHistoricalError(e, 'Unable to load historical datasets.') });
     }
@@ -166,6 +170,7 @@ export const useHistoricalDataStore = create(
     if (!asserted.ok) { set({ datasetsError: asserted.error }); return asserted; }
     const normalized = normalizeDataset(dataset);
     set({ selectedCorrelationDatasetId: asserted.datasetId, selectedCorrelationDataset: normalized, datasetsError: '' });
+    useMacroStore.getState().setCorrelationDatasetId?.(asserted.datasetId, normalized);
     api.useHistoricalDatasetForCorrelation?.(asserted.datasetId)
       ?.then((response) => {
         if (response?.dataset) set({ selectedCorrelationDataset: normalizeDataset(response.dataset), datasetsError: '' });

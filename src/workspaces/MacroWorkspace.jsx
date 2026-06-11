@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useMacroStore } from '../store/macroStore';
 import { useHistoricalDataStore } from '../store/historicalDataStore.js';
 
@@ -64,7 +64,7 @@ function corrCellStyle(v, isDiag) {
 }
 
 // ── Correlation Matrix ─────────────────────────────────────────────────────────
-function CorrelationMatrix({ correlation, loading, error }) {
+function CorrelationMatrix({ correlation, loading, error, requestedSymbols = [] }) {
   if (loading) return <div style={{ color: MUTED, fontSize: 12 }}>Computing correlation matrix…</div>;
   if (error)   return <div style={{ color: RED, fontSize: 12 }}>{error}</div>;
   if (!correlation) return <div style={{ color: MUTED, fontSize: 12 }}>No data. Click ↻ Refresh.</div>;
@@ -98,7 +98,7 @@ function CorrelationMatrix({ correlation, loading, error }) {
 
   const multiDatasetBanner = correlation.resolution === 'multi_dataset' && correlation.datasetsBySymbol && (
     <div style={{ fontSize: 11, color: MUTED, marginBottom: 8, padding: '4px 8px', background: '#0a1628', borderRadius: 4, border: `1px solid ${BLUE}44` }}>
-      <span style={{ color: BLUE, fontWeight: 700, marginRight: 4 }}>Multi-dataset:</span>
+      <span style={{ color: BLUE, fontWeight: 700, marginRight: 4 }}>Using compatible datasets: {requestedSymbols.join(', ') || Object.keys(correlation.datasetsBySymbol).join(', ')}</span>
       {Object.entries(correlation.datasetsBySymbol).map(([sym, id]) => (
         <span key={sym} style={{ marginRight: 8 }}>
           <span style={{ color: TEXT }}>{sym}</span>
@@ -178,7 +178,7 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
 
   const betaMultiDatasetBanner = beta?.resolution === 'multi_dataset' && beta?.datasetsBySymbol && (
     <div style={{ fontSize: 11, color: MUTED, marginBottom: 8, padding: '4px 8px', background: '#0a1628', borderRadius: 4, border: `1px solid ${BLUE}44` }}>
-      <span style={{ color: BLUE, fontWeight: 700, marginRight: 4 }}>Multi-dataset:</span>
+      <span style={{ color: BLUE, fontWeight: 700, marginRight: 4 }}>Using compatible datasets: {symbols.join(', ') || Object.keys(beta.datasetsBySymbol).join(', ')}</span>
       {Object.entries(beta.datasetsBySymbol).map(([sym, id]) => (
         <span key={sym} style={{ marginRight: 8 }}>
           <span style={{ color: TEXT }}>{sym}</span>
@@ -475,12 +475,17 @@ export default function MacroWorkspace() {
     loadBeta, refreshAll, clearErrors,
   } = store;
 
-  useEffect(() => { refreshAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const histState = useHistoricalDataStore.getState();
+    store.validateSelectedCorrelationDataset?.(histState.datasets || []);
+    refreshAll();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for dataset selection from Historical Data workspace
   useEffect(() => {
     const { selectedCorrelationDatasetId: histId, selectedCorrelationDataset: histDataset } =
       useHistoricalDataStore.getState();
+    store.validateSelectedCorrelationDataset?.(useHistoricalDataStore.getState().datasets || []);
     if (histId && !useMacroStore.getState().correlationDatasetId) {
       store.setCorrelationDatasetId(histId, histDataset);
       store.refreshAll();
@@ -490,7 +495,7 @@ export default function MacroWorkspace() {
       const { datasetId, dataset } = e.detail || {};
       if (datasetId) {
         store.setCorrelationDatasetId(datasetId, dataset);
-        store.loadCorrelation();
+        store.refreshAll();
       }
     }
     window.addEventListener('reversal:use-dataset-correlation', onDatasetCorrelation);
@@ -498,6 +503,10 @@ export default function MacroWorkspace() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const anyError = correlationError || betaError || sectorRotationError || volatilityError;
+  const displayedAssetCount = symbols.length;
+  const showDebug = useMemo(() => {
+    try { return new URLSearchParams(window.location.search).get('debugMacro') === '1'; } catch { return false; }
+  }, []);
 
   return (
     <section style={{ display: 'grid', gap: 12 }}>
@@ -537,10 +546,10 @@ export default function MacroWorkspace() {
           <strong>Rolling Correlation Matrix</strong>
           {correlationLoading && <span style={{ color: MUTED, fontSize: 12 }}>Loading…</span>}
           <span style={{ fontSize: 11, color: MUTED }}>
-            {Array.isArray(correlation?.symbols) ? `${correlation.symbols.length} assets` : ''}
+            {`${displayedAssetCount} assets`}
           </span>
         </div>
-        <CorrelationMatrix correlation={correlation} loading={correlationLoading} error={correlationError} />
+        <CorrelationMatrix correlation={correlation} loading={correlationLoading} error={correlationError} requestedSymbols={symbols} />
       </div>
 
       {/* ── Rolling Beta ────────────────────────────────────────────────────── */}
@@ -562,6 +571,27 @@ export default function MacroWorkspace() {
           symbols={symbols} window={w}
         />
       </div>
+
+
+      {showDebug && (
+        <div style={{ ...panel, fontSize: 11, color: MUTED }} data-testid="macro-debug-panel">
+          <strong style={{ color: TEXT }}>Macro debug</strong>
+          <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '8px 0 0' }}>{JSON.stringify({
+            inputSymbolsRaw: store.symbolsInput,
+            normalizedSymbols: symbols,
+            displayedAssetCount,
+            selectedCorrelationDatasetId: correlationDatasetId,
+            clearedStaleDatasetId: store.clearedStaleDatasetId,
+            datasetIdsSent: store.lastRequest?.datasetIds || [],
+            datasetsBySymbol: correlation?.datasetsBySymbol || beta?.datasetsBySymbol || store.lastResolution?.datasetsBySymbol || {},
+            backendStatus: correlation?.status || beta?.status || null,
+            backendResolution: correlation?.resolution || beta?.resolution || null,
+            alignedRows: correlation?.alignedRows || beta?.alignedRows || null,
+            observations: correlation?.observations || beta?.observations || null,
+            diagnostics: correlation?.diagnostics || beta?.diagnostics || null,
+          }, null, 2)}</pre>
+        </div>
+      )}
 
       {/* ── Sector Rotation ─────────────────────────────────────────────────── */}
       <div style={panel}>

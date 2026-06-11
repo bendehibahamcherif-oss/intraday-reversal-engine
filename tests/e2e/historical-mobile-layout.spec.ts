@@ -53,8 +53,6 @@ test('historical data workspace: single-column layout on mobile', async ({ page 
   const rootBox = await workspaceRoot.boundingBox();
 
   if (listBox && rootBox) {
-    // On mobile the list panel is at the top; root starts at same y.
-    // The main panel (second child) starts below the list panel.
     const mainPanelTop = await page.evaluate(() => {
       const root = document.querySelector('[data-testid="historical-data-workspace"]');
       const children = root ? [...root.children] : [];
@@ -80,28 +78,47 @@ test('historical data workspace: buttons are tappable (min 44px touch target)', 
   // Click the dataset row to open the detail panel with action buttons
   await page.getByTestId('dataset-list-panel').getByText('e2e-dataset').first().click();
 
-  // Wait for the detail panel and action buttons to be visible
+  // Wait for the detail panel to be visible
   await expect(page.getByTestId('dataset-detail-panel')).toBeVisible({ timeout: 4000 });
-  await expect(page.getByTestId('dataset-actions')).toBeVisible({ timeout: 4000 });
 
-  // Measure heights of the action buttons
-  const buttonHeights = await page.evaluate(() => {
-    const actions = document.querySelector('[data-testid="dataset-actions"]');
-    if (!actions) return [] as number[];
-    const btns = [...actions.querySelectorAll('button')].filter((b) => {
+  // Audit all visible buttons in the workspace with rich diagnostics
+  const buttons = await page.evaluate(() => {
+    const workspace = document.querySelector('.historical-data-workspace');
+    if (!workspace) return [] as Array<{ textContent: string; ariaLabel: string; dataTestId: string; className: string; width: number; height: number; computedMinHeight: string; computedPadding: string; computedLineHeight: string }>;
+    const btns = [...workspace.querySelectorAll('button')].filter((b) => {
       const r = b.getBoundingClientRect();
       return r.width > 0 && r.height > 0;
     });
-    return btns.map((b) => b.getBoundingClientRect().height);
+    return btns.map((b) => {
+      const r = b.getBoundingClientRect();
+      const cs = window.getComputedStyle(b);
+      return {
+        textContent: b.textContent?.trim() || '',
+        ariaLabel: b.getAttribute('aria-label') || '',
+        dataTestId: b.getAttribute('data-testid') || '',
+        className: typeof b.className === 'string' ? b.className : String(b.className || ''),
+        width: r.width,
+        height: r.height,
+        computedMinHeight: cs.minHeight,
+        computedPadding: `${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`,
+        computedLineHeight: cs.lineHeight,
+      };
+    });
   });
 
-  expect(
-    buttonHeights.length,
-    'No visible action buttons found in [data-testid="dataset-actions"] — expected at least 1',
-  ).toBeGreaterThan(0);
+  const shortButtons = buttons.filter((button) => button.height < 44);
+  if (shortButtons.length) {
+    console.log('Historical Data short mobile buttons', JSON.stringify(shortButtons, null, 2));
+  }
 
-  for (const h of buttonHeights) {
-    expect(h, `Action button height ${h}px too small — must be at least 44px`).toBeGreaterThanOrEqual(44);
+  expect(buttons.length, 'No visible buttons found in Historical Data workspace').toBeGreaterThan(0);
+
+  for (const button of buttons) {
+    const label = button.ariaLabel || button.textContent || button.dataTestId || '<unlabelled>';
+    expect(
+      button.height,
+      `Button "${label}" (${button.className}) height ${button.height}px too small`,
+    ).toBeGreaterThanOrEqual(44);
   }
 });
 
@@ -113,36 +130,60 @@ test('historical data workspace: long detail fields stay contained on mobile', a
   await page.getByTestId('dataset-list-panel').getByText('e2e-dataset').first().click();
   await expect(page.getByTestId('dataset-detail-panel')).toBeVisible({ timeout: 4000 });
 
-  // No horizontal overflow after opening detail panel with long file paths
-  const overflow = await page.evaluate(() => ({
-    scrollWidth: document.documentElement.scrollWidth,
-    clientWidth: document.documentElement.clientWidth,
-    bodyScrollWidth: document.body.scrollWidth,
-  }));
-
-  expect(
-    overflow.scrollWidth,
-    `horizontal overflow after detail open: scrollWidth ${overflow.scrollWidth} > clientWidth ${overflow.clientWidth}`,
-  ).toBeLessThanOrEqual(overflow.clientWidth + 1);
-
-  // Value cells must not spill past the right edge of their table
-  const cellOverflows = await page.evaluate(() => {
-    const cells = [...document.querySelectorAll('.dataset-value-cell')];
-    return cells.map((cell) => {
-      const r = cell.getBoundingClientRect();
-      const tableEl = cell.closest('table');
-      const tableR = tableEl ? tableEl.getBoundingClientRect() : null;
-      return {
-        cellRight: Math.round(r.right),
-        tableRight: tableR ? Math.round(tableR.right) : Math.round(r.right),
-        overflows: tableR ? r.right > tableR.right + 2 : false,
-      };
-    });
+  const metrics = await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const bodyOverflow = document.body.scrollWidth - viewportWidth;
+    const documentOverflow = document.documentElement.scrollWidth - viewportWidth;
+    const workspace = document.querySelector('.historical-data-workspace') || document.body;
+    const textCells = [...workspace.querySelectorAll('td, div, span')]
+      .filter((el) => /e2e-dataset|\/data\/historical/.test(el.textContent || ''))
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          tagName: el.tagName,
+          preview: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+          className: typeof el.className === 'string' ? el.className : String(el.className || ''),
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+          x: rect.x,
+          right: rect.right,
+          left: rect.left,
+          width: rect.width,
+        };
+      });
+    const overflowingElements = [...workspace.querySelectorAll('*')]
+      .map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          tagName: el.tagName,
+          text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+          className: typeof el.className === 'string' ? el.className : String(el.className || ''),
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+          x: rect.x,
+          width: rect.width,
+          viewportWidth,
+        };
+      })
+      .filter((el) => el.scrollWidth > el.clientWidth + 1 || el.x + el.width > viewportWidth + 1 || el.x < -1);
+    return { bodyOverflow, documentOverflow, textCells, overflowingElements, viewportWidth };
   });
 
-  const overflowing = cellOverflows.filter((c) => c.overflows);
-  expect(
-    overflowing.length,
-    `${overflowing.length} value cell(s) overflow their table: ${JSON.stringify(overflowing)}`,
-  ).toBe(0);
+  if (metrics.overflowingElements.length) {
+    console.log('Historical Data mobile overflowing elements', JSON.stringify(metrics.overflowingElements, null, 2));
+  }
+
+  const firstOverflow = metrics.overflowingElements[0];
+  const overflowMessage = firstOverflow
+    ? `Overflow element: ${firstOverflow.tagName}.${firstOverflow.className}, text=${firstOverflow.text}, scrollWidth=${firstOverflow.scrollWidth}, clientWidth=${firstOverflow.clientWidth}`
+    : 'No overflowing Historical Data element recorded';
+
+  expect(metrics.documentOverflow, `document overflowed horizontally by ${metrics.documentOverflow}px; ${overflowMessage}`).toBeLessThanOrEqual(1);
+  expect(metrics.bodyOverflow, `body overflowed horizontally by ${metrics.bodyOverflow}px; ${overflowMessage}`).toBeLessThanOrEqual(1);
+
+  for (const cell of metrics.textCells) {
+    const cellMessage = `Overflow element: ${cell.tagName}.${cell.className}, text=${cell.preview}, scrollWidth=${cell.scrollWidth}, clientWidth=${cell.clientWidth}`;
+    expect(cell.right, cellMessage).toBeLessThanOrEqual(metrics.viewportWidth + 1);
+    expect(cell.left, cellMessage).toBeGreaterThanOrEqual(-1);
+  }
 });

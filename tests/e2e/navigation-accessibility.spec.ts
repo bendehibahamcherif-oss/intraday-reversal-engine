@@ -9,8 +9,12 @@ test.describe('desktop navigation accessibility', () => {
     await expect(page.getByTestId('desktop-workspace-nav')).toBeVisible();
 
     for (const workspace of desktopWorkspaces) {
-      await expect(page.getByTestId(workspace.navTestId), `${workspace.id} test selector`).toBeVisible();
-      await expect(page.getByRole('button', { name: workspace.ariaLabel, exact: true }), `${workspace.id} aria label`).toBeVisible();
+      const navControl = page.getByTestId(workspace.navTestId);
+      await expect(navControl, `${workspace.id} has exactly one desktop nav control`).toHaveCount(1);
+      await expect(navControl, `${workspace.id} test selector`).toBeVisible();
+      const ariaControl = page.getByTestId('desktop-workspace-nav').getByRole('button', { name: workspace.ariaLabel, exact: true });
+      await expect(ariaControl, `${workspace.id} aria label`).toHaveCount(1);
+      await expect(ariaControl, `${workspace.id} aria label`).toBeVisible();
     }
 
     const labels = await page.locator('aside button[aria-label]').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') || '').filter(Boolean));

@@ -85,30 +85,167 @@
   }
 }
 
-/* ── Historical Data workspace — mobile touch targets & overflow containment ─ */
-
-.historical-data-workspace button,
-.historical-data-workspace [role="button"] {
-  min-height: 44px;
-  min-width: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
+/* Historical Data mobile containment/touch-target safeguards. */
 .historical-data-workspace,
 .historical-data-workspace * {
+  box-sizing: border-box;
   max-width: 100%;
   min-width: 0;
-  box-sizing: border-box;
 }
 
-.historical-data-workspace .dataset-value-cell,
-.historical-data-workspace code,
-.historical-data-workspace pre,
-.historical-data-workspace td {
+.historical-data-workspace {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.historical-data-workspace .historical-long-text,
+.historical-data-workspace .historical-path-text,
+.historical-data-workspace .historical-json-text,
+.historical-data-workspace .historical-status-text,
+.historical-data-workspace .historical-toast-text,
+.historical-data-workspace .historical-table-wrap,
+.historical-data-workspace .historical-detail-table,
+.historical-data-workspace .historical-detail-row,
+.historical-data-workspace .dataset-detail-card,
+.historical-data-workspace td,
+.historical-data-workspace th,
+.historical-data-workspace span,
+.historical-data-workspace div {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.historical-data-workspace .historical-long-text,
+.historical-data-workspace .historical-status-text,
+.historical-data-workspace .historical-toast-text,
+.historical-data-workspace td,
+.historical-data-workspace th {
   overflow-wrap: anywhere;
   word-break: break-word;
   white-space: normal;
+}
+
+.historical-data-workspace .historical-path-text,
+.historical-data-workspace .historical-json-text {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.historical-data-workspace .historical-table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.historical-data-workspace .historical-detail-table {
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.historical-data-workspace .historical-detail-table td,
+.historical-data-workspace .historical-detail-table th {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .historical-data-workspace {
+    overflow-x: hidden;
+  }
+
+  .historical-data-workspace button,
+  .historical-data-workspace [role="button"],
+  .historical-data-workspace .historical-action-button,
+  .historical-data-workspace .dataset-action-button,
+  .historical-data-workspace .dataset-table button,
+  .historical-data-workspace .dataset-detail-card button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    line-height: normal !important;
+  }
+
+  .historical-data-workspace .historical-icon-button,
+  .historical-data-workspace button[aria-label]:empty {
+    flex: 0 0 auto;
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 10px !important;
+  }
+
+  .historical-data-workspace input,
+  .historical-data-workspace select,
+  .historical-data-workspace textarea {
+    min-height: 44px;
+    max-width: 100%;
+  }
+
+  .historical-data-workspace .historical-responsive-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    flex-wrap: wrap;
+  }
+
+  .historical-data-workspace .historical-responsive-row > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .historical-data-workspace .historical-detail-row {
+    width: 100%;
+  }
+
+  .historical-data-workspace .historical-long-text,
+  .historical-data-workspace .historical-status-text,
+  .historical-data-workspace .historical-toast-text,
+  .historical-data-workspace td,
+  .historical-data-workspace th,
+  .historical-data-workspace span,
+  .historical-data-workspace div {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  .historical-data-workspace .historical-path-text,
+  .historical-data-workspace .historical-json-text {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .historical-data-workspace .historical-table-wrap,
+  .historical-data-workspace .historical-detail-table {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .historical-data-workspace .historical-toast-text {
+    max-width: calc(100vw - 32px);
+  }
 }

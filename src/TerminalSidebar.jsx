@@ -9,6 +9,7 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
   const mlStore      = useMLSignalStore();
   const navItems     = getDesktopWorkspaces();
   const settingsItem  = getWorkspace('Settings');
+  const renderSettingsShortcut = !navItems.some((item) => item.id === settingsItem.id);
 
   // Load ML signals for all watchlist symbols
   useEffect(() => {
@@ -110,30 +111,33 @@ export default function TerminalSidebar({ watchlist = [], socketStatus = 'unknow
         })}
       </nav>
 
-      {/* Bottom section */}
-      <div style={{ flexShrink: 0 }}>
-        <div style={{ borderTop: '1px solid var(--t-border)', margin: '4px 0' }} />
-        <button
-          onClick={() => setWorkspace(settingsItem.id)}
-          style={navButtonStyle(workspace === settingsItem.id)}
-          data-testid={settingsItem.navTestId}
-          data-tooltip={settingsItem.label}
-          title={settingsItem.label}
-          aria-label={settingsItem.ariaLabel}
-          onMouseEnter={(e) => {
-            if (workspace !== settingsItem.id) {
-              e.currentTarget.style.background = 'var(--t-bg-hover)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (workspace !== settingsItem.id) {
-              e.currentTarget.style.background = 'transparent';
-            }
-          }}
-        >
-          {settingsItem.shortLabel}
-        </button>
-      </div>
+      {/* Bottom section: only render a legacy Settings shortcut when the canonical
+          Operations workspace is not already present in the desktop registry. */}
+      {renderSettingsShortcut && (
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ borderTop: '1px solid var(--t-border)', margin: '4px 0' }} />
+          <button
+            onClick={() => setWorkspace(settingsItem.id)}
+            style={navButtonStyle(workspace === settingsItem.id)}
+            data-testid={settingsItem.navTestId}
+            data-tooltip={settingsItem.label}
+            title={settingsItem.label}
+            aria-label={settingsItem.ariaLabel}
+            onMouseEnter={(e) => {
+              if (workspace !== settingsItem.id) {
+                e.currentTarget.style.background = 'var(--t-bg-hover)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (workspace !== settingsItem.id) {
+                e.currentTarget.style.background = 'transparent';
+              }
+            }}
+          >
+            {settingsItem.shortLabel}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
