@@ -27,14 +27,50 @@ function safeNumber(value) {
 }
 
 
+// Convert an epoch-ms value to the US Eastern Time (ET) calendar date string
+// "YYYY-MM-DD".  ET = EDT (UTC-4) in months 3–9, EST (UTC-5) otherwise.
+// Using the ET trading-day calendar ensures that Yahoo Finance timestamps
+// (which can be midnight UTC, midnight ET, or 9:30 AM ET) all map to the
+// same "YYYY-MM-DD" key for the same trading session regardless of the exact
+// time component stored.
+function epochMsToEtDate(ms) {
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return null;
+  const utcMonth = d.getUTCMonth(); // 0-based
+  const etOffsetMs = (utcMonth >= 3 && utcMonth <= 9) ? -4 * 3600000 : -5 * 3600000;
+  const etD = new Date(ms + etOffsetMs);
+  return `${etD.getUTCFullYear()}-${String(etD.getUTCMonth() + 1).padStart(2, '0')}-${String(etD.getUTCDate()).padStart(2, '0')}`;
+}
+
 function normalizeCandleDate(value, timeframe = '1d') {
   const raw = String(value || '').trim();
   if (!raw) return '';
   if (timeframe === '1d') {
-    const isoLike = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (isoLike) return isoLike[1];
+    // Pure calendar date YYYY-MM-DD (no time component): already TZ-neutral.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    // ISO datetime YYYY-MM-DDThh:…: bucket to ET calendar day.
+    // This is intentionally applied to timestamps WITH a time component so
+    // that "2025-05-01T00:00:00.000Z" (midnight UTC = prev-day ET) and the
+    // epoch 1746057600 (same moment) produce the SAME key.
+    if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
+      const ms = new Date(raw).getTime();
+      if (Number.isFinite(ms)) { const d = epochMsToEtDate(ms); if (d) return d; }
+    }
+    // Slash date M/D/YYYY: calendar date, no TZ ambiguity.
     const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (slash) return `${slash[3]}-${slash[1].padStart(2, '0')}-${slash[2].padStart(2, '0')}`;
+    // Epoch seconds or milliseconds (Yahoo Finance raw API format, or datasets
+    // created outside the canonical pipeline): bucket to ET calendar day.
+    // Heuristic: value > 9 999 999 999 is epoch-ms, otherwise epoch-s.
+    const asNum = Number(raw);
+    if (Number.isFinite(asNum) && asNum > 0) {
+      const ms = asNum > 9_999_999_999 ? asNum : asNum * 1000;
+      const d = epochMsToEtDate(ms);
+      if (d) return d;
+    }
+    // Fallback: extract date prefix for other formats (e.g. "YYYY-MM-DD HH:MM:SS").
+    const isoLike = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoLike) return isoLike[1];
   }
   return raw;
 }
