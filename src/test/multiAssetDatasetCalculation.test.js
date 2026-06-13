@@ -111,6 +111,25 @@ function createTinyDataset(tmpDir) {
 
 // ── Test server setup ──────────────────────────────────────────────────────────
 
+// Dataset with Yahoo-shaped epoch-second timestamps in the CSV timestamp column.
+// Yahoo Finance v8 chart API returns timestamps as epoch seconds; callers normally
+// convert via coerceTimestamp → ISO string before writing to CSV.  If that step
+// is skipped (old pipeline, manual import, third-party tool) the raw epoch string
+// ends up in the file and normalizeCandleDate must still handle it.
+function createYahooEpochDataset(tmpDir, n = 60, symbol = 'SPY') {
+  const isoDates = generateDateRange(n);
+  const prices   = generatePrices(n, symbol === 'SPY' ? 450 : 600, 0.0003);
+  const rows = [CANONICAL_HEADER];
+  for (let i = 0; i < n; i++) {
+    // Convert ISO date → epoch seconds, as Yahoo Finance v8 raw API returns
+    const epochSeconds = Math.floor(new Date(isoDates[i]).getTime() / 1000);
+    rows.push(makeCsvRow(epochSeconds, symbol, prices[i]));
+  }
+  const csvPath = path.join(tmpDir, `${symbol.toLowerCase()}_epoch.csv`);
+  fs.writeFileSync(csvPath, rows.join('\n'));
+  return { csvPath, symbol, isoDates };
+}
+
 let server;
 let baseUrl;
 let tmpDir;
@@ -118,6 +137,8 @@ let twoDatasetId;
 let oneDatasetId;
 let tinyDatasetId;
 let nflxDatasetId;
+// Dataset where SPY timestamps are epoch seconds — the Yahoo-raw-format mismatch case
+let epochSpyDatasetId;
 
 function hasInvalid(value, seen = new WeakSet()) {
   if (typeof value === 'number') return !Number.isFinite(value);
@@ -133,32 +154,36 @@ beforeAll(async () => {
   // Patch the registry module to use in-memory fake datasets keyed by id
   const registry = require('../../server-deliverables/historical/historicalDatasetRegistry');
 
-  const twoDs  = createTwoSymbolDataset(tmpDir, 60);
-  const oneDs  = createOneSymbolDataset(tmpDir, 60);
-  const tinyDs = createTinyDataset(tmpDir);
-  const nflxDs = createNflxOnlyDataset(tmpDir, 60);
+  const twoDs     = createTwoSymbolDataset(tmpDir, 60);
+  const oneDs     = createOneSymbolDataset(tmpDir, 60);
+  const tinyDs    = createTinyDataset(tmpDir);
+  const nflxDs    = createNflxOnlyDataset(tmpDir, 60);
+  const epochSpyDs = createYahooEpochDataset(tmpDir, 60, 'SPY');
 
-  twoDatasetId  = 'test_two_symbol';
-  oneDatasetId  = 'test_one_symbol';
-  tinyDatasetId = 'test_tiny';
-  nflxDatasetId = 'test_nflx_only';
+  twoDatasetId     = 'test_two_symbol';
+  oneDatasetId     = 'test_one_symbol';
+  tinyDatasetId    = 'test_tiny';
+  nflxDatasetId    = 'test_nflx_only';
+  epochSpyDatasetId = 'test_spy_epoch_seconds';
 
   // Monkey-patch registry.get to return our fixture datasets
   const origGet = registry.get.bind(registry);
   registry.get = (id) => {
-    if (id === twoDatasetId)  return { datasetId: id, symbols: twoDs.symbols,  timeframe: '1d', files: { csv: twoDs.csvPath,  json: null }, rowCount: twoDs.rowCount };
-    if (id === oneDatasetId)  return { datasetId: id, symbols: oneDs.symbols,  timeframe: '1d', files: { csv: oneDs.csvPath,  json: null }, rowCount: oneDs.rowCount };
-    if (id === tinyDatasetId) return { datasetId: id, symbols: tinyDs.symbols, timeframe: '1d', files: { csv: tinyDs.csvPath, json: null }, rowCount: tinyDs.rowCount };
-    if (id === nflxDatasetId) return { datasetId: id, symbols: nflxDs.symbols, timeframe: '1d', files: { csv: nflxDs.csvPath, json: null }, rowCount: nflxDs.rowCount };
+    if (id === twoDatasetId)      return { datasetId: id, symbols: twoDs.symbols,     timeframe: '1d', files: { csv: twoDs.csvPath,      json: null }, rowCount: twoDs.rowCount };
+    if (id === oneDatasetId)      return { datasetId: id, symbols: oneDs.symbols,     timeframe: '1d', files: { csv: oneDs.csvPath,      json: null }, rowCount: oneDs.rowCount };
+    if (id === tinyDatasetId)     return { datasetId: id, symbols: tinyDs.symbols,    timeframe: '1d', files: { csv: tinyDs.csvPath,     json: null }, rowCount: tinyDs.rowCount };
+    if (id === nflxDatasetId)     return { datasetId: id, symbols: nflxDs.symbols,    timeframe: '1d', files: { csv: nflxDs.csvPath,     json: null }, rowCount: nflxDs.rowCount };
+    if (id === epochSpyDatasetId) return { datasetId: id, symbols: ['SPY'],            timeframe: '1d', files: { csv: epochSpyDs.csvPath, json: null }, rowCount: 60 };
     return origGet(id);
   };
 
   // Also patch registry.list() so auto-discovery finds our fixture datasets
   registry.list = () => [
-    { datasetId: twoDatasetId,  symbols: twoDs.symbols,  timeframe: '1d', files: { csv: twoDs.csvPath,  json: null }, rowCount: twoDs.rowCount },
-    { datasetId: oneDatasetId,  symbols: oneDs.symbols,  timeframe: '1d', files: { csv: oneDs.csvPath,  json: null }, rowCount: oneDs.rowCount },
-    { datasetId: tinyDatasetId, symbols: tinyDs.symbols, timeframe: '1d', files: { csv: tinyDs.csvPath, json: null }, rowCount: tinyDs.rowCount },
-    { datasetId: nflxDatasetId, symbols: nflxDs.symbols, timeframe: '1d', files: { csv: nflxDs.csvPath, json: null }, rowCount: nflxDs.rowCount },
+    { datasetId: twoDatasetId,     symbols: twoDs.symbols,     timeframe: '1d', files: { csv: twoDs.csvPath,      json: null }, rowCount: twoDs.rowCount },
+    { datasetId: oneDatasetId,     symbols: oneDs.symbols,     timeframe: '1d', files: { csv: oneDs.csvPath,      json: null }, rowCount: oneDs.rowCount },
+    { datasetId: tinyDatasetId,    symbols: tinyDs.symbols,    timeframe: '1d', files: { csv: tinyDs.csvPath,     json: null }, rowCount: tinyDs.rowCount },
+    { datasetId: nflxDatasetId,    symbols: nflxDs.symbols,    timeframe: '1d', files: { csv: nflxDs.csvPath,     json: null }, rowCount: nflxDs.rowCount },
+    { datasetId: epochSpyDatasetId, symbols: ['SPY'],            timeframe: '1d', files: { csv: epochSpyDs.csvPath, json: null }, rowCount: 60 },
   ];
 
   const multiAssetRoutes = require('../../server-deliverables/api/multiAssetRoutes');
@@ -467,6 +492,64 @@ describe('explicit multi-dataset SPY/NFLX correlation and beta', () => {
     expect(Number.isFinite(body.r2)).toBe(true);
     expect(body.observations).toBeGreaterThan(20);
     expect(body.alignedRows).toBeGreaterThan(20);
+    expect(hasInvalid(body)).toBe(false);
+  });
+});
+
+// ── Timestamp alignment: epoch-seconds vs ISO-string (Yahoo real-data format) ─
+//
+// Root-cause test for: "Aligned rows: 0 (min 20 required)" in the MA tab.
+//
+// Yahoo Finance v8 chart API returns timestamps as epoch SECONDS in
+// result.timestamp[].  The canonical pipeline multiplies by 1000 and calls
+// coerceTimestamp() → ISO string before writing to CSV.  But datasets created
+// outside that pipeline (old versions, manual imports, Python scripts) store
+// raw epoch seconds in the timestamp column.
+//
+// normalizeCandleDate() handles "YYYY-MM-DD*" and "MM/DD/YYYY" but falls
+// through to `return raw` for a bare numeric string such as "1704153600".
+// When the SPY file has epoch-second timestamps and the NFLX file has ISO
+// strings, alignedPair()'s Map lookup produces zero hits → alignedRows = 0.
+//
+// Fix: extend normalizeCandleDate() to handle epoch seconds and epoch ms,
+// bucketing the result to the US Eastern Time (ET) calendar day so that
+// ISO timestamps and epoch timestamps for the SAME trading day produce the
+// SAME "YYYY-MM-DD" key.
+
+describe('timestamp alignment — epoch-second vs ISO-string (Yahoo raw-data format)', () => {
+  it('aligns epoch-second SPY with ISO-string NFLX (≥20 aligned rows) — RED before fix, GREEN after', async () => {
+    // epochSpyDatasetId  → CSV has "1704153600" epoch-second timestamps
+    // nflxDatasetId      → CSV has "2024-01-02T00:00:00.000Z" ISO timestamps
+    // Both represent the SAME 60 trading days.
+    //
+    // Before fix: normalizeCandleDate("1704153600", "1d") returns the raw string
+    //   "1704153600", which never matches "2024-01-02" in commonCloseDates/alignedPair.
+    // After fix:  both normalize to the same ET calendar date → alignedRows ≥ 20.
+    const { response, body } = await getJson(
+      `/api/macro/correlation?symbols=SPY,NFLX&datasetIds=${epochSpyDatasetId},${nflxDatasetId}&window=20&timeframe=1d`,
+    );
+    expect(response.status).toBe(200);
+    expect(
+      body.alignedRows,
+      `expected ≥20 aligned rows but got ${body.alignedRows} — epoch/ISO timestamp mismatch in normalizeCandleDate. Diagnostics: ${JSON.stringify(body.diagnostics?.symbols || {})}`,
+    ).toBeGreaterThanOrEqual(20);
+    expect(body.observations).toBeGreaterThanOrEqual(20);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ready');
+    expect(body.resolution).toBe('multi_dataset');
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('aligns epoch-second SPY with ISO-string NFLX for beta (finite beta/r2) — RED before fix', async () => {
+    const { response, body } = await getJson(
+      `/api/macro/beta?asset=NFLX&symbol=NFLX&benchmark=SPY&symbols=SPY,NFLX&datasetIds=${epochSpyDatasetId},${nflxDatasetId}&window=20&timeframe=1d`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ready');
+    expect(Number.isFinite(body.beta), `beta should be finite, got ${body.beta}`).toBe(true);
+    expect(Number.isFinite(body.r2), `r2 should be finite, got ${body.r2}`).toBe(true);
+    expect(body.observations).toBeGreaterThanOrEqual(20);
     expect(hasInvalid(body)).toBe(false);
   });
 });
