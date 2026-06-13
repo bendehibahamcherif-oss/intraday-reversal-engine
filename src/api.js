@@ -930,7 +930,7 @@ export const api = {
     if (symbols.length) p.set('symbols', symbols.join(','));
     if (datasetId) p.set('datasetId', datasetId);
     if (datasetIds) p.set('datasetIds', datasetIds.join(','));
-    return fetch(`${API_BASE}/api/multi-asset/correlation?${p}`, { method: 'GET', headers: headers() }).then(handle);
+    return fetch(`${API_BASE}/api/macro/correlation?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMultiAssetBeta: async (options = {}) => {
     const { symbol = options.asset || 'QQQ', benchmark = 'SPY', window = 20, timeframe = '1d', symbols = [] } = options;
@@ -941,19 +941,19 @@ export const api = {
     if (symbols.length) p.set('symbols', symbols.join(','));
     if (datasetId) p.set('datasetId', datasetId);
     if (datasetIds) p.set('datasetIds', datasetIds.join(','));
-    return fetch(`${API_BASE}/api/multi-asset/beta?${p}`, { method: 'GET', headers: headers() }).then(handle);
+    return fetch(`${API_BASE}/api/macro/beta?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMultiAssetSectorRotation: async ({ window = 20, timeframe = '1d', symbols = [], datasetId = null } = {}) => {
     const p = new URLSearchParams({ window: String(window), timeframe });
     if (symbols.length) p.set('symbols', symbols.join(','));
     if (datasetId) p.set('datasetId', datasetId);
-    return fetch(`${API_BASE}/api/multi-asset/sector-rotation?${p}`, { method: 'GET', headers: headers() }).then(handle);
+    return fetch(`${API_BASE}/api/macro/sector-rotation?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
   getMultiAssetVolatility: async ({ symbols = [], window = 20, timeframe = '1d', datasetId = null } = {}) => {
     const p = new URLSearchParams({ window: String(window), timeframe });
     if (symbols.length) p.set('symbols', symbols.join(','));
     if (datasetId) p.set('datasetId', datasetId);
-    return fetch(`${API_BASE}/api/multi-asset/volatility?${p}`, { method: 'GET', headers: headers() }).then(handle);
+    return fetch(`${API_BASE}/api/macro/volatility-heatmap?${p}`, { method: 'GET', headers: headers() }).then(handle);
   },
 
   // ── OMS (Phase 12) ─────────────────────────────────────────────────────────
