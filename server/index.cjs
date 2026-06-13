@@ -149,6 +149,15 @@ async function start() {
     }
   });
 
+  // ── SPA fallback: serve Vite build and catch-all for client-side routing ─────
+  const DIST = require('path').join(__dirname, '..', 'dist');
+  if (require('fs').existsSync(DIST)) {
+    app.use(express.static(DIST));
+    app.get('*', (_req, res) => {
+      res.sendFile(require('path').join(DIST, 'index.html'));
+    });
+  }
+
   app.use('/api', apiNotFound);
   app.use(apiErrorHandler);
 

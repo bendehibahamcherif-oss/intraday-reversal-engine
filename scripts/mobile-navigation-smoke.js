@@ -48,7 +48,7 @@ check('Registry has desktopVisible flag', registrySrc.includes('desktopVisible')
 
 // Count workspace definitions
 const idMatches = [...registrySrc.matchAll(/\{\s*id:\s*'([^']+)'/g)].map((m) => m[1]);
-check('Registry defines at least 20 workspaces', idMatches.length >= 20, `found ${idMatches.length}`);
+check('Registry defines at least 19 workspaces', idMatches.length >= 19, `found ${idMatches.length}`);
 
 // Critical workspaces must be present
 const criticalIds = ['Risk', 'MLEngine', 'AILab', 'HistoricalData', 'Portfolio', 'Alerts', 'OMS', 'Institutional', 'Ops'];

@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-13T06:01:55.655Z",
-  "total": 13,
-  "passed": 13,
+  "generatedAt": "2026-06-13T06:12:17.869Z",
+  "total": 17,
+  "passed": 17,
   "failed": 0,
   "ok": true,
   "checks": [
@@ -64,6 +64,26 @@
       "name": "wsClient caps reconnect attempts",
       "ok": true,
       "detail": "bounded + resumable"
+    },
+    {
+      "name": "wsClient increments reconnectAttempts BEFORE setTimeout to avoid 0ms first retry",
+      "ok": true,
+      "detail": "increment precedes setTimeout"
+    },
+    {
+      "name": "socketStore stale-feed setInterval handle is stored for cleanup",
+      "ok": true,
+      "detail": "handle stored"
+    },
+    {
+      "name": "streamManager dead-code is not imported by any store or workspace",
+      "ok": true,
+      "detail": "not imported"
+    },
+    {
+      "name": "server/index.cjs serves built frontend with SPA fallback",
+      "ok": true,
+      "detail": "static serve + SPA catch-all present"
     },
     {
       "name": "corrupt localStorage does not crash (api.getUser guards JSON.parse)",
