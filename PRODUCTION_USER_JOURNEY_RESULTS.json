@@ -1,39 +1,25 @@
 {
-  "generatedAt": "2026-06-07T13:53:38.675Z",
+  "generatedAt": "2026-06-13T06:00:34.657Z",
   "labels": [
     "Chart",
-    "Markets",
+    "Macro / Multi-Asset",
     "Alerts",
     "AI Lab",
     "Risk",
     "Live Data",
     "Providers",
-    "Credentials",
-    "Stream Status",
-    "Provider Diagnostics",
-    "Volume Profile",
-    "ML Dashboard",
-    "ML Model Card",
-    "ML Training Runs",
-    "ML Predictions",
-    "ML Diagnostics & Drift",
-    "ML Champion Inference",
     "Historical Data",
+    "ML Dashboard",
     "Execution",
     "Backtesting",
     "Paper Trading",
-    "Portfolio",
-    "Macro / Multi-Asset",
-    "Correlation",
-    "Beta",
     "Strategy Lab",
     "Quant Lab",
-    "Strategy Builder",
     "Replay",
+    "Portfolio",
     "OMS",
     "Institutional",
-    "Operations",
-    "Settings / More"
+    "Operations"
   ],
   "apiRequests": [
     {
@@ -432,27 +418,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -462,7 +428,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -472,27 +438,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -502,7 +448,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -744,208 +690,6 @@
       "method": "GET",
       "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
       "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"tick\":{\"symbol\":\"SPY\",\"price\":472.25,\"bid\":472.2,\"ask\":472.3,\"size\":100,\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/candle/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"candle\":{\"time\":\"2026-01-02T14:29:00.000Z\",\"timestamp\":1767364140000,\"open\":477.15,\"high\":477.65,\"low\":476.75,\"close\":477.25,\"volume\":1725},\"candles\":[{\"time\":\"2026-01-02T14:25:00.000Z\",\"timestamp\":1767363900000,\"open\":476.15,\"high\":476.65,\"low\":475.75,\"close\":476.25,\"volume\":1625},{\"time\":\"2026-01-02T14:26:00.000Z\",\"timestamp\":1767363960000,\"open\":476.4,\"high\":476.9,\"low\":476,\"close\":476.5,\"volume\":1650},{\"time\":\"2026-01-02T14:2"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/orderbook/SPY",
-      "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"orderbook\":{\"bids\":[[472.2,100],[472.1,120]],\"asks\":[[472.3,95],[472.4,110]],\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"feeds\":[],\"sources\":[],\"active\":false}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/providers/credentials",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"credentials\":[],\"providers\":[],\"configured\":{},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
-      "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"tick\":{\"symbol\":\"SPY\",\"price\":472.25,\"bid\":472.2,\"ask\":472.3,\"size\":100,\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/candle/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"candle\":{\"time\":\"2026-01-02T14:29:00.000Z\",\"timestamp\":1767364140000,\"open\":477.15,\"high\":477.65,\"low\":476.75,\"close\":477.25,\"volume\":1725},\"candles\":[{\"time\":\"2026-01-02T14:25:00.000Z\",\"timestamp\":1767363900000,\"open\":476.15,\"high\":476.65,\"low\":475.75,\"close\":476.25,\"volume\":1625},{\"time\":\"2026-01-02T14:26:00.000Z\",\"timestamp\":1767363960000,\"open\":476.4,\"high\":476.9,\"low\":476,\"close\":476.5,\"volume\":1650},{\"time\":\"2026-01-02T14:2"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/orderbook/SPY",
-      "requestBodyPreview": "",
-      "reason": "aborted cancelled GET polling request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"orderbook\":{\"bids\":[[472.2,100],[472.1,120]],\"asks\":[[472.3,95],[472.4,110]],\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"feeds\":[],\"sources\":[],\"active\":false}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/providers/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"providers\":[],\"statuses\":[],\"enabledByProvider\":{},\"providerOrder\":[],\"activeProviders\":[],\"health\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/providers/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"providers\":[],\"statuses\":[],\"enabledByProvider\":{},\"providerOrder\":[],\"activeProviders\":[],\"health\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"feeds\":[],\"sources\":[],\"active\":false}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/status",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"feeds\":[],\"sources\":[],\"active\":false}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mock-route-matched"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/candle/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mock-route-matched"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/orderbook/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mock-route-matched"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mock-route-matched"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/candle/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mock-route-matched"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/orderbook/SPY",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mock-route-matched"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/providers/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"providers\":[],\"statuses\":[],\"enabledByProvider\":{},\"providerOrder\":[],\"activeProviders\":[],\"health\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/providers/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"providers\":[],\"statuses\":[],\"enabledByProvider\":{},\"providerOrder\":[],\"activeProviders\":[],\"health\":[]}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/providers/credentials",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"credentials\":[],\"providers\":[],\"configured\":{},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
-      "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mock-route-matched"
     },
@@ -1134,7 +878,7 @@
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":480,\"rowsBySymbol\":{\"SPY\":480},\"files\":{\"csv\":\"/data/historical/e2e-dataset.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
+      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\",\"NFLX\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":960,\"rowsBySymbol\":{\"SPY\":480,\"NFLX\":480},\"files\":{\"csv\":\"/data/historical/very-long-path-name/e2e-dataset-SPY_NFLX-1d-2025-01-02-to-2025-12-31-RTH-general.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
     },
     {
       "method": "GET",
@@ -1154,7 +898,7 @@
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":480,\"rowsBySymbol\":{\"SPY\":480},\"files\":{\"csv\":\"/data/historical/e2e-dataset.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
+      "responseBodyPreview": "{\"ok\":true,\"datasets\":[{\"datasetId\":\"e2e-dataset\",\"id\":\"e2e-dataset\",\"symbols\":[\"SPY\",\"NFLX\"],\"timeframe\":\"1d\",\"startDate\":\"2025-01-02\",\"endDate\":\"2025-12-31\",\"provider\":\"e2e_mock\",\"session\":\"RTH\",\"purpose\":\"general\",\"rowCount\":960,\"rowsBySymbol\":{\"SPY\":480,\"NFLX\":480},\"files\":{\"csv\":\"/data/historical/very-long-path-name/e2e-dataset-SPY_NFLX-1d-2025-01-02-to-2025-12-31-RTH-general.csv\"},\"fileStatus\":\"ready\",\"fileExists\":true,\"status\":\"ready\",\"warnings\":[]}],\"files\":[],\"status\":\"ready\"}"
     },
     {
       "method": "GET",
@@ -1415,86 +1159,6 @@
       "status": 200,
       "contentType": "application/json; charset=utf-8",
       "responseBodyPreview": "{\"ok\":true,\"templates\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
     },
     {
       "method": "GET",
@@ -2565,126 +2229,6 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"worker\":{\"available\":false,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/model",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"champion\":null,\"challengers\":[],\"model\":null,\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/model-runs",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"runs\":[],\"models\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/metrics",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"metrics\":{},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/feature-importance",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"importance\":[],\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/health",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"available\",\"worker\":{\"available\":false,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/model",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"champion\":null,\"challengers\":[],\"model\":null,\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/model-runs",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"runs\":[],\"models\":[],\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/metrics",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"metrics\":{},\"status\":\"empty\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/feature-importance",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"features\":[],\"importance\":[],\"status\":\"no_model\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
       "url": "http://127.0.0.1:10000/api/rules/sets/SPY",
       "requestBodyPreview": "",
       "reason": "api-request",
@@ -2725,27 +2269,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -2755,7 +2279,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -2765,27 +2289,27 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD&datasetId=e2e-dataset",
+      "url": "http://127.0.0.1:10000/api/historical/datasets/e2e-dataset/diagnostics",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+      "responseBodyPreview": "{\"ok\":true,\"datasetId\":\"e2e-dataset\",\"fileExists\":true,\"fileSizeBytes\":982016,\"status\":\"ready\",\"issues\":[],\"symbols\":[\"SPY\",\"NFLX\"],\"rowsBySymbol\":{\"SPY\":480,\"NFLX\":480},\"usableFor\":[\"ml\",\"backtest\",\"correlation\"],\"columns\":[\"timestamp\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"symbol\"]}"
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d&datasetId=e2e-dataset",
+      "url": "http://127.0.0.1:10000/api/historical/datasets/e2e-dataset/diagnostics",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+      "responseBodyPreview": "{\"ok\":true,\"datasetId\":\"e2e-dataset\",\"fileExists\":true,\"fileSizeBytes\":982016,\"status\":\"ready\",\"issues\":[],\"symbols\":[\"SPY\",\"NFLX\"],\"rowsBySymbol\":{\"SPY\":480,\"NFLX\":480},\"usableFor\":[\"ml\",\"backtest\",\"correlation\"],\"columns\":[\"timestamp\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"symbol\"]}"
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -2795,7 +2319,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -2805,27 +2329,7 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD&datasetId=e2e-dataset",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=QQQ&benchmark=SPY&window=20&timeframe=1d&datasetId=e2e-dataset",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
@@ -2835,13 +2339,93 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CQQQ%2CIWM%2CDIA%2CTLT%2CGLD",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CNFLX",
       "requestBodyPreview": "",
       "reason": "api-request",
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
       "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/historical/datasets/e2e-dataset/diagnostics",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"datasetId\":\"e2e-dataset\",\"fileExists\":true,\"fileSizeBytes\":982016,\"status\":\"ready\",\"issues\":[],\"symbols\":[\"SPY\",\"NFLX\"],\"rowsBySymbol\":{\"SPY\":480,\"NFLX\":480},\"usableFor\":[\"ml\",\"backtest\",\"correlation\"],\"columns\":[\"timestamp\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"symbol\"]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/historical/datasets/e2e-dataset/diagnostics",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"datasetId\":\"e2e-dataset\",\"fileExists\":true,\"fileSizeBytes\":982016,\"status\":\"ready\",\"issues\":[],\"symbols\":[\"SPY\",\"NFLX\"],\"rowsBySymbol\":{\"SPY\":480,\"NFLX\":480},\"usableFor\":[\"ml\",\"backtest\",\"correlation\"],\"columns\":[\"timestamp\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"symbol\"]}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/sector-rotation?window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"sectors\":[],\"rotation\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/volatility?window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"heatmap\":[],\"volatility\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=NFLX&asset=NFLX&benchmark=SPY&window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/correlation?window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"matrix\":[],\"correlations\":[],\"status\":\"not_enough_data\"}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/multi-asset/beta?symbol=NFLX&asset=NFLX&benchmark=SPY&window=20&timeframe=1d&symbols=SPY%2CNFLX&datasetId=e2e-dataset",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"beta\":null,\"r2\":null,\"status\":\"not_enough_data\"}"
     },
     {
       "method": "GET",

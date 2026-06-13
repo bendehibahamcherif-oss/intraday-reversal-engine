@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-07T13:53:28.184Z",
+  "generatedAt": "2026-06-13T06:01:18.061Z",
   "results": [
     {
       "type": "dataset",
@@ -334,36 +334,6 @@
     },
     {
       "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/signal/BTC-USD?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"BTC-USD\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
-      "url": "http://127.0.0.1:10000/api/ml/signal/EURUSD%3DX?timeframe=1m",
-      "requestBodyPreview": "",
-      "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"EURUSD=X\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
-    },
-    {
-      "method": "GET",
       "url": "http://127.0.0.1:10000/api/chart/payload/SPY?timeframe=1m&limit=200",
       "requestBodyPreview": "",
       "reason": "aborted cancelled GET polling request",
@@ -391,6 +361,36 @@
       "status": 200,
       "contentType": "application/json; charset=utf-8",
       "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"status\":\"rest_fallback\",\"series\":[{\"time\":\"2026-01-02T14:00:00.000Z\",\"timestamp\":1767362400000,\"value\":-300},{\"time\":\"2026-01-02T14:01:00.000Z\",\"timestamp\":1767362460000,\"value\":-175},{\"time\":\"2026-01-02T14:02:00.000Z\",\"timestamp\":1767362520000,\"value\":-50},{\"time\":\"2026-01-02T14:03:00.000Z\",\"timestamp\":1767362580000,\"value\":75},{\"time\":\"2026-01-02T14:04:00.000Z\",\"timestamp\":1767362640000,\"value\":200},{\"time\":\"2026-01-02T14:05:00.000Z\",\"timestamp\":1767362700000,\"value\""
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/signal/BTC-USD?timeframe=1m",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"BTC-USD\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:10000/api/ml/signal/EURUSD%3DX?timeframe=1m",
+      "requestBodyPreview": "",
+      "reason": "api-request",
+      "classification": "mocked-response-ok",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"EURUSD=X\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
     },
     {
       "method": "GET",

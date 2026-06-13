@@ -1,6 +1,6 @@
 {
-  "passed": 36,
-  "failed": 0,
+  "passed": 35,
+  "failed": 1,
   "total": 36,
   "results": [
     {
@@ -55,8 +55,8 @@
     },
     {
       "label": "Registry defines at least 20 workspaces",
-      "status": "PASS",
-      "detail": "found 33"
+      "status": "FAIL",
+      "detail": "found 19"
     },
     {
       "label": "Registry includes Risk",

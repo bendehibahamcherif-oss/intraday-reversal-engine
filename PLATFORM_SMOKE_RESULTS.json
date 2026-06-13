@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "generatedAt": "2026-06-05T05:58:05.886Z",
+  "generatedAt": "2026-06-13T06:01:54.853Z",
   "baseUrl": "http://127.0.0.1:4111",
   "total": 22,
   "passed": 22,
@@ -13,7 +13,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 8
+      "latencyMs": 5
     },
     {
       "method": "GET",
@@ -22,7 +22,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 4
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -31,7 +31,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 3
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -40,7 +40,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 3
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -58,7 +58,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 2
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -76,7 +76,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 4
+      "latencyMs": 3
     },
     {
       "method": "GET",
@@ -85,7 +85,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 6
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -94,7 +94,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 14
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -103,7 +103,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 6
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -112,7 +112,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 6
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -121,7 +121,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 7
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -130,7 +130,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 4
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -139,7 +139,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 5
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -148,7 +148,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 5
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -157,7 +157,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 5
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -166,7 +166,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 5
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -175,7 +175,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 7
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -184,7 +184,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 4
+      "latencyMs": 2
     },
     {
       "method": "GET",
@@ -193,7 +193,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 2
+      "latencyMs": 1
     },
     {
       "method": "GET",
@@ -202,7 +202,7 @@
       "status": 200,
       "json": true,
       "missingKeys": [],
-      "latencyMs": 3
+      "latencyMs": 1
     }
   ]
 }
