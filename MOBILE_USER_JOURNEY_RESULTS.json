@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-13T06:00:46.135Z",
+  "generatedAt": "2026-06-13T06:03:33.284Z",
   "labels": [
     "Chart",
     "Macro / Multi-Asset",
@@ -762,7 +762,7 @@
       "classification": "mocked-response-ok",
       "status": 200,
       "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": ""
+      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"tick\":{\"symbol\":\"SPY\",\"price\":472.25,\"bid\":472.2,\"ask\":472.3,\"size\":100,\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
     },
     {
       "method": "GET",
@@ -839,10 +839,7 @@
       "url": "http://127.0.0.1:10000/api/feeds/tick/SPY",
       "requestBodyPreview": "",
       "reason": "api-request",
-      "classification": "mocked-response-ok",
-      "status": 200,
-      "contentType": "application/json; charset=utf-8",
-      "responseBodyPreview": "{\"ok\":true,\"status\":\"rest_fallback\",\"delayed\":true,\"symbol\":\"SPY\",\"tick\":{\"symbol\":\"SPY\",\"price\":472.25,\"bid\":472.2,\"ask\":472.3,\"size\":100,\"timestamp\":\"2026-01-02T14:30:00.000Z\"}}"
+      "classification": "mock-route-matched"
     },
     {
       "method": "GET",

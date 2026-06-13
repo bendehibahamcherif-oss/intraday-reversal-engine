@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-13T06:01:55.672Z",
+  "generatedAt": "2026-06-13T06:03:00.877Z",
   "mode": "mock",
   "ok": true,
   "results": [
@@ -34,6 +34,72 @@
       "status": 0,
       "ok": true,
       "stdout": "\n> intraday-reversal-engine@1.0.0 frontend:smoke\n> node scripts/frontend-functional-smoke.js\n\n✓ promote uses /api/ml/promote/:modelId\n✓ no dead /api/ai model lifecycle routes remain\n✓ feature-importance uses /api/ml/feature-importance\n✓ compareMLModels does not call a dead endpoint\n✓ backtest run is POST /api/backtest/run\n✓ stripUndefinedDeep removes undefined datasetId\n✓ runBacktest omits datasetId when none selected\n✓ AILab fmtN guards non-finite values\n✓ Replay chart guards empty candle array\n✓ ErrorBoundary supports a scoped fallback prop\n✓ WorkspaceRenderer wraps workspaces in a scoped boundary\n✓ wsClient caps reconnect attempts\n✓ corrupt localStorage does not crash (api.getUser guards JSON.parse)\n\n13/13 checks passed → FRONTEND_FUNCTIONAL_SMOKE_RESULTS.json\n",
+      "stderr": ""
+    },
+    {
+      "name": "playwright-desktop-journey",
+      "command": "npm run e2e -- tests/e2e/production-user-journey.spec.ts",
+      "env": {},
+      "startedAt": "2026-06-13T06:01:55.672Z",
+      "finishedAt": "2026-06-13T06:02:06.597Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 e2e\n> playwright test tests/e2e/production-user-journey.spec.ts\n\n\nRunning 1 test using 1 worker\n\n  ✓  1 [chromium] › tests/e2e/production-user-journey.spec.ts:14:1 › desktop production user journey keeps datasets, ML, backtesting, macro, portfolio and risk stable (8.6s)\n\n  1 passed (10.0s)\n",
+      "stderr": ""
+    },
+    {
+      "name": "playwright-mobile-journey",
+      "command": "npm run e2e -- tests/e2e/mobile-user-journey.spec.ts",
+      "env": {},
+      "startedAt": "2026-06-13T06:02:06.597Z",
+      "finishedAt": "2026-06-13T06:02:17.920Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 e2e\n> playwright test tests/e2e/mobile-user-journey.spec.ts\n\n\nRunning 1 test using 1 worker\n\n  ✓  1 [chromium] › tests/e2e/mobile-user-journey.spec.ts:11:1 › mobile production journey reaches all critical implemented workspaces (8.5s)\n\n  1 passed (10.4s)\n",
+      "stderr": ""
+    },
+    {
+      "name": "app-crawler",
+      "command": "npm run e2e -- tests/e2e/app-crawler.spec.ts",
+      "env": {},
+      "startedAt": "2026-06-13T06:02:17.920Z",
+      "finishedAt": "2026-06-13T06:02:28.656Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 e2e\n> playwright test tests/e2e/app-crawler.spec.ts\n\n\nRunning 1 test using 1 worker\n\n  ✓  1 [chromium] › tests/e2e/app-crawler.spec.ts:7:1 › automated desktop app crawler opens every workspace and records contract evidence (8.0s)\n\n  1 passed (9.8s)\n",
+      "stderr": ""
+    },
+    {
+      "name": "storage-fuzz",
+      "command": "npm run e2e -- tests/e2e/storage-fuzz.spec.ts",
+      "env": {},
+      "startedAt": "2026-06-13T06:02:28.657Z",
+      "finishedAt": "2026-06-13T06:02:46.003Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 e2e\n> playwright test tests/e2e/storage-fuzz.spec.ts\n\n\nRunning 11 tests using 1 worker\n\n  ✓   1 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › invalid JSON in known keys recovers without blank shell (1.8s)\n  ✓   2 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › selectedMlDatasetId undefined recovers without blank shell (1.3s)\n  ✓   3 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › selectedMlDatasetId string undefined recovers without blank shell (1.3s)\n  ✓   4 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › selectedBacktestDatasetId missing recovers without blank shell (1.2s)\n  ✓   5 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › selectedCorrelationDataset malformed recovers without blank shell (1.2s)\n  ✓   6 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › invalid active workspace recovers without blank shell (1.3s)\n  ✓   7 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › fallback demo provider forced active recovers without blank shell (1.2s)\n  ✓   8 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › stale training error recovers without blank shell (1.2s)\n  ✓   9 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › stale champion model recovers without blank shell (1.3s)\n  ✓  10 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › empty watchlist recovers without blank shell (1.3s)\n  ✓  11 [chromium] › tests/e2e/storage-fuzz.spec.ts:24:5 › localStorage/zustand corruption fuzzing › malformed layout object recovers without blank shell (1.3s)\n\n  11 passed (16.4s)\n",
+      "stderr": ""
+    },
+    {
+      "name": "payload-fuzz",
+      "command": "npm run e2e -- tests/e2e/payload-fuzz.spec.ts",
+      "env": {},
+      "startedAt": "2026-06-13T06:02:46.003Z",
+      "finishedAt": "2026-06-13T06:02:50.126Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 e2e\n> playwright test tests/e2e/payload-fuzz.spec.ts\n\n\nRunning 1 test using 1 worker\n\n  ✓  1 [chromium] › tests/e2e/payload-fuzz.spec.ts:18:1 › payload fuzzing normalizes dataset IDs and blocks undefined payloads before API use (1.3s)\n\n  1 passed (3.2s)\n",
+      "stderr": ""
+    },
+    {
+      "name": "screen-sanity",
+      "command": "npm run e2e -- tests/e2e/screen-sanity.spec.ts",
+      "env": {},
+      "startedAt": "2026-06-13T06:02:50.126Z",
+      "finishedAt": "2026-06-13T06:03:00.877Z",
+      "status": 0,
+      "ok": true,
+      "stdout": "\n> intraday-reversal-engine@1.0.0 e2e\n> playwright test tests/e2e/screen-sanity.spec.ts\n\n\nRunning 1 test using 1 worker\n\n  ✓  1 [chromium] › tests/e2e/screen-sanity.spec.ts:7:1 › screen value scanner rejects invalid visible text and chart coordinates in every workspace (8.0s)\n\n  1 passed (9.9s)\n",
       "stderr": ""
     }
   ]

@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-06-13T06:01:13.969Z",
+  "generatedAt": "2026-06-13T06:04:03.880Z",
   "scenarios": [
     {
-      "generatedAt": "2026-06-13T06:01:01.184Z",
+      "generatedAt": "2026-06-13T06:03:51.244Z",
       "scenario": "invalid JSON in known keys",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:00.704Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:00",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:50.782Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:50",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -150,36 +150,6 @@
         },
         {
           "method": "GET",
-          "url": "http://127.0.0.1:10000/api/chart/payload/SPY?timeframe=1m&limit=200",
-          "requestBodyPreview": "",
-          "reason": "aborted cancelled GET polling request",
-          "classification": "mocked-response-ok",
-          "status": 200,
-          "contentType": "application/json; charset=utf-8",
-          "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"status\":\"rest_fallback\",\"source\":\"e2e_mock\",\"candles\":[{\"time\":\"2026-01-02T14:00:00.000Z\",\"timestamp\":1767362400000,\"open\":469.9,\"high\":470.4,\"low\":469.5,\"close\":470,\"volume\":1000},{\"time\":\"2026-01-02T14:01:00.000Z\",\"timestamp\":1767362460000,\"open\":470.15,\"high\":470.65,\"low\":469.75,\"close\":470.25,\"volume\":1025},{\"time\":\"2026-01-02T14:02:00.000Z\",\"timestamp\":1767362520000,\"open\":470.4,\"high\":470.9,\"low\":470,\"close\":470.5,\"volume\":1050},{\"time\":\"2026-01-"
-        },
-        {
-          "method": "GET",
-          "url": "http://127.0.0.1:10000/api/volume-profile/SPY?mode=visible_range&bins=50",
-          "requestBodyPreview": "",
-          "reason": "aborted cancelled GET polling request",
-          "classification": "mocked-response-ok",
-          "status": 200,
-          "contentType": "application/json; charset=utf-8",
-          "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"status\":\"rest_fallback\",\"bins\":[{\"price\":468,\"volume\":520,\"buyVolume\":260,\"sellVolume\":260},{\"price\":468.5,\"volume\":560,\"buyVolume\":280,\"sellVolume\":280},{\"price\":469,\"volume\":600,\"buyVolume\":300,\"sellVolume\":300},{\"price\":469.5,\"volume\":640,\"buyVolume\":320,\"sellVolume\":320},{\"price\":470,\"volume\":680,\"buyVolume\":340,\"sellVolume\":340},{\"price\":470.5,\"volume\":720,\"buyVolume\":360,\"sellVolume\":360},{\"price\":471,\"volume\":760,\"buyVolume\":380,\"sellVolume\":380},{\"price\":471.5,"
-        },
-        {
-          "method": "GET",
-          "url": "http://127.0.0.1:10000/api/chart/cvd/SPY",
-          "requestBodyPreview": "",
-          "reason": "aborted cancelled GET polling request",
-          "classification": "mocked-response-ok",
-          "status": 200,
-          "contentType": "application/json; charset=utf-8",
-          "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"status\":\"rest_fallback\",\"series\":[{\"time\":\"2026-01-02T14:00:00.000Z\",\"timestamp\":1767362400000,\"value\":-300},{\"time\":\"2026-01-02T14:01:00.000Z\",\"timestamp\":1767362460000,\"value\":-175},{\"time\":\"2026-01-02T14:02:00.000Z\",\"timestamp\":1767362520000,\"value\":-50},{\"time\":\"2026-01-02T14:03:00.000Z\",\"timestamp\":1767362580000,\"value\":75},{\"time\":\"2026-01-02T14:04:00.000Z\",\"timestamp\":1767362640000,\"value\":200},{\"time\":\"2026-01-02T14:05:00.000Z\",\"timestamp\":1767362700000,\"value\""
-        },
-        {
-          "method": "GET",
           "url": "http://127.0.0.1:10000/api/ml/signal/SPY?timeframe=1m",
           "requestBodyPreview": "",
           "reason": "api-request",
@@ -207,6 +177,36 @@
           "status": 200,
           "contentType": "application/json; charset=utf-8",
           "responseBodyPreview": "{\"ok\":true,\"status\":\"no_model\",\"symbol\":\"EURUSD=X\",\"timeframe\":\"1m\",\"class\":\"NEUTRAL\",\"confidence\":0.34,\"probability\":0.34,\"probabilities\":{\"LONG\":0.33,\"NEUTRAL\":0.34,\"SHORT\":0.33},\"provisional\":false,\"modelVersion\":null,\"asOf\":\"2026-01-02T14:30:00.000Z\",\"diagnostics\":{\"driftStatus\":\"not_enough_data\",\"inferenceLatencyMs\":0,\"featureComputeMs\":0,\"missingFeatureCount\":0,\"mode\":\"e2e_mock\"}}"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:10000/api/chart/payload/SPY?timeframe=1m&limit=200",
+          "requestBodyPreview": "",
+          "reason": "aborted cancelled GET polling request",
+          "classification": "mocked-response-ok",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"status\":\"rest_fallback\",\"source\":\"e2e_mock\",\"candles\":[{\"time\":\"2026-01-02T14:00:00.000Z\",\"timestamp\":1767362400000,\"open\":469.9,\"high\":470.4,\"low\":469.5,\"close\":470,\"volume\":1000},{\"time\":\"2026-01-02T14:01:00.000Z\",\"timestamp\":1767362460000,\"open\":470.15,\"high\":470.65,\"low\":469.75,\"close\":470.25,\"volume\":1025},{\"time\":\"2026-01-02T14:02:00.000Z\",\"timestamp\":1767362520000,\"open\":470.4,\"high\":470.9,\"low\":470,\"close\":470.5,\"volume\":1050},{\"time\":\"2026-01-"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:10000/api/volume-profile/SPY?mode=visible_range&bins=50",
+          "requestBodyPreview": "",
+          "reason": "aborted cancelled GET polling request",
+          "classification": "mocked-response-ok",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"status\":\"rest_fallback\",\"bins\":[{\"price\":468,\"volume\":520,\"buyVolume\":260,\"sellVolume\":260},{\"price\":468.5,\"volume\":560,\"buyVolume\":280,\"sellVolume\":280},{\"price\":469,\"volume\":600,\"buyVolume\":300,\"sellVolume\":300},{\"price\":469.5,\"volume\":640,\"buyVolume\":320,\"sellVolume\":320},{\"price\":470,\"volume\":680,\"buyVolume\":340,\"sellVolume\":340},{\"price\":470.5,\"volume\":720,\"buyVolume\":360,\"sellVolume\":360},{\"price\":471,\"volume\":760,\"buyVolume\":380,\"sellVolume\":380},{\"price\":471.5,"
+        },
+        {
+          "method": "GET",
+          "url": "http://127.0.0.1:10000/api/chart/cvd/SPY",
+          "requestBodyPreview": "",
+          "reason": "aborted cancelled GET polling request",
+          "classification": "mocked-response-ok",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseBodyPreview": "{\"ok\":true,\"symbol\":\"SPY\",\"status\":\"rest_fallback\",\"series\":[{\"time\":\"2026-01-02T14:00:00.000Z\",\"timestamp\":1767362400000,\"value\":-300},{\"time\":\"2026-01-02T14:01:00.000Z\",\"timestamp\":1767362460000,\"value\":-175},{\"time\":\"2026-01-02T14:02:00.000Z\",\"timestamp\":1767362520000,\"value\":-50},{\"time\":\"2026-01-02T14:03:00.000Z\",\"timestamp\":1767362580000,\"value\":75},{\"time\":\"2026-01-02T14:04:00.000Z\",\"timestamp\":1767362640000,\"value\":200},{\"time\":\"2026-01-02T14:05:00.000Z\",\"timestamp\":1767362700000,\"value\""
         },
         {
           "method": "GET",
@@ -402,9 +402,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:02.480Z",
+      "generatedAt": "2026-06-13T06:03:52.498Z",
       "scenario": "selectedMlDatasetId undefined",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:02.009Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:01",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:52.010Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:51",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -802,9 +802,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:03.868Z",
+      "generatedAt": "2026-06-13T06:03:53.770Z",
       "scenario": "selectedMlDatasetId string undefined",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:03.401Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:03",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:53.304Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:53",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -1202,9 +1202,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:05.268Z",
+      "generatedAt": "2026-06-13T06:03:55.033Z",
       "scenario": "selectedBacktestDatasetId missing",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:04.805Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:04",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:54.569Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:54",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -1602,9 +1602,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:06.525Z",
+      "generatedAt": "2026-06-13T06:03:56.278Z",
       "scenario": "selectedCorrelationDataset malformed",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:05.994Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:05",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:55.819Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:55",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -2002,9 +2002,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:07.783Z",
+      "generatedAt": "2026-06-13T06:03:57.535Z",
       "scenario": "invalid active workspace",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:07.293Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:07",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:57.073Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:56",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -2402,9 +2402,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:09.021Z",
+      "generatedAt": "2026-06-13T06:03:58.830Z",
       "scenario": "fallback demo provider forced active",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:08.560Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:08",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:58.354Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:58",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -2802,9 +2802,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:10.237Z",
+      "generatedAt": "2026-06-13T06:04:00.111Z",
       "scenario": "stale training error",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:09.771Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:09",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:03:59.651Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:03:59",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -3202,9 +3202,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:11.442Z",
+      "generatedAt": "2026-06-13T06:04:01.360Z",
       "scenario": "stale champion model",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:10.983Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:10",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:04:00.894Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:04:00",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -3602,9 +3602,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:12.718Z",
+      "generatedAt": "2026-06-13T06:04:02.632Z",
       "scenario": "empty watchlist",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:12.225Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:12",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:04:02.162Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:04:02",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
@@ -4002,9 +4002,9 @@
       ]
     },
     {
-      "generatedAt": "2026-06-13T06:01:13.969Z",
+      "generatedAt": "2026-06-13T06:04:03.880Z",
       "scenario": "malformed layout object",
-      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:01:13.480Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:01:13",
+      "textPreview": "R\n1m\n5m\n15m\n1h\n4h\n1d\nCHARTORDERFLOW\nWS:DISC\nCLOSED\ne2e@example....\nLogout\nR\nCH\nMA\nAL\nAI\nRK\nLD\nPR\nHD\nML\nEX\nBT\nPT\nSL\nQL\nRP\nPF\nOM\nIN\nOP\nChart Controls\n1m\n5m\n15m\n1h\nRefresh\nVolume Profile\nShow overlay\nMode\nVisible Range\nDaily\nSession\nFixed Range\nBins (5–200)\nRefresh\nCandlestick Chart\nLatest close: 477.2500\nIndicator Summary\nVWAP\n—\nEMA9\n—\nEMA20\n—\nRSI14\n—\nOverlay Markers\nNo overlays yet.\nOrderflow Snapshot\nSpread: —\nImbalance: 0.0000\nLiquidity Pressure: —\nTop Bids: —\nTop Asks: —\nCumulative Delta Volume\n⚠ APPROX\nunknown\nSession CVD: 0.00\n↻\nNo CVD data — load chart or run Analyze first.\n▶\nFootprint Chart\nclick to expand\nSource / Warnings\nHydrated: true\nCandle count: 30\nLatest candle timestamp: 1767364140000\nSource: e2e_mock\nNo warnings.\nLast updated: 2026-06-13T06:04:03.415Z\nWS:DISC\nLAT: —\n↺ 2\n—\nUNKNOWN\n06:04:03",
       "invalidText": [],
       "invalidSvgAttrs": [],
       "apiRequests": [
