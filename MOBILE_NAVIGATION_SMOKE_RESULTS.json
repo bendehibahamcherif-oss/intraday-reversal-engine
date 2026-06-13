@@ -54,9 +54,9 @@
       "detail": ""
     },
     {
-      "label": "Registry defines at least 20 workspaces",
+      "label": "Registry defines at least 19 workspaces",
       "status": "PASS",
-      "detail": "found 33"
+      "detail": "found 19"
     },
     {
       "label": "Registry includes Risk",

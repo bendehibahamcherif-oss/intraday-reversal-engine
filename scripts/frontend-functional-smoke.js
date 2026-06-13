@@ -94,6 +94,36 @@ check('wsClient caps reconnect attempts', () => {
   assert(/reconnectNow\(\)/.test(src), 'wsClient must expose reconnectNow() to resume');
   return 'bounded + resumable';
 });
+check('wsClient increments reconnectAttempts BEFORE setTimeout to avoid 0ms first retry', () => {
+  const src = read('src/services/wsClient.js');
+  // The increment must appear on a line that precedes the setTimeout call.
+  // We detect this by finding the block: reconnectAttempts += 1 followed by setTimeout
+  // (not the reverse, which is the bug).
+  const incrementBeforeTimeout = /reconnectAttempts \+= 1;[\s\S]{0,120}setTimeout/.test(src);
+  const incrementInsideTimeout = /setTimeout\([\s\S]{0,120}reconnectAttempts \+= 1/.test(src);
+  assert(!incrementInsideTimeout, 'reconnectAttempts must be incremented BEFORE setTimeout, not inside it (first retry would fire at 0ms delay)');
+  assert(incrementBeforeTimeout, 'reconnectAttempts += 1 must appear before setTimeout call');
+  return 'increment precedes setTimeout';
+});
+check('socketStore stale-feed setInterval handle is stored for cleanup', () => {
+  const src = read('src/store/socketStore.js');
+  // The handle must be assigned: variable = setInterval(...)
+  assert(/=\s*setInterval\(/.test(src), 'setInterval return value must be stored in a variable so it can be cleared');
+  return 'handle stored';
+});
+check('streamManager dead-code is not imported by any store or workspace', () => {
+  const storeDir = read('src/store/socketStore.js') + read('src/store/feedStore.js');
+  assert(!/streamManager/.test(storeDir), 'stores must not import dead streamManager');
+  const appSrc = read('src/App.jsx');
+  assert(!/streamManager/.test(appSrc), 'App.jsx must not import dead streamManager');
+  return 'not imported';
+});
+check('server/index.cjs serves built frontend with SPA fallback', () => {
+  const src = read('server/index.cjs');
+  assert(/express\.static/.test(src), 'server must serve the Vite dist/ build via express.static');
+  assert(/sendFile[\s\S]{0,80}index\.html/.test(src), 'server must have a catch-all that sends index.html for SPA routing');
+  return 'static serve + SPA catch-all present';
+});
 
 // ── 6. localStorage hardening — JSON.parse guarded ────────────────────────────
 check('corrupt localStorage does not crash (api.getUser guards JSON.parse)', () => {

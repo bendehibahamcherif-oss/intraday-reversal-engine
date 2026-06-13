@@ -55,9 +55,9 @@ class ResilientWebSocket {
         console.warn('[wsClient] reconnect limit reached — staying on REST fallback', { attempts: this.reconnectAttempts });
         return;
       }
+      this.reconnectAttempts += 1;
       setTimeout(() => {
         if (typeof WebSocket === 'undefined') return;
-        this.reconnectAttempts += 1;
         this.connect();
       }, Math.min(5000, 1000 * this.reconnectAttempts));
     };

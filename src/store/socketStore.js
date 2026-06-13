@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import wsClient from '../services/wsClient.js';
 
 let _initialized = false;
+let _staleFeedInterval = null;
 
 export const useSocketStore = create((set, get) => ({
   connected: false,
@@ -50,7 +51,9 @@ export const useSocketStore = create((set, get) => ({
     });
 
     // Stale-feed watchdog: mark stale if no message in 15s. Single interval, never duplicated.
-    setInterval(() => {
+    // Handle is stored so it can be cleared if needed (e.g. HMR, test teardown).
+    if (_staleFeedInterval) clearInterval(_staleFeedInterval);
+    _staleFeedInterval = setInterval(() => {
       const last = get().lastMessageTs;
       if (last && Date.now() - last > 15000) {
         set({ stale: true });
