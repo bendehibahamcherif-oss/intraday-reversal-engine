@@ -572,3 +572,87 @@ describe('no NaN/Infinity in any macro response', () => {
     });
   }
 });
+
+// ── URL contract — frontend endpoint alignment ────────────────────────────────
+//
+// Problem: every test above calls /api/macro/…, but src/api.js called
+// /api/multi-asset/…  The production server mounts the same handler at both
+// paths, so there was no visible breakage — but the unit tests never exercised
+// the URL the UI actually sends.
+//
+// This describe block sets up a MACRO-ONLY server (no /api/multi-asset mount)
+// so that calling /api/multi-asset/… returns 404 (RED).  After repointing
+// src/api.js to /api/macro/…, the same logic now calls /api/macro/… and
+// returns observations >= 20 (GREEN).
+
+describe('URL contract — frontend endpoint alignment (/api/multi-asset → /api/macro)', () => {
+  let macroOnlyServer;
+  let macroOnlyUrl;
+
+  beforeAll(async () => {
+    // require() returns the same cached module instance already patched by the outer beforeAll
+    const routes = require('../../server-deliverables/api/multiAssetRoutes');
+    const macroApp = express();
+    macroApp.use(express.json());
+    // Intentionally mount ONLY at /api/macro to surface the URL mismatch
+    macroApp.use('/api/macro', routes);
+    macroOnlyServer = await new Promise((resolve) => {
+      const srv = macroApp.listen(0, () => resolve(srv));
+    });
+    macroOnlyUrl = `http://127.0.0.1:${macroOnlyServer.address().port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise((r) => macroOnlyServer.close(r));
+  });
+
+  async function macroOnlyGet(path) {
+    const response = await fetch(`${macroOnlyUrl}${path}`);
+    let body = {};
+    try { body = await response.json(); } catch { /* HTML 404 — swallow */ }
+    return { response, body };
+  }
+
+  it('correlation: /api/macro/correlation with epoch-SPY + ISO-NFLX returns observations >= 20', async () => {
+    const { response, body } = await macroOnlyGet(
+      `/api/macro/correlation?symbols=SPY,NFLX&datasetIds=${epochSpyDatasetId},${nflxDatasetId}&window=20&timeframe=1d`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ready');
+    expect(body.observations, `expected ≥20 but got ${body.observations}`).toBeGreaterThanOrEqual(20);
+    expect(body.resolution).toBe('multi_dataset');
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('beta: /api/macro/beta with epoch-SPY + ISO-NFLX returns finite beta/r2', async () => {
+    const { response, body } = await macroOnlyGet(
+      `/api/macro/beta?asset=NFLX&symbol=NFLX&benchmark=SPY&symbols=SPY,NFLX&datasetIds=${epochSpyDatasetId},${nflxDatasetId}&window=20&timeframe=1d`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.status).toBe('ready');
+    expect(Number.isFinite(body.beta), `beta not finite: ${body.beta}`).toBe(true);
+    expect(Number.isFinite(body.r2), `r2 not finite: ${body.r2}`).toBe(true);
+    expect(body.observations, `expected ≥20 but got ${body.observations}`).toBeGreaterThanOrEqual(20);
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('sector-rotation: /api/macro/sector-rotation responds 200', async () => {
+    const { response, body } = await macroOnlyGet(
+      `/api/macro/sector-rotation?symbols=SPY,NFLX&window=20&datasetId=${twoDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(hasInvalid(body)).toBe(false);
+  });
+
+  it('volatility: /api/macro/volatility-heatmap with two-symbol dataset responds 200', async () => {
+    const { response, body } = await macroOnlyGet(
+      `/api/macro/volatility-heatmap?symbols=SPY,NFLX&window=20&datasetId=${twoDatasetId}`,
+    );
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(hasInvalid(body)).toBe(false);
+  });
+});
