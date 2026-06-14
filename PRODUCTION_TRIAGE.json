@@ -1,0 +1,412 @@
+{
+  "generatedAt": "2026-06-14T21:01:37.783Z",
+  "backend": "https://reversal.onrender.com",
+  "results": [
+    {
+      "module": "Alerts",
+      "label": "getAlerts",
+      "method": "GET",
+      "path": "/api/alerts?symbol=SPY",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"success\":true,\"alerts\":[],\"count\":0}",
+      "isSPA": false
+    },
+    {
+      "module": "Alerts",
+      "label": "listAlerts (legacy)",
+      "method": "GET",
+      "path": "/alerts?limit=10",
+      "status": 404,
+      "ct": "text/html; charset=utf-8",
+      "classification": "spa_html_fallback",
+      "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /alerts</pre>\n</body>\n</html>\n",
+      "isSPA": true
+    },
+    {
+      "module": "OMS",
+      "label": "getOMSOrders",
+      "method": "GET",
+      "path": "/api/oms/orders?limit=10",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"orders\":[],\"count\":0}",
+      "isSPA": false
+    },
+    {
+      "module": "OMS",
+      "label": "getOMSStats",
+      "method": "GET",
+      "path": "/api/oms/stats",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"total\":0,\"byStatus\":{},\"fillRate\":0,\"mode\":\"all\"}",
+      "isSPA": false
+    },
+    {
+      "module": "OMS",
+      "label": "getOMSReconciliation",
+      "method": "GET",
+      "path": "/api/oms/reconciliation",
+      "status": 404,
+      "ct": "application/json; charset=utf-8",
+      "classification": "route_exists_no_data",
+      "preview": "{\"ok\":false,\"status\":\"endpoint_not_found\",\"message\":\"API endpoint not found.\",\"endpoint\":\"/api/oms/reconciliation\",\"method\":\"GET\"}",
+      "isSPA": false
+    },
+    {
+      "module": "Execution",
+      "label": "getExecutionOrders",
+      "method": "GET",
+      "path": "/api/execution/orders?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"orders\":[],\"count\":0}",
+      "isSPA": false
+    },
+    {
+      "module": "Execution",
+      "label": "getExecutionFills",
+      "method": "GET",
+      "path": "/api/execution/fills?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"fills\":[],\"count\":0}",
+      "isSPA": false
+    },
+    {
+      "module": "Execution",
+      "label": "getExecutionAnalytics",
+      "method": "GET",
+      "path": "/api/execution/analytics?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"sampleCount\":0,\"fillRate\":0,\"avgSlippageBps\":0,\"totalCommissions\":0,\"fills\":[],\"warnings\":[\"No execution data available.\"]}",
+      "isSPA": false
+    },
+    {
+      "module": "Execution",
+      "label": "preTradeRiskCheck",
+      "method": "POST",
+      "path": "/api/execution/risk-check?mode=paper",
+      "body": {
+        "symbol": "SPY",
+        "qty": 1,
+        "side": "buy",
+        "price": 500
+      },
+      "status": 404,
+      "ct": "application/json; charset=utf-8",
+      "classification": "route_exists_no_data",
+      "preview": "{\"ok\":false,\"status\":\"endpoint_not_found\",\"message\":\"API endpoint not found.\",\"endpoint\":\"/api/execution/risk-check?mode=paper\",\"method\":\"POST\"}",
+      "isSPA": false
+    },
+    {
+      "module": "PaperTrading",
+      "label": "getPaperOrders",
+      "method": "GET",
+      "path": "/api/paper/orders",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"success\":true,\"mode\":\"paper_trading_only\",\"orders\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "PaperTrading",
+      "label": "getPaperFills",
+      "method": "GET",
+      "path": "/api/paper/fills",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"success\":true,\"mode\":\"paper_trading_only\",\"fills\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "PaperTrading",
+      "label": "getPaperPositions",
+      "method": "GET",
+      "path": "/api/paper/positions",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"success\":true,\"mode\":\"paper_trading_only\",\"positions\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "PaperTrading",
+      "label": "getPaperRiskStatus",
+      "method": "GET",
+      "path": "/api/paper/risk/status",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"success\":true,\"mode\":\"paper_trading_only\",\"risk\":{\"maxOrderSize\":1000,\"maxPositionSize\":5000,\"maxDailyLoss\":10000,\"allowShort\":false,\"killSwitchEnabled\":false,\"mode\":\"paper_trading_only\"}}",
+      "isSPA": false
+    },
+    {
+      "module": "StrategyLab",
+      "label": "getSavedStrategies",
+      "method": "GET",
+      "path": "/api/strategy-lab/strategies/SPY",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"strategies\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "StrategyLab",
+      "label": "getStrategyTemplates",
+      "method": "GET",
+      "path": "/api/templates/strategies",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"templates\":[{\"id\":\"opening-gap-contrarian-reversal\",\"name\":\"Opening Gap Contrarian Reversal\",\"description\":\"Research template that drafts a contrarian reversal rule set after an opening ga",
+      "isSPA": false
+    },
+    {
+      "module": "StrategyLab",
+      "label": "getStrategyCandidates",
+      "method": "GET",
+      "path": "/api/strategies/candidates/SPY",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"strategies\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "StrategyLab",
+      "label": "getRuleSets",
+      "method": "GET",
+      "path": "/api/rules/sets/SPY",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"ruleSets\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "QuantLab",
+      "label": "getQuantFeatures",
+      "method": "GET",
+      "path": "/api/quant/features/SPY",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"features\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "QuantLab",
+      "label": "getAnalysisHistory",
+      "method": "GET",
+      "path": "/api/quant/history/SPY?limit=10",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"snapshots\":[{\"id\":\"6a246ce1318a9f034f81bcf0\",\"symbol\":\"SPY\",\"timeframe\":\"5m\",\"alphaSignals\":[{\"id\":\"alpha-1780772065567-4\",\"symbol\":\"SPY\",\"type\":\"vwap-deviation\",\"category\":",
+      "isSPA": false
+    },
+    {
+      "module": "QuantLab",
+      "label": "runQuantPipeline",
+      "method": "POST",
+      "path": "/api/quant/pipeline/SPY",
+      "body": {
+        "timeframe": "1d"
+      },
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"success\":true,\"symbol\":\"SPY\",\"timeframe\":\"1d\",\"alphaSignals\":[{\"id\":\"alpha-1781470891520-1\",\"symbol\":\"SPY\",\"type\":\"vwap-deviation\",\"category\":\"mean-reversion\",\"direction\":\"bullish\",\"confidence\":0.34",
+      "isSPA": false
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "yahooChart",
+      "method": "GET",
+      "path": "/yahoo/chart/SPY?interval=1d&range=3mo",
+      "status": 404,
+      "ct": "text/html; charset=utf-8",
+      "classification": "spa_html_fallback",
+      "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /yahoo/chart/SPY</pre>\n</body>\n</html>\n",
+      "isSPA": true
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "getChartCandles",
+      "method": "GET",
+      "path": "/api/chart/candles/SPY?timeframe=1d&limit=50",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"success\":true,\"symbol\":\"SPY\",\"timeframe\":\"1d\",\"source\":\"fallback_demo\",\"warnings\":[\"Using fallback demo candles because no historical market data is available.\"],\"candles\":[{\"symbol\":\"SPY\",\"timefram",
+      "isSPA": false
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "replayLegacyCandles",
+      "method": "GET",
+      "path": "/api/replay-legacy/candles/SPY?timeframe=1d",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"success\":true,\"symbol\":\"SPY\",\"timeframe\":\"1m\",\"source\":\"fallback_demo\",\"warning\":\"Using fallback demo candles because no historical market data is available.\",\"candles\":[{\"symbol\":\"SPY\",\"t\":17814589",
+      "isSPA": false
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "getChartPayload",
+      "method": "GET",
+      "path": "/api/chart/payload/SPY?timeframe=1d&limit=50",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"success\":true,\"symbol\":\"SPY\",\"timeframe\":\"1d\",\"source\":\"fallback_demo\",\"warnings\":[\"Using fallback demo candles because no historical market data is available.\",\"Using fallback demo candles because ",
+      "isSPA": false
+    },
+    {
+      "module": "AILab",
+      "label": "getMLSignal",
+      "method": "GET",
+      "path": "/api/ml/signal/SPY?timeframe=1d",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"signal\":null,\"prediction\":null,\"confidence\":null,\"probabilities\":null,\"inferredAt\":null,\"status\":\"no_cached_signal\",\"message\":\"No cached signal — run /api/ml/infer/:symbol t",
+      "isSPA": false
+    },
+    {
+      "module": "AILab",
+      "label": "getMLFeatures (P1)",
+      "method": "GET",
+      "path": "/api/ml/features/SPY?timeframe=1d&limit=1",
+      "status": 404,
+      "ct": "application/json; charset=utf-8",
+      "classification": "route_exists_no_data",
+      "preview": "{\"ok\":false,\"status\":\"not_found\",\"error\":\"ML endpoint not found\",\"endpoint\":\"/api/ml/features/SPY?timeframe=1d&limit=1\"}",
+      "isSPA": false
+    },
+    {
+      "module": "AILab",
+      "label": "getCurrentRegime",
+      "method": "GET",
+      "path": "/api/ml/regime/SPY",
+      "status": 404,
+      "ct": "application/json; charset=utf-8",
+      "classification": "route_exists_no_data",
+      "preview": "{\"ok\":false,\"status\":\"not_found\",\"error\":\"ML endpoint not found\",\"endpoint\":\"/api/ml/regime/SPY\"}",
+      "isSPA": false
+    },
+    {
+      "module": "AILab",
+      "label": "getDatasetAnalytics",
+      "method": "GET",
+      "path": "/api/ml/analytics/SPY",
+      "status": 404,
+      "ct": "application/json; charset=utf-8",
+      "classification": "route_exists_no_data",
+      "preview": "{\"ok\":false,\"status\":\"not_found\",\"error\":\"ML endpoint not found\",\"endpoint\":\"/api/ml/analytics/SPY\"}",
+      "isSPA": false
+    },
+    {
+      "module": "AILab",
+      "label": "mlInfer",
+      "method": "POST",
+      "path": "/api/ml/infer/SPY",
+      "body": {},
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":false,\"status\":\"no_champion_model\",\"message\":\"No champion model available. Train and promote a model first.\"}",
+      "isSPA": false
+    },
+    {
+      "module": "Portfolio",
+      "label": "getPortfolioSummary",
+      "method": "GET",
+      "path": "/api/portfolio/summary?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"success\":true,\"mode\":\"paper\",\"modeBadge\":\"PAPER\",\"positionCount\":0,\"exposure\":{\"gross\":0,\"net\":0,\"long\":0,\"short\":0},\"totalRealizedPnL\":0,\"totalUnrealizedPnL\":0,\"totalPnL\":0,\"pricesFresh\":",
+      "isSPA": false
+    },
+    {
+      "module": "Portfolio",
+      "label": "getPortfolioPnL",
+      "method": "GET",
+      "path": "/api/portfolio/pnl?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"pnl\":{\"realized\":0,\"unrealized\":0,\"total\":0,\"currency\":\"USD\"},\"mode\":\"paper\"}",
+      "isSPA": false
+    },
+    {
+      "module": "Portfolio",
+      "label": "getPortfolioPositions",
+      "method": "GET",
+      "path": "/api/portfolio/positions?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"success\":true,\"positions\":[],\"mode\":\"paper\",\"modeBadge\":\"PAPER\"}",
+      "isSPA": false
+    },
+    {
+      "module": "Portfolio",
+      "label": "getPortfolioExposure",
+      "method": "GET",
+      "path": "/api/portfolio/exposure?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"exposure\":{\"gross\":0,\"net\":0,\"long\":0,\"short\":0,\"leverage\":0},\"mode\":\"paper\"}",
+      "isSPA": false
+    },
+    {
+      "module": "Portfolio",
+      "label": "getPortfolioHistory",
+      "method": "GET",
+      "path": "/api/portfolio/history?mode=paper",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"success\":true,\"mode\":\"paper\",\"history\":[],\"status\":\"no_history\",\"message\":\"No portfolio history has been recorded yet.\"}",
+      "isSPA": false
+    },
+    {
+      "module": "Backtesting",
+      "label": "getBacktestResults",
+      "method": "GET",
+      "path": "/api/backtest/results/SPY",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "stub_empty",
+      "preview": "{\"ok\":true,\"symbol\":\"SPY\",\"results\":[]}",
+      "isSPA": false
+    },
+    {
+      "module": "Backtesting",
+      "label": "listBacktestRuns",
+      "method": "GET",
+      "path": "/api/backtest/runs",
+      "status": 200,
+      "ct": "application/json; charset=utf-8",
+      "classification": "real_json_200",
+      "preview": "{\"ok\":true,\"symbol\":null,\"runs\":[{\"id\":\"bt-result-1780685770167-1\",\"symbol\":\"SPY\",\"strategyId\":\"strat-1780685760233-3\",\"strategyName\":\"Bullish Provisional Alpha Candidate\",\"timeframe\":\"1H\",\"runType\":\"",
+      "isSPA": false
+    }
+  ]
+}

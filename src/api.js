@@ -294,9 +294,9 @@ export const api = {
   adminUsers: async (limit = 200) => fetch(`${API_BASE}/admin/users?limit=${limit}`, { headers: headers() }).then(handle),
   intelligenceEvents: async () => fetch(`${API_BASE}/intelligence/events`).then(handle),
 
-  listAlerts: async (limit = 200) => fetch(`${API_BASE}/alerts?limit=${limit}`, { headers: headers() }).then(handle),
-  recordAlert: async (alert) => fetch(`${API_BASE}/alerts`, { method: 'POST', headers: headers(), body: JSON.stringify(alert) }).then(handle),
-  clearAlerts: async () => fetch(`${API_BASE}/alerts`, { method: 'DELETE', headers: headers() }).then(handle),
+  listAlerts: async (limit = 200) => fetch(`${API_BASE}/api/alerts?limit=${limit}`, { headers: headers() }).then(handle),
+  recordAlert: async (alert) => fetch(`${API_BASE}/api/alerts`, { method: 'POST', headers: headers(), body: JSON.stringify(alert) }).then(handle),
+  clearAlerts: async () => fetch(`${API_BASE}/api/alerts`, { method: 'DELETE', headers: headers() }).then(handle),
 
   getSetting: async (key) => fetch(`${API_BASE}/settings/${key}`, { headers: headers() }).then(handle),
   setSetting: async (key, value) => fetch(`${API_BASE}/settings/${key}`, { method: 'PUT', headers: headers(), body: JSON.stringify({ value }) }).then(handle),
