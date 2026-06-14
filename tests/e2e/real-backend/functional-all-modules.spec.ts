@@ -393,19 +393,29 @@ test.describe('Replay — session lifecycle real assertion', () => {
 // Reason: /api/backtest/run always returns metrics:{} (no execution engine).
 //         Dataset resolves correctly but strategy runner not implemented.
 
-// @coverage:deferred:no_route ChartOrderflow
-// Reason: No /api/chart endpoint mounted on server.
-//         Chart renders from historical replay WebSocket only.
+// @coverage:deferred:live_feed ChartOrderflow
+// Reason: Chart data requires a live WebSocket feed or an active replay session.
+//         /yahoo/chart is SPA HTML fallback (not mounted on this backend).
+//         /api/replay-legacy/candles returns real JSON 200 but always [] —
+//         candles are empty without a seeded replay session running.
+//         No finite assertable REST value available without live feed data.
 
 // @coverage:deferred:no_route Alerts
 // Reason: No /api/alerts endpoint mounted on server.
 
-// @coverage:deferred:no_route AILab
-// Reason: /api/ml/analytics and /api/ml/regime endpoints not mounted.
-//         ML training pipeline not yet wired to server routes.
+// @coverage:deferred:ml_model AILab
+// Reason: Triage confirms /api/ml/signal and /api/ml/features ARE mounted in
+//         mlRoutes but return 404 "No feature snapshot for SPY" (no trained model).
+//         /api/ml/infer (POST) returns 200 with status=no_champion_model.
+//         /api/ml/regime and /api/ml/analytics hit the mlRoutes catch-all (not
+//         explicitly implemented routes). All AILab assertions require a trained
+//         and promoted ML model — there is no assertable finite value without one.
 
-// @coverage:deferred:no_route PaperTrading
-// Reason: No /api/paper/orders endpoint mounted on server.
+// @coverage:deferred:stub PaperTrading
+// Reason: Triage confirms /api/paper/positions IS mounted and returns real JSON 200,
+//         but always returns [] (no paper trading engine running, no open positions).
+//         /api/paper/orders is SPA HTML fallback (not mounted on this backend).
+//         No finite assertable value without live paper trading activity.
 
 // @coverage:deferred:no_route StrategyLab
 // Reason: No /api/strategy endpoint mounted on server.
