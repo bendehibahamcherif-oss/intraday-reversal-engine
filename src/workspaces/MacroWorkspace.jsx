@@ -118,7 +118,7 @@ function CorrelationMatrix({ correlation, loading, error, requestedSymbols = [] 
   const hStyle = { ...cellStyle, color: MUTED, fontSize: 10, fontWeight: 700, background: 'transparent' };
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div style={{ overflowX: 'auto' }} data-testid="correlation-matrix">
       {multiDatasetBanner}
       <table style={{ borderCollapse: 'separate', borderSpacing: 3 }}>
         <thead>
@@ -200,15 +200,15 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
   }
 
   const chips = [
-    { label: 'Beta',     value: betaLabel,                   color: betaColor },
-    { label: 'R²',       value: r2Val != null ? Number(r2Val).toFixed(3) : '—', color: r2Val != null && r2Val > 0.7 ? GREEN : MUTED },
+    { label: 'Beta',     value: betaLabel,                   color: betaColor, testId: 'beta-display-value' },
+    { label: 'R²',       value: r2Val != null ? Number(r2Val).toFixed(3) : '—', color: r2Val != null && r2Val > 0.7 ? GREEN : MUTED, testId: 'r2-display-value' },
     { label: 'Window',   value: `${w}d`,                     color: MUTED  },
     { label: 'Asset',    value: selectedAsset,               color: BLUE   },
     { label: 'Benchmark',value: benchmark,                   color: VIOLET },
   ];
 
   return (
-    <div>
+    <div data-testid="beta-panel">
       {betaMultiDatasetBanner}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
         <select value={selectedAsset} onChange={(e) => setSelectedAsset(e.target.value)} style={iStyle}>
@@ -223,10 +223,10 @@ function BetaPanel({ beta, loading, error, selectedAsset, benchmark, setSelected
         />
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        {chips.map(({ label, value, color }) => (
+        {chips.map(({ label, value, color, testId }) => (
           <div key={label} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '10px 16px', minWidth: 90 }}>
             <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-            <div style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 15 }}>{value}</div>
+            <div data-testid={testId} style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 15 }}>{value}</div>
           </div>
         ))}
       </div>
@@ -509,7 +509,7 @@ export default function MacroWorkspace() {
   }, []);
 
   return (
-    <section style={{ display: 'grid', gap: 12 }}>
+    <section style={{ display: 'grid', gap: 12 }} data-testid="macro-workspace">
 
       {/* Header */}
       <div style={{ ...panel, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>

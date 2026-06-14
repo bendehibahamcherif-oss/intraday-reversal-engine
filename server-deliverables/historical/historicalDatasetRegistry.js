@@ -18,7 +18,7 @@ const path = require('path');
 // Paths
 // ---------------------------------------------------------------------------
 
-const DATA_DIR      = path.join(process.cwd(), 'data', 'historical');
+const DATA_DIR      = process.env.HISTORICAL_DATA_DIR || path.join(process.cwd(), 'data', 'historical');
 const REGISTRY_FILE = path.join(DATA_DIR, 'datasets.json');
 
 // Security: dataset IDs must match this pattern to prevent path traversal.
