@@ -7,14 +7,11 @@
  *
  * Acceptable statuses:
  *   'covered'         — real value assertion vs real backend + expectNoBrokenState
- *   'deferred:<why>'  — explicitly deferred with documented reason (stub/no_route/etc.)
- *   'mount_only'      — only mount/visibility tested (Phase 1 spec)
+ *   'deferred:<why>'  — explicitly deferred with documented reason (stub/no_route/live_feed/ml_model/ml_training)
  *
  * NOT acceptable (→ CI failure):
+ *   'mount_only'      — Phase 1 visibility-only tier; rejected now that Phase 2 real-backend spec is complete
  *   'not_covered'     — module is visible but appears in no spec at all
- *
- * NOTE: mount_only is currently accepted so Phase 1 CI passes.
- *       When Phase 2 real-backend spec is complete, tighten to reject mount_only.
  *
  * Usage:
  *   node scripts/check-module-coverage.js
@@ -47,7 +44,8 @@ const VALID_DEFERRED_PREFIXES = ['stub', 'no_route', 'live_feed', 'ml_model', 'm
 
 function isValidStatus(status) {
   if (status === 'covered')    return true;
-  if (status === 'mount_only') return true;  // Phase 1 tier: accepted
+  // mount_only (Phase 1) is no longer accepted — every visible module must be
+  // covered with a real value assertion OR deferred with a documented reason.
   if (!status.startsWith('deferred:')) return false;
   const reason = status.slice('deferred:'.length);
   return VALID_DEFERRED_PREFIXES.some((p) => reason.startsWith(p));
@@ -67,8 +65,8 @@ if (failures.length > 0) {
       `desktop=${m.desktopVisible}  mobile=${m.mobileVisible}`,
     );
   });
-  console.error('\n  Valid statuses: covered | mount_only | deferred:<stub|no_route|live_feed|ml_model|ml_training>');
-  console.error('  Add @coverage:covered or @coverage:deferred:<reason> annotations to real-backend spec.');
+  console.error('\n  Valid statuses: covered | deferred:<stub|no_route|live_feed|ml_model|ml_training>');
+  console.error('  mount_only is no longer accepted — add @coverage:covered or @coverage:deferred:<reason> annotations to real-backend spec.');
   process.exit(1);
 }
 
@@ -85,5 +83,5 @@ if (deferred > 0) {
     .forEach((m) => console.log(`    ⚠  ${m.id}: ${m.status}`));
 }
 if (mountOnly > 0) {
-  console.log(`  ${mountOnly} module(s) are mount_only — promote to covered in real-backend spec when backend routes are implemented.`);
+  console.warn(`  ⚠  ${mountOnly} module(s) have mount_only status — this is now a barrier failure. Promote to covered or deferred in real-backend spec.`);
 }

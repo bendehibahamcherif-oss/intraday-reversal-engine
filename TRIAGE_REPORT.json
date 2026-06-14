@@ -1,0 +1,323 @@
+{
+  "generatedAt": "2026-06-14T14:06:18.010Z",
+  "backend": "http://127.0.0.1:10001",
+  "legend": {
+    "real_json_200": "Real route, real JSON",
+    "route_exists_no_data": "Route mounted but no data (no model/snapshot)",
+    "stub_empty_list": "Route mounted, returns empty list stub",
+    "stub_not_enough_data": "Route mounted, returns not_enough_data stub",
+    "spa_html_fallback": "No API route — SPA index.html served (treated as 404)"
+  },
+  "results": [
+    {
+      "module": "Alerts",
+      "label": "primary",
+      "path": "/alerts",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "Alerts",
+      "label": "alt",
+      "path": "/api/alerts",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "AILab",
+      "label": "signal (mlRoutes)",
+      "path": "/api/ml/signal/SPY",
+      "method": "GET",
+      "httpStatus": 404,
+      "realStatus": 404,
+      "classification": "route_exists_no_data",
+      "sample": "{\"error\":\"No feature snapshot for SPY\"}"
+    },
+    {
+      "module": "AILab",
+      "label": "features (mlRoutes)",
+      "path": "/api/ml/features/SPY",
+      "method": "GET",
+      "httpStatus": 404,
+      "realStatus": 404,
+      "classification": "route_exists_no_data",
+      "sample": "{\"error\":\"No feature snapshot for SPY\"}"
+    },
+    {
+      "module": "AILab",
+      "label": "regime (api.js calls)",
+      "path": "/api/ml/regime/SPY",
+      "method": "GET",
+      "httpStatus": 404,
+      "realStatus": 404,
+      "classification": "route_exists_no_data",
+      "sample": "{\"ok\":false,\"status\":\"not_found\",\"message\":\"ML endpoint not available: GET /api/ml/regime/SPY\",\"endp"
+    },
+    {
+      "module": "AILab",
+      "label": "analytics (api.js calls)",
+      "path": "/api/ml/analytics/SPY",
+      "method": "GET",
+      "httpStatus": 404,
+      "realStatus": 404,
+      "classification": "route_exists_no_data",
+      "sample": "{\"ok\":false,\"status\":\"not_found\",\"message\":\"ML endpoint not available: GET /api/ml/analytics/SPY\",\"e"
+    },
+    {
+      "module": "AILab",
+      "label": "infer (mlRoutes)",
+      "path": "/api/ml/infer/SPY",
+      "method": "POST",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "real_json_200",
+      "sample": "{\"ok\":false,\"status\":\"no_champion_model\",\"message\":\"No champion model available. Train and promote a"
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "replay-legacy candles",
+      "path": "/api/replay-legacy/candles/SPY?timeframe=1d",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "real_json_200",
+      "sample": "{\"success\":true,\"candles\":[]}"
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "yahoo/chart (api.js)",
+      "path": "/yahoo/chart/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "ChartOrderflow",
+      "label": "/api/chart (not in api.js)",
+      "path": "/api/chart/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "Execution",
+      "label": "orders (api.js)",
+      "path": "/api/execution/orders?mode=paper",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "Execution",
+      "label": "fills",
+      "path": "/api/execution/fills?mode=paper",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "Execution",
+      "label": "analytics",
+      "path": "/api/execution/analytics?mode=paper",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "Execution",
+      "label": "risk-check",
+      "path": "/api/execution/risk-check?mode=paper",
+      "method": "POST",
+      "httpStatus": 404,
+      "realStatus": 404,
+      "classification": "route_exists_no_data",
+      "sample": "{\"ok\":false,\"status\":\"endpoint_not_found\",\"message\":\"API endpoint not found.\",\"endpoint\":\"/api/execu"
+    },
+    {
+      "module": "Backtesting",
+      "label": "runs (stub)",
+      "path": "/api/backtest/runs",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "stub_empty_list",
+      "sample": "{\"ok\":true,\"runs\":[]}"
+    },
+    {
+      "module": "Backtesting",
+      "label": "results/SPY (stub)",
+      "path": "/api/backtest/results/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "stub_empty_list",
+      "sample": "{\"ok\":true,\"results\":[]}"
+    },
+    {
+      "module": "PaperTrading",
+      "label": "orders (api.js)",
+      "path": "/api/paper/orders",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "PaperTrading",
+      "label": "fills (api.js)",
+      "path": "/api/paper/fills",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "PaperTrading",
+      "label": "positions",
+      "path": "/api/paper/positions",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "real_json_200",
+      "sample": "{\"ok\":true,\"mode\":\"paper\",\"positions\":[],\"status\":\"no_positions\",\"message\":\"No open positions. Start"
+    },
+    {
+      "module": "StrategyLab",
+      "label": "strategy-lab (api.js)",
+      "path": "/api/strategy-lab/strategies/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "StrategyLab",
+      "label": "templates (api.js)",
+      "path": "/api/templates/strategies",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "StrategyLab",
+      "label": "strategies/candidates (api.js)",
+      "path": "/api/strategies/candidates/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "StrategyLab",
+      "label": "rules/sets (api.js)",
+      "path": "/api/rules/sets/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "QuantLab",
+      "label": "quant/features (api.js)",
+      "path": "/api/quant/features/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "QuantLab",
+      "label": "quant/history (api.js)",
+      "path": "/api/quant/history/SPY",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "QuantLab",
+      "label": "quant/pipeline (api.js)",
+      "path": "/api/quant/pipeline/SPY",
+      "method": "POST",
+      "httpStatus": 404,
+      "realStatus": 404,
+      "classification": "route_exists_no_data",
+      "sample": "{\"ok\":false,\"status\":\"endpoint_not_found\",\"message\":\"API endpoint not found.\",\"endpoint\":\"/api/quant"
+    },
+    {
+      "module": "Portfolio",
+      "label": "summary",
+      "path": "/api/portfolio/summary",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "real_json_200",
+      "sample": "{\"ok\":true,\"mode\":\"paper\",\"summary\":{\"equity\":0,\"cash\":0,\"marketValue\":0,\"realized\":0,\"unrealized\":0"
+    },
+    {
+      "module": "Portfolio",
+      "label": "pnl",
+      "path": "/api/portfolio/pnl",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": 200,
+      "classification": "real_json_200",
+      "sample": "{\"ok\":true,\"mode\":\"paper\",\"pnl\":{\"realized\":0,\"unrealized\":0,\"total\":0,\"dailyPnL\":0,\"winRate\":0,\"tra"
+    },
+    {
+      "module": "OMS",
+      "label": "oms/orders (api.js)",
+      "path": "/api/oms/orders",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "OMS",
+      "label": "oms/stats (api.js)",
+      "path": "/api/oms/stats",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    },
+    {
+      "module": "OMS",
+      "label": "execution/orders (alt?)",
+      "path": "/api/execution/orders?mode=paper",
+      "method": "GET",
+      "httpStatus": 200,
+      "realStatus": "spa_fallback",
+      "classification": "spa_html_fallback",
+      "sample": null
+    }
+  ]
+}
