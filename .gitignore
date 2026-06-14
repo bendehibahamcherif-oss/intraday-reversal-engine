@@ -11,3 +11,4 @@ server-deliverables/ai/registry/
 playwright-report/
 playwright-results/
 test-results/
+API_COVERAGE_RESULTS.json
