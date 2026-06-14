@@ -40,11 +40,11 @@ function Chip({ color, children }) {
   );
 }
 
-function StatCard({ label: lbl, value, color = TEXT, sub }) {
+function StatCard({ label: lbl, value, color = TEXT, sub, testId }) {
   return (
     <div style={{ ...card, minWidth: 120 }}>
       <div style={label}>{lbl}</div>
-      <div style={{ ...val, color }}>{value}</div>
+      <div style={{ ...val, color }} data-testid={testId}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{sub}</div>}
     </div>
   );
@@ -56,7 +56,7 @@ function SessionBadge({ state, isOpen, etTime }) {
     <div style={{ ...card }}>
       <div style={label}>Market Session</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ ...val, color, fontSize: 22 }}>{state?.replace(/_/g, ' ')}</span>
+        <span style={{ ...val, color, fontSize: 22 }} data-testid="ops-session-state">{state?.replace(/_/g, ' ')}</span>
         <Chip color={color}>{isOpen ? 'LIVE' : 'CLOSED'}</Chip>
       </div>
       {etTime && <div style={{ fontSize: 12, color: MUTED, marginTop: 6 }}>{etTime} ET</div>}
@@ -241,7 +241,7 @@ export default function OpsWorkspace() {
         {status && (
           <>
             <StatCard label="Service" value={status.service || '—'} color={BLUE} />
-            <StatCard label="Uptime" value={`${Math.floor((status.uptime || 0) / 60)}m`} sub={`${status.uptime}s`} />
+            <StatCard label="Uptime" value={`${Math.floor((status.uptime || 0) / 60)}m`} sub={`${status.uptime}s`} testId="ops-uptime-value" />
             <StatCard label="Heap" value={`${status.memMb || 0} MB`} color={status.memMb > 500 ? AMBER : GREEN} />
             <StatCard label="Environment" value={status.nodeEnv || '—'} color={status.nodeEnv === 'production' ? GREEN : AMBER} />
           </>

@@ -67,11 +67,11 @@ jobs:
 
       # ── Layer 1 (mocked): existing E2E suite ─────────────────────────────────
       - name: E2E suite (mocked API — all workspaces)
-        run: npx playwright test --ignore=tests/e2e/macro-real-data.spec.ts
+        run: npx playwright test --ignore=tests/e2e/macro-real-data.spec.ts --ignore=tests/e2e/real-backend/
         env:
           PLAYWRIGHT_HTML_OPEN: never
 
-      # ── Layer 1 (real data): Macro workspace against seeded backend ───────────
+      # ── Layer 2 (real data): Macro + all-modules against seeded backend ───────
       - name: Start backend with seeded data
         run: |
           PORT=10000 HISTORICAL_DATA_DIR=${{ github.workspace }}/data/test-historical \
@@ -84,6 +84,15 @@ jobs:
 
       - name: E2E real-data Macro spec
         run: npx playwright test tests/e2e/macro-real-data.spec.ts
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+          REAL_BACKEND_URL: http://127.0.0.1:10000
+          VITE_API_BASE: http://127.0.0.1:10000
+          SEED_MANIFEST_PATH: ${{ github.workspace }}/data/test-historical/SEED_MANIFEST.json
+          HISTORICAL_DATA_DIR: ${{ github.workspace }}/data/test-historical
+
+      - name: E2E real-backend all-modules spec (Phase 2 functional coverage)
+        run: npx playwright test tests/e2e/real-backend/functional-all-modules.spec.ts
         env:
           PLAYWRIGHT_HTML_OPEN: never
           REAL_BACKEND_URL: http://127.0.0.1:10000

@@ -114,7 +114,10 @@ function SizingChips({ result }) {
       {chips.map(({ label, value, color }) => (
         <div key={label} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '8px 12px' }}>
           <div style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-          <div style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 14 }}>{value}</div>
+          <div
+            style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 14 }}
+            data-testid={label === 'Shares' ? 'institutional-shares-value' : undefined}
+          >{value}</div>
         </div>
       ))}
     </div>
