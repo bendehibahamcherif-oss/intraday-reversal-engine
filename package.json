@@ -18,7 +18,12 @@
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:install": "playwright install --with-deps chromium",
-    "production:readiness": "node scripts/run-production-readiness.js"
+    "production:readiness": "node scripts/run-production-readiness.js",
+    "seed": "node scripts/seed-test-data.js",
+    "seed:test": "TEST=1 node scripts/seed-test-data.js",
+    "api:coverage": "node scripts/api-coverage-check.js",
+    "api:coverage:test": "TEST=1 node scripts/api-coverage-check.js",
+    "prod:smoke": "node scripts/prod-smoke.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

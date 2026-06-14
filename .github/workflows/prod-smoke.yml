@@ -1,0 +1,50 @@
+name: Prod smoke — live stack health
+
+on:
+  schedule:
+    # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Backend URL (default: https://reversal.onrender.com)'
+        required: false
+        default: ''
+      frontend_url:
+        description: 'Frontend URL (default: https://intraday-reversal-engine.onrender.com)'
+        required: false
+        default: ''
+
+jobs:
+  prod-smoke:
+    name: Production smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run production smoke
+        run: node scripts/prod-smoke.js
+        env:
+          BACKEND_URL:  ${{ github.event.inputs.backend_url  || 'https://reversal.onrender.com' }}
+          FRONTEND_URL: ${{ github.event.inputs.frontend_url || 'https://intraday-reversal-engine.onrender.com' }}
+
+      - name: Upload smoke results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-smoke-results-${{ github.run_id }}
+          path: PROD_SMOKE_RESULTS.json
+          if-no-files-found: ignore
+          retention-days: 30

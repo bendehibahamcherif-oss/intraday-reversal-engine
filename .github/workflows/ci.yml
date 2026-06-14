@@ -1,0 +1,113 @@
+name: CI — seed · build · unit · api-coverage · e2e
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ci:
+    name: Full CI pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Layer 0: seed real historical data (Yahoo, no API key needed) ────────
+      - name: Seed test data (SPY + NFLX 1d via Yahoo)
+        run: TEST=1 node scripts/seed-test-data.js
+        env:
+          HISTORICAL_DATA_DIR: ${{ github.workspace }}/data/test-historical
+
+      # ── Unit tests ────────────────────────────────────────────────────────────
+      - name: Unit tests (vitest)
+        run: npm test
+
+      # ── Layer 2: API coverage (starts mini-server, no browser needed) ─────────
+      - name: API coverage check
+        run: TEST=1 node scripts/api-coverage-check.js
+        env:
+          HISTORICAL_DATA_DIR: ${{ github.workspace }}/data/test-historical
+
+      # ── Build frontend ────────────────────────────────────────────────────────
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_BASE: http://127.0.0.1:10000
+
+      # ── Static checks ─────────────────────────────────────────────────────────
+      - name: Static API scanner
+        run: node scripts/static-api-scanner.js
+
+      - name: Detect duplicate menus
+        run: node scripts/detect-menu-duplicates.js
+
+      # ── Install Playwright ────────────────────────────────────────────────────
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # ── Layer 1 (mocked): existing E2E suite ─────────────────────────────────
+      - name: E2E suite (mocked API — all workspaces)
+        run: npx playwright test --ignore=tests/e2e/macro-real-data.spec.ts
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+
+      # ── Layer 1 (real data): Macro workspace against seeded backend ───────────
+      - name: Start backend with seeded data
+        run: |
+          PORT=10000 HISTORICAL_DATA_DIR=${{ github.workspace }}/data/test-historical \
+            node server/index.cjs &
+          # Wait for backend health (up to 30 s)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:10000/health && break || sleep 1
+          done
+          curl -sf http://127.0.0.1:10000/health || (echo "Backend did not start in 30s" && exit 1)
+
+      - name: E2E real-data Macro spec
+        run: npx playwright test tests/e2e/macro-real-data.spec.ts
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+          REAL_BACKEND_URL: http://127.0.0.1:10000
+          VITE_API_BASE: http://127.0.0.1:10000
+          SEED_MANIFEST_PATH: ${{ github.workspace }}/data/test-historical/SEED_MANIFEST.json
+          HISTORICAL_DATA_DIR: ${{ github.workspace }}/data/test-historical
+
+      # ── Upload artifacts ──────────────────────────────────────────────────────
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-failure-artifacts
+          path: |
+            playwright-report/
+            test-results/
+            playwright-results/
+            API_COVERAGE_RESULTS.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload JSON results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-json-results
+          path: |
+            API_COVERAGE_RESULTS.json
+            STATIC_API_SCAN_RESULTS.json
+            MENU_DUPLICATION_RESULTS.json
+            data/test-historical/SEED_MANIFEST.json
+            playwright-results/**/*.json
+          if-no-files-found: ignore
+          retention-days: 14
