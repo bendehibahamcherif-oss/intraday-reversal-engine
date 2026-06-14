@@ -26,7 +26,8 @@
     "prod:smoke": "node scripts/prod-smoke.js",
     "coverage:generate": "node scripts/generate-module-coverage.js",
     "coverage:check": "node scripts/check-module-coverage.js",
-    "e2e:functional": "npx playwright test tests/e2e/functional/"
+    "e2e:functional": "npx playwright test tests/e2e/functional/",
+    "e2e:real-backend": "npx playwright test tests/e2e/real-backend/"
   },
   "dependencies": {
     "cors": "^2.8.5",

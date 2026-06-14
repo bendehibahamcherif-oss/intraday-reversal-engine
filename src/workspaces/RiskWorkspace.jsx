@@ -310,7 +310,7 @@ function KillSwitchPanel() {
           borderRadius: 10, padding: '14px 20px', textAlign: 'center', minWidth: 160,
         }}>
           <div style={{ fontSize: 26, marginBottom: 6 }}>{active ? '🛑' : '✅'}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: active ? RED : GREEN }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: active ? RED : GREEN }} data-testid="risk-kill-switch-state">
             {active ? 'KILL SWITCH ACTIVE' : 'Trading Enabled'}
           </div>
           {reason && <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>{reason}</div>}

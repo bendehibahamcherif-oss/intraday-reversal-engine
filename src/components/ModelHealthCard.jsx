@@ -67,7 +67,7 @@ export default function ModelHealthCard({ onPromoteChallenger, showPromoteButton
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={S.lbl}>Champion Model</div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={S.badge(ok)}>
+          <span style={S.badge(ok)} data-testid="ml-health-status">
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: ok ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
             {ok ? 'Healthy' : 'Degraded'}
           </span>

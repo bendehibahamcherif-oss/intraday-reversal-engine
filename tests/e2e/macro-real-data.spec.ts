@@ -105,6 +105,7 @@ async function waitForCorrelationMatrix(page: import('@playwright/test').Page, t
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
+// @coverage:covered MacroMultiAsset
 test.describe('Macro workspace — real backend with seeded SPY + NFLX data', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!SPY_DATASET_ID, `SEED_MANIFEST missing or SPY dataset not seeded — run: node scripts/seed-test-data.js`);
