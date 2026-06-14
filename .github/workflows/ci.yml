@@ -58,6 +58,13 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
+      # ── Module coverage barrier (static — before tests run) ──────────────────
+      - name: Generate module coverage manifest
+        run: node scripts/generate-module-coverage.js
+
+      - name: Module coverage barrier
+        run: node scripts/check-module-coverage.js
+
       # ── Layer 1 (mocked): existing E2E suite ─────────────────────────────────
       - name: E2E suite (mocked API — all workspaces)
         run: npx playwright test --ignore=tests/e2e/macro-real-data.spec.ts
@@ -105,6 +112,7 @@ jobs:
           name: ci-json-results
           path: |
             API_COVERAGE_RESULTS.json
+            MODULE_COVERAGE.json
             STATIC_API_SCAN_RESULTS.json
             MENU_DUPLICATION_RESULTS.json
             data/test-historical/SEED_MANIFEST.json

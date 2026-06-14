@@ -75,13 +75,43 @@ async function checkProviders() {
 }
 
 async function checkMacroRoute() {
-  console.log('\n── /api/macro/correlation exists ────────────────────────');
+  console.log('\n── /api/macro/correlation — Macro journey ───────────────');
+
+  // Step 1: confirm the endpoint exists (not 404)
   const res  = await fetchRetry(`${BACKEND_URL}/api/macro/correlation?symbols=SPY&window=20`, 'GET /api/macro/correlation');
   let body   = {};
   try { body = await res.json(); } catch { /**/ }
   record('/api/macro/correlation → not 404',        res.status !== 404,  `status=${res.status}`);
   record('/api/macro/correlation → known response', typeof body.ok === 'boolean' || typeof body.status === 'string',
     `ok=${body.ok} status=${body.status}`);
+
+  // Step 2: if the server has seeded data, assert finite correlation values
+  if (body.status === 'ready') {
+    const obs     = body.observations ?? body.alignedRows ?? 0;
+    const matrix  = Array.isArray(body.matrix) ? body.matrix : [];
+    record('/api/macro/correlation → observations ≥ 1', obs >= 1, `observations=${obs}`);
+
+    // Check off-diagonal cell: find any numeric (non-identity) value
+    const finiteOffDiag = matrix.some((row) => {
+      const symbol = row.symbol;
+      return Object.entries(row).some(([key, val]) => {
+        if (key === 'symbol' || key === symbol) return false;
+        const n = Number(val);
+        return Number.isFinite(n);
+      });
+    });
+    record('/api/macro/correlation → finite off-diagonal value', finiteOffDiag,
+      finiteOffDiag ? 'found finite correlation' : 'no finite off-diagonal cell (all NaN / empty matrix)');
+  } else {
+    // not_enough_data is acceptable in production (no data seeded) — log, don't fail
+    console.log(`  ℹ  /api/macro/correlation status="${body.status}" — seeded data check skipped`);
+  }
+
+  // Step 3: also verify /api/macro/beta is reachable
+  const betaRes  = await fetchRetry(`${BACKEND_URL}/api/macro/beta?symbol=SPY&benchmark=SPY&window=20`, 'GET /api/macro/beta');
+  let betaBody   = {};
+  try { betaBody = await betaRes.json(); } catch { /**/ }
+  record('/api/macro/beta → not 404', betaRes.status !== 404, `status=${betaRes.status}`);
 }
 
 async function checkFrontend() {

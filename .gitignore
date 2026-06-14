@@ -12,3 +12,4 @@ playwright-report/
 playwright-results/
 test-results/
 API_COVERAGE_RESULTS.json
+MODULE_COVERAGE.json

@@ -83,10 +83,18 @@ function WorkspaceSwitch({ workspace, marketData }) {
 
   if (!WorkspaceComponent) {
     const DefaultComponent = getWorkspaceComponent(getWorkspace(DEFAULT_WORKSPACE_ID));
-    return <DefaultComponent marketData={marketData} />;
+    return (
+      <div data-testid="workspace-panel" data-workspace-id={DEFAULT_WORKSPACE_ID} style={{ display: 'contents' }}>
+        <DefaultComponent marketData={marketData} />
+      </div>
+    );
   }
 
-  return <WorkspaceComponent marketData={marketData} workspaceId={workspace} />;
+  return (
+    <div data-testid="workspace-panel" data-workspace-id={workspace} style={{ display: 'contents' }}>
+      <WorkspaceComponent marketData={marketData} workspaceId={workspace} />
+    </div>
+  );
 }
 
 export default function App() {
