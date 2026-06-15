@@ -84,12 +84,12 @@ function ModeBadge({ mode, liveUnlocked, setMode }) {
 // ── Active orders table ────────────────────────────────────────────────────────
 function ActiveOrdersTable({ orders, onCancel }) {
   const active = orders.filter((o) => !['filled', 'cancelled', 'rejected'].includes(String(o.status || '').toLowerCase()));
-  if (!active.length) return <div style={{ color: MUTED, fontSize: 12 }}>No active orders.</div>;
+  if (!active.length) return <div data-testid="exec-active-empty" style={{ color: MUTED, fontSize: 12 }}>No active orders.</div>;
   const th = { padding: '6px 10px', fontSize: 11, color: MUTED, textAlign: 'left', borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
   const td = { padding: '5px 8px', fontSize: 12, borderBottom: `1px solid ${BORDER}22`, verticalAlign: 'middle' };
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+      <table data-testid="exec-active-orders" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
         <thead>
           <tr>
             <th style={th}>Order ID</th>
@@ -109,7 +109,7 @@ function ActiveOrdersTable({ orders, onCancel }) {
             const oid = o.orderId || o.id || o.clientOrderId;
             const side = String(o.side || '').toUpperCase();
             return (
-              <tr key={oid || i}>
+              <tr data-testid="exec-active-row" key={oid || i}>
                 <td style={{ ...td, fontFamily: 'monospace', color: MUTED, fontSize: 10 }}>…{String(oid || '').slice(-10)}</td>
                 <td style={{ ...td, fontWeight: 700 }}>{o.symbol || '—'}</td>
                 <td style={{ ...td, color: side === 'BUY' ? GREEN : RED, fontWeight: 700 }}>{side}</td>
@@ -184,7 +184,7 @@ function FillsBlotter({ fills }) {
 function AnalyticsPanel({ analytics }) {
   if (!analytics) return <div style={{ color: MUTED, fontSize: 12 }}>No analytics yet. Click ↻ Refresh to load.</div>;
   const chips = [
-    { label: 'Fill Rate',       value: fmtPct(analytics.fillRate ?? analytics.fill_rate),                           color: GREEN },
+    { label: 'Fill Rate',       value: fmtPct(analytics.fillRate ?? analytics.fill_rate),                           color: GREEN,  testId: 'exec-fill-rate' },
     { label: 'Avg Slippage',    value: `${fmtN(analytics.avgSlippage ?? analytics.avg_slippage, 1)} bps`,           color: Math.abs(Number(analytics.avgSlippage)) > 15 ? AMBER : GREEN },
     { label: 'Total Orders',    value: fmtN(analytics.totalOrders ?? analytics.total_orders, 0),                    color: TEXT  },
     { label: 'Total Fills',     value: fmtN(analytics.totalFills  ?? analytics.total_fills,  0),                    color: TEXT  },
@@ -195,10 +195,10 @@ function AnalyticsPanel({ analytics }) {
   ];
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
-      {chips.map(({ label, value, color }) => (
+      {chips.map(({ label, value, color, testId }) => (
         <div key={label} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '10px 14px' }}>
           <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-          <div style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 14 }}>{value}</div>
+          <div data-testid={testId} style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 14 }}>{value}</div>
         </div>
       ))}
     </div>
@@ -329,7 +329,7 @@ export default function ExecutionWorkspace() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <strong>Active Orders</strong>
           {ordersLoading && <span style={{ color: MUTED, fontSize: 12 }}>Loading…</span>}
-          <span style={{ fontSize: 11, color: MUTED }}>
+          <span data-testid="exec-active-count" style={{ fontSize: 11, color: MUTED }}>
             {orders.filter((o) => !['filled', 'cancelled', 'rejected'].includes(String(o.status || '').toLowerCase())).length} active
           </span>
         </div>

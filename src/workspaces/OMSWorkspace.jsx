@@ -70,22 +70,22 @@ function StatsPanel({ stats, loading }) {
   if (!stats)  return <div style={{ color: MUTED, fontSize: 12 }}>No stats available. Click ↻ Refresh.</div>;
 
   const chips = [
-    { label: 'Total Orders',   value: fmtN(stats.totalOrders ?? stats.total_orders, 0),                   color: TEXT  },
+    { label: 'Total Orders',   value: fmtN(stats.totalOrders ?? stats.total_orders, 0),                   color: TEXT,   testId: 'oms-stats-total' },
     { label: 'Active',         value: fmtN(stats.activeOrders ?? stats.active_orders, 0),                  color: BLUE  },
     { label: 'Filled',         value: fmtN(stats.filledOrders ?? stats.filled_orders, 0),                  color: GREEN },
     { label: 'Cancelled',      value: fmtN(stats.cancelledOrders ?? stats.cancelled_orders, 0),            color: MUTED },
     { label: 'Rejected',       value: fmtN(stats.rejectedOrders ?? stats.rejected_orders, 0),              color: RED   },
     { label: 'Partial Fills',  value: fmtN(stats.partialFills ?? stats.partial_fills, 0),                  color: VIOLET},
-    { label: 'Fill Rate',      value: stats.fillRate != null ? `${(Number(stats.fillRate) * 100).toFixed(1)}%` : '—', color: GREEN },
+    { label: 'Fill Rate',      value: stats.fillRate != null ? `${(Number(stats.fillRate) * 100).toFixed(1)}%` : '—', color: GREEN, testId: 'oms-stats-fill-rate' },
     { label: 'Pending Recon',  value: fmtN(stats.pendingReconciliation ?? stats.pending_reconciliation, 0), color: stats?.pendingReconciliation > 0 ? AMBER : MUTED },
   ];
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
-      {chips.map(({ label, value, color }) => (
+      {chips.map(({ label, value, color, testId }) => (
         <div key={label} style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '10px 14px' }}>
           <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-          <div style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 14 }}>{value}</div>
+          <div data-testid={testId} style={{ fontWeight: 800, fontFamily: 'monospace', color, fontSize: 14 }}>{value}</div>
         </div>
       ))}
     </div>
@@ -94,14 +94,14 @@ function StatsPanel({ stats, loading }) {
 
 // ── OMS Orders table ──────────────────────────────────────────────────────────
 function OMSOrdersTable({ orders, selectedOrderId, onSelect }) {
-  if (!orders.length) return <div style={{ color: MUTED, fontSize: 12 }}>No OMS orders found.</div>;
+  if (!orders.length) return <div data-testid="oms-orders-empty" style={{ color: MUTED, fontSize: 12 }}>No OMS orders found.</div>;
 
   const th = { padding: '6px 10px', fontSize: 11, color: MUTED, textAlign: 'left', borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
   const td = { padding: '5px 8px', fontSize: 12, borderBottom: `1px solid ${BORDER}22`, verticalAlign: 'middle', cursor: 'pointer' };
 
   return (
     <div style={{ overflowX: 'auto', maxHeight: 420 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+      <table data-testid="oms-orders-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
         <thead>
           <tr>
             <th style={th}>OMS ID</th>
@@ -125,6 +125,7 @@ function OMSOrdersTable({ orders, selectedOrderId, onSelect }) {
             const isTerminal = OMS_TERMINAL.has(String(o.omsState || o.state || '').toUpperCase());
             return (
               <tr
+                data-testid="oms-order-row"
                 key={oid || i}
                 onClick={() => onSelect(isSelected ? null : oid)}
                 style={{ background: isSelected ? BLUE + '11' : 'transparent', outline: isSelected ? `1px solid ${BLUE}44` : 'none' }}
@@ -430,7 +431,7 @@ export default function OMSWorkspace() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <strong>Canonical Order Book</strong>
           {ordersLoading && <span style={{ color: MUTED, fontSize: 12 }}>Loading…</span>}
-          <span style={{ fontSize: 11, color: MUTED }}>{orders.length} order{orders.length !== 1 ? 's' : ''}</span>
+          <span data-testid="oms-orders-count" style={{ fontSize: 11, color: MUTED }}>{orders.length} order{orders.length !== 1 ? 's' : ''}</span>
           <div style={{ marginLeft: 'auto' }}>
             <FilterBar
               filterSymbol={filterSymbol}

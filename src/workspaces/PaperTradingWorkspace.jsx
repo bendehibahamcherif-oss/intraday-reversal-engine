@@ -68,7 +68,7 @@ export default function PaperTradingWorkspace() {
           <strong>PAPER TRADING ONLY</strong> — No real orders are sent.
         </div>
         <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr auto' }}>
-          <input value={store.symbol} onChange={(e) => store.setSymbol(e.target.value)} placeholder="Symbol" />
+          <input data-testid="pt-symbol-input" value={store.symbol} onChange={(e) => store.setSymbol(e.target.value)} placeholder="Symbol" />
           <button onClick={store.refreshAll}>Refresh</button>
         </div>
         {store.error ? <p style={{ color: '#fca5a5' }}>{store.error}</p> : null}
@@ -76,13 +76,13 @@ export default function PaperTradingWorkspace() {
 
       <PanelContainer title="Order Ticket (Simulated)">
         <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(5, minmax(110px, 1fr))' }}>
-          <select value={store.orderTicket.side} onChange={(e) => store.updateOrderTicket('side', e.target.value)}><option>BUY</option><option>SELL</option></select>
-          <select value={store.orderTicket.type} onChange={(e) => store.updateOrderTicket('type', e.target.value)}><option>MARKET</option><option>LIMIT</option></select>
-          <input type="number" min="1" value={store.orderTicket.quantity} onChange={(e) => store.updateOrderTicket('quantity', e.target.value)} placeholder="Qty" />
-          <input type="number" step="0.01" value={store.orderTicket.requestedPrice} onChange={(e) => store.updateOrderTicket('requestedPrice', e.target.value)} placeholder="Requested Price" />
+          <select data-testid="pt-side-select" value={store.orderTicket.side} onChange={(e) => store.updateOrderTicket('side', e.target.value)}><option>BUY</option><option>SELL</option></select>
+          <select data-testid="pt-type-select" value={store.orderTicket.type} onChange={(e) => store.updateOrderTicket('type', e.target.value)}><option>MARKET</option><option>LIMIT</option></select>
+          <input data-testid="pt-qty-input" type="number" min="1" value={store.orderTicket.quantity} onChange={(e) => store.updateOrderTicket('quantity', e.target.value)} placeholder="Qty" />
+          <input data-testid="pt-price-input" type="number" step="0.01" value={store.orderTicket.requestedPrice} onChange={(e) => store.updateOrderTicket('requestedPrice', e.target.value)} placeholder="Requested Price" />
           <input value={store.orderTicket.strategyId} onChange={(e) => store.updateOrderTicket('strategyId', e.target.value)} placeholder="Strategy ID (optional)" />
         </div>
-        <button style={{ marginTop: 12 }} disabled={store.loading || killSwitchOn} onClick={store.placeOrder}>Place Paper Order</button>
+        <button data-testid="pt-place-btn" style={{ marginTop: 12 }} disabled={store.loading || killSwitchOn} onClick={store.placeOrder}>Place Paper Order</button>
         {killSwitchOn ? <p style={{ color: '#fbbf24' }}>Kill switch is enabled; paper order placement is blocked.</p> : null}
       </PanelContainer>
 
@@ -118,11 +118,11 @@ export default function PaperTradingWorkspace() {
       </PanelContainer>
 
       <PanelContainer title="Orders">
-        {orders.length === 0 ? <div>No paper orders yet</div> : (
-          <div style={tableWrap}><table style={{ width: '100%', minWidth: 1300 }}><thead><tr><th style={cell}>ID</th><th style={cell}>Symbol</th><th style={cell}>Side</th><th style={cell}>Type</th><th style={cell}>Quantity</th><th style={cell}>Requested Price</th><th style={cell}>Status</th><th style={cell}>Created At</th><th style={cell}>Filled At</th><th style={cell}>Fill Price</th><th style={cell}>Strategy ID</th><th style={cell}>Source</th><th style={cell}>Warnings</th><th style={cell}>Action</th></tr></thead><tbody>
+        {orders.length === 0 ? <div data-testid="pt-orders-empty">No paper orders yet</div> : (
+          <div style={tableWrap}><table data-testid="pt-orders-table" style={{ width: '100%', minWidth: 1300 }}><thead><tr><th style={cell}>ID</th><th style={cell}>Symbol</th><th style={cell}>Side</th><th style={cell}>Type</th><th style={cell}>Quantity</th><th style={cell}>Requested Price</th><th style={cell}>Status</th><th style={cell}>Created At</th><th style={cell}>Filled At</th><th style={cell}>Fill Price</th><th style={cell}>Strategy ID</th><th style={cell}>Source</th><th style={cell}>Warnings</th><th style={cell}>Action</th></tr></thead><tbody>
             {orders.map((o, index) => {
               const orderId = o.id || o.orderId;
-              return <tr key={orderId || `order-${index}`}><td style={cell}>{valueOrDash(orderId)}</td><td style={cell}>{valueOrDash(o.symbol)}</td><td style={cell}>{valueOrDash(o.side)}</td><td style={cell}>{valueOrDash(o.type)}</td><td style={cell}>{formatNumber(o.quantity)}</td><td style={cell}>{formatNumber(o.requestedPrice)}</td><td style={{ ...cell, color: statusColor(o.status) }}>{valueOrDash(o.status)}</td><td style={cell}>{formatDateTime(o.createdAt)}</td><td style={cell}>{formatDateTime(o.filledAt)}</td><td style={cell}>{formatNumber(o.fillPrice)}</td><td style={cell}>{valueOrDash(o.strategyId)}</td><td style={cell}>{valueOrDash(o.source)}</td><td style={cell}>{formatWarnings(o.warnings)}</td><td style={cell}><button disabled={!orderId} onClick={() => orderId && store.cancelOrder(orderId)}>Cancel</button></td></tr>;
+              return <tr data-testid="pt-order-row" key={orderId || `order-${index}`}><td style={cell}>{valueOrDash(orderId)}</td><td style={cell}>{valueOrDash(o.symbol)}</td><td style={cell}>{valueOrDash(o.side)}</td><td style={cell}>{valueOrDash(o.type)}</td><td data-testid="pt-order-qty" style={cell}>{formatNumber(o.quantity)}</td><td style={cell}>{formatNumber(o.requestedPrice)}</td><td style={{ ...cell, color: statusColor(o.status) }}>{valueOrDash(o.status)}</td><td style={cell}>{formatDateTime(o.createdAt)}</td><td style={cell}>{formatDateTime(o.filledAt)}</td><td style={cell}>{formatNumber(o.fillPrice)}</td><td style={cell}>{valueOrDash(o.strategyId)}</td><td style={cell}>{valueOrDash(o.source)}</td><td style={cell}>{formatWarnings(o.warnings)}</td><td style={cell}><button disabled={!orderId} onClick={() => orderId && store.cancelOrder(orderId)}>Cancel</button></td></tr>;
             })}
           </tbody></table></div>
         )}

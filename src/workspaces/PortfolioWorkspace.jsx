@@ -44,11 +44,11 @@ function ModeBadge({ mode, onToggle }) {
   );
 }
 
-function Chip({ label, value, color }) {
+function Chip({ label, value, color, testId }) {
   return (
     <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '10px 14px' }}>
       <div style={{ color: MUTED, fontSize: 11, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontWeight: 800, color: color || '#e5e7eb', fontFamily: 'monospace', fontSize: 14 }}>{value}</div>
+      <div data-testid={testId} style={{ fontWeight: 800, color: color || '#e5e7eb', fontFamily: 'monospace', fontSize: 14 }}>{value}</div>
     </div>
   );
 }
@@ -199,16 +199,16 @@ export default function PortfolioWorkspace() {
         {pnlError ? (
           <div style={{ color: RED, fontSize: 12 }}>{pnlError}</div>
         ) : pnl ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
-            <Chip label="Realized" value={fmtMoney(pnl.realized)} color={Number(pnl.realized) >= 0 ? GREEN : RED} />
-            <Chip label="Unrealized" value={fmtMoney(pnl.unrealized)} color={Number(pnl.unrealized) >= 0 ? GREEN : RED} />
-            <Chip label="Total" value={fmtMoney(pnl.total)} color={Number(pnl.total) >= 0 ? GREEN : RED} />
+          <div data-testid="portfolio-pnl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
+            <Chip label="Realized" value={fmtMoney(pnl.realized)} color={Number(pnl.realized) >= 0 ? GREEN : RED} testId="portfolio-pnl-realized" />
+            <Chip label="Unrealized" value={fmtMoney(pnl.unrealized)} color={Number(pnl.unrealized) >= 0 ? GREEN : RED} testId="portfolio-pnl-unrealized" />
+            <Chip label="Total" value={fmtMoney(pnl.total)} color={Number(pnl.total) >= 0 ? GREEN : RED} testId="portfolio-pnl-total" />
             <Chip label="Daily P&L" value={fmtMoney(pnl.dailyPnL ?? pnl.daily_pnl)} color={Number(pnl.dailyPnL ?? pnl.daily_pnl) >= 0 ? GREEN : RED} />
             <Chip label="Win Rate" value={fmtPct(winRatePct, 1)} />
             <Chip label="Trades" value={fmtN(pnl.tradeCount ?? pnl.trade_count, 0)} />
           </div>
         ) : (
-          <div style={{ color: MUTED, fontSize: 12 }}>No P&L data. Click Refresh All to load.</div>
+          <div data-testid="portfolio-pnl-empty" style={{ color: MUTED, fontSize: 12 }}>No P&L data. Click Refresh All to load.</div>
         )}
       </div>
 

@@ -84,9 +84,9 @@ function EquityCurve({ trades }) {
 }
 
 // ── Metric chip ───────────────────────────────────────────────────────────────
-function Chip({ label, value, color }) {
+function Chip({ label, value, color, testId }) {
   return (
-    <div style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+    <div data-testid={testId} style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
       <div style={{ fontSize: 10, color: MUTED }}>{label}</div>
       <div style={{ fontSize: 14, fontWeight: 700, color: color || TEXT, marginTop: 2, fontFamily: 'monospace' }}>{value}</div>
     </div>
@@ -127,6 +127,7 @@ export default function StrategyPreviewChart() {
         </pre>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
           <input
+            data-testid="preview-disclaimer-checkbox"
             type="checkbox"
             onChange={(e) => { if (e.target.checked) acceptDisclaimer(); }}
             style={{ width: 16, height: 16, accentColor: AMBER, cursor: 'pointer' }}
@@ -152,6 +153,7 @@ export default function StrategyPreviewChart() {
       {/* Run button */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <button
+          data-testid="preview-run-btn"
           onClick={runPreviewBacktest}
           disabled={previewLoading}
           style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12, cursor: previewLoading ? 'default' : 'pointer', opacity: previewLoading ? 0.7 : 1, fontWeight: 600 }}
@@ -172,10 +174,10 @@ export default function StrategyPreviewChart() {
           </div>
 
           {/* Metrics grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8 }}>
-            <Chip label="Total P&L" value={`${totalPnl >= 0 ? '+' : ''}${fmt(totalPnl)}`} color={pnlColor} />
-            <Chip label="Trades" value={m.numberOfTrades ?? trades.length} />
-            <Chip label="Win Rate" value={m.winRate != null ? `${(Number(m.winRate) * 100).toFixed(0)}%` : '—'} />
+          <div data-testid="preview-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8 }}>
+            <Chip label="Total P&L" value={`${totalPnl >= 0 ? '+' : ''}${fmt(totalPnl)}`} color={pnlColor} testId="preview-pnl" />
+            <Chip label="Trades" value={m.numberOfTrades ?? trades.length} testId="preview-trades" />
+            <Chip label="Win Rate" value={m.winRate != null ? `${(Number(m.winRate) * 100).toFixed(0)}%` : '—'} testId="preview-winrate" />
             <Chip label="Max DD" value={m.maxDrawdown != null ? fmt(m.maxDrawdown) : '—'} color={Number(m.maxDrawdown) < 0 ? RED : TEXT} />
             <Chip label="Profit Factor" value={m.profitFactor != null ? fmt(m.profitFactor) : '—'} />
             <Chip label="Expectancy" value={m.expectancy != null ? fmt(m.expectancy) : '—'} />
@@ -198,7 +200,7 @@ export default function StrategyPreviewChart() {
       )}
 
       {!previewBacktest && !previewLoading && (
-        <div style={{ color: MUTED, fontSize: 12 }}>
+        <div data-testid="preview-empty" style={{ color: MUTED, fontSize: 12 }}>
           Click "Run Preview Backtest" to see a simplified simulation. Ensure strategies are generated first (run Evaluate to populate context).
         </div>
       )}
