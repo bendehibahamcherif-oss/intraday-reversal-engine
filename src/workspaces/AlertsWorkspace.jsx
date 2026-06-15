@@ -87,11 +87,11 @@ function CreateAlertForm({ onCreated }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
           <span style={label}>Symbol</span>
-          <input style={input} value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} placeholder="SPY" />
+          <input data-testid="alerts-symbol-input" style={input} value={symbol} onChange={(e) => setSymbol(e.target.value.toUpperCase())} placeholder="SPY" />
         </div>
         <div>
           <span style={label}>Alert Type</span>
-          <select style={input} value={type} onChange={(e) => setType(e.target.value)}>
+          <select data-testid="alerts-type-select" style={input} value={type} onChange={(e) => setType(e.target.value)}>
             {ALERT_TYPE_GROUPS.map((g) => (
               <optgroup key={g.label} label={g.label}>
                 {g.types.map((t) => (
@@ -108,7 +108,7 @@ function CreateAlertForm({ onCreated }) {
           {needsThreshold && (
             <div>
               <span style={label}>Threshold</span>
-              <input style={input} type="number" step="any" inputMode="decimal" value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder="e.g. 590" />
+              <input data-testid="alerts-threshold-input" style={input} type="number" step="any" inputMode="decimal" value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder="e.g. 590" />
             </div>
           )}
           {needsEma && (
@@ -148,7 +148,7 @@ function CreateAlertForm({ onCreated }) {
         <div style={{ color: RED, fontSize: 12 }}>{formError || error}</div>
       )}
 
-      <button type="submit" style={btn(AMBER.replace('#', '#') )} disabled={loading}>
+      <button data-testid="alerts-create-btn" type="submit" style={btn(AMBER.replace('#', '#') )} disabled={loading}>
         {loading ? 'Creating…' : '+ Create Alert'}
       </button>
     </form>
@@ -163,15 +163,15 @@ function AlertList() {
   const deleteAlert  = useAlertStore((s) => s.deleteAlert);
 
   if (!alerts.length) {
-    return <p style={{ color: MUTED, margin: 0 }}>No alerts yet. Create one above.</p>;
+    return <p data-testid="alerts-empty" style={{ color: MUTED, margin: 0 }}>No alerts yet. Create one above.</p>;
   }
 
   return (
-    <div style={{ display: 'grid', gap: 6 }}>
+    <div data-testid="alerts-list" style={{ display: 'grid', gap: 6 }}>
       {alerts.map((a) => (
-        <div key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', background: BG, border: `1px solid ${a.enabled ? BORDER : DISABLED}`, borderRadius: 8, opacity: a.enabled ? 1 : 0.65 }}>
+        <div data-testid="alerts-item" key={a.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', background: BG, border: `1px solid ${a.enabled ? BORDER : DISABLED}`, borderRadius: 8, opacity: a.enabled ? 1 : 0.65 }}>
           {/* Symbol badge */}
-          <span style={{ background: '#2a2a4a', color: AMBER, fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 5, flexShrink: 0 }}>
+          <span data-testid="alerts-item-symbol" style={{ background: '#2a2a4a', color: AMBER, fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 5, flexShrink: 0 }}>
             {a.symbol}
           </span>
 

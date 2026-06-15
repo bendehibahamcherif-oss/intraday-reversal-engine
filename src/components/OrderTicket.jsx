@@ -47,6 +47,7 @@ export default function OrderTicket() {
         <div style={field}>
           <span style={label}>Symbol</span>
           <input
+            data-testid="exec-symbol-input"
             value={ticket.symbol}
             onChange={(e) => setTicket({ symbol: e.target.value.toUpperCase() })}
             style={{ ...iStyle, fontWeight: 700 }}
@@ -58,12 +59,14 @@ export default function OrderTicket() {
           <span style={label}>Side</span>
           <div style={{ display: 'flex', gap: 4, height: 34 }}>
             <button
+              data-testid="exec-buy-btn"
               onClick={() => setTicket({ side: 'buy' })}
               style={{ flex: 1, border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12, background: buyColor, color: ticket.side === 'buy' ? '#000' : MUTED }}
             >
               BUY
             </button>
             <button
+              data-testid="exec-sell-btn"
               onClick={() => setTicket({ side: 'sell' })}
               style={{ flex: 1, border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 12, background: sellColor, color: ticket.side === 'sell' ? '#fff' : MUTED }}
             >
@@ -75,7 +78,7 @@ export default function OrderTicket() {
         {/* Order type */}
         <div style={field}>
           <span style={label}>Type</span>
-          <select value={ticket.orderType} onChange={(e) => setTicket({ orderType: e.target.value })} style={{ ...iStyle, padding: '6px 6px' }}>
+          <select data-testid="exec-type-select" value={ticket.orderType} onChange={(e) => setTicket({ orderType: e.target.value })} style={{ ...iStyle, padding: '6px 6px' }}>
             <option value="market">Market</option>
             <option value="limit">Limit</option>
             <option value="stop">Stop</option>
@@ -87,6 +90,7 @@ export default function OrderTicket() {
         <div style={field}>
           <span style={label}>Quantity</span>
           <input
+            data-testid="exec-qty-input"
             type="number" min="1" step="1"
             value={ticket.quantity}
             onChange={(e) => setTicket({ quantity: Math.max(1, Number(e.target.value) || 1) })}
@@ -134,6 +138,7 @@ export default function OrderTicket() {
         </button>
 
         <button
+          data-testid="exec-place-btn"
           onClick={placeOrder}
           disabled={!canPlace}
           style={{
